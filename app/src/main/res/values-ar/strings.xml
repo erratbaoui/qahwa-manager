@@ -1,0 +1,43 @@
+<resources>
+    <string name="app_name">مدير القهوة | Qahwa</string>
+    <string name="home">الرئيسية</string>
+    <string name="menu">القائمة</string>
+    <string name="orders">الطلبات</string>
+    <string name="inventory">المخزون</string>
+    <string name="today_revenue">إيرادات اليوم</string>
+    <string name="open_orders">الطلبات المفتوحة</string>
+    <string name="low_stock_alerts">تحذيرات نقص المخزون</string>
+    <string name="new_order">طلب جديد</string>
+    <string name="table_number">رقم الطاولة</string>
+    <string name="takeaway">وجبة خارجية</string>
+    <string name="place_order">تأكيد الطلب</string>
+    <string name="mark_as_paid">تحديد كمدفوع</string>
+    <string name="cancel_order">إلغاء الطلب</string>
+    <string name="add_item">إضافة عنصر</string>
+    <string name="price_mad">السعر (درهم)</string>
+    <string name="category">الفئة</string>
+    <string name="available">متاح</string>
+    <string name="sales">المبيعات</string>
+    <string name="today">اليوم</string>
+    <string name="this_week">هذا الأسبوع</string>
+    <string name="all_time">كل الوقت</string>
+    <string name="total_revenue">الإجمالي</string>
+    <string name="greeting">مرحبًا!</string>
+    <string name="quantity">الكمية</string>
+    <string name="unit">الوحدة</string>
+    <string name="low_stock">مخزون منخفض</string>
+    <string name="currency_format">%.2f درهم</string>
+    <string name="edit_item">تعديل العنصر</string>
+    <string name="edit">تعديل</string>
+    <string name="save">حفظ</string>
+    <string name="cancel">إلغاء</string>
+    <string name="item_name">اسم العنصر</string>
+    <string name="low_stock_threshold">حد المخزون المنخفض</string>
+    <string name="modify_inventory">تعديل المخزون</string>
+    <string name="delete">حذف</string>
+    <string name="change_language">تغيير اللغة</string>
+    <string name="language_english">English (الإنجليزية)</string>
+    <string name="language_arabic">العربية</string>
+    <string name="language_french">Français (الفرنسية)</string>
+</resources>
+
