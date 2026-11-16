@@ -11,12 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,11 +27,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -40,7 +37,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
-import com.example.qahwamanager.data.model.Order
+import com.example.qahwamanager.ui.common.currentLanguage
+import com.example.qahwamanager.ui.common.formatMad
+import com.example.qahwamanager.util.localizedName
 import com.example.qahwamanager.data.model.OrderItem
 import com.example.qahwamanager.data.model.OrderStatus
 
@@ -51,12 +50,12 @@ fun OrderDetailScreen(
     onBack: () -> Unit,
     viewModel: OrdersViewModel = hiltViewModel()
 ) {
-    val orderItems by viewModel.getOrderItems(orderId).collectAsStateWithLifecycle()
-    var order by remember { mutableStateOf<Order?>(null) }
-
-    LaunchedEffect(orderId) {
-        order = viewModel.getOrderById(orderId)
-    }
+    val order by remember(orderId) { viewModel.observeOrder(orderId) }
+        .collectAsStateWithLifecycle(initialValue = null)
+    val orderItems by remember(orderId) { viewModel.observeOrderItems(orderId) }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val language = currentLanguage()
 
     Scaffold(
         topBar = {
@@ -64,7 +63,7 @@ fun OrderDetailScreen(
                 title = { Text("Order #$orderId") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -120,12 +119,12 @@ fun OrderDetailScreen(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                items(orderItems) { item ->
-                    OrderItemRow(item = item)
+                items(orderItems, key = { it.id }) { item ->
+                    OrderItemRow(item = item, language = language)
                 }
             }
 
-            Divider()
+            HorizontalDivider()
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -137,7 +136,7 @@ fun OrderDetailScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "%.2f MAD".format(order?.totalAmount ?: 0.0),
+                    text = formatMad(order?.totalCentimes ?: 0L),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -147,11 +146,10 @@ fun OrderDetailScreen(
             Spacer(Modifier.height(8.dp))
 
             if (order?.status == OrderStatus.OPEN) {
+                // Navigate back only once the status change is stored.
                 Button(
-                    onClick = {
-                        viewModel.markAsPaid(orderId)
-                        onBack()
-                    },
+                    onClick = { viewModel.markAsPaid(orderId, onDone = onBack) },
+                    enabled = !isSaving,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.tertiary
@@ -160,10 +158,8 @@ fun OrderDetailScreen(
                     Text(stringResource(R.string.mark_as_paid))
                 }
                 OutlinedButton(
-                    onClick = {
-                        viewModel.cancelOrder(orderId)
-                        onBack()
-                    },
+                    onClick = { viewModel.cancelOrder(orderId, onDone = onBack) },
+                    enabled = !isSaving,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
@@ -177,7 +173,7 @@ fun OrderDetailScreen(
 }
 
 @Composable
-private fun OrderItemRow(item: OrderItem) {
+private fun OrderItemRow(item: OrderItem, language: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -185,11 +181,12 @@ private fun OrderItemRow(item: OrderItem) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = "${item.quantity}× ${item.menuItemName}",
+            text = "${item.quantity}× " +
+                localizedName(item.menuItemName, item.menuItemNameAr, item.menuItemNameFr, language),
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
-            text = "%.2f MAD".format(item.unitPrice * item.quantity),
+            text = formatMad(item.unitPriceCentimes * item.quantity),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium
         )

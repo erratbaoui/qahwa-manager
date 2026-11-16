@@ -4,6 +4,7 @@ plugins {
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.hilt.android)
   alias(libs.plugins.ksp)
+  alias(libs.plugins.room)
 }
 
 android {
@@ -15,6 +16,7 @@ android {
     targetSdk = 37
     versionCode = 1
     versionName = "1.0"
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
   buildTypes {
@@ -39,10 +41,19 @@ android {
       excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
   }
+
+  // Exported Room schemas, needed by MigrationTestHelper.
+  sourceSets {
+    getByName("androidTest").assets.srcDir("$projectDir/schemas")
+  }
 }
 
 kotlin {
   jvmToolchain(17)
+}
+
+room {
+  schemaDirectory("$projectDir/schemas")
 }
 
 dependencies {
@@ -96,6 +107,8 @@ dependencies {
   implementation(libs.room.runtime)
   implementation(libs.room.ktx)
   ksp(libs.room.compiler)
+  androidTestImplementation(libs.room.testing)
+  androidTestImplementation(libs.kotlinx.coroutines.test)
 
   // Kotlinx Serialization
   implementation(libs.kotlinx.serialization.json)

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
+import com.example.qahwamanager.ui.common.formatMad
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
 import java.text.SimpleDateFormat
@@ -96,7 +97,7 @@ fun SalesScreen(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        text = "%.2f MAD".format(totalRevenue),
+                        text = formatMad(totalRevenue),
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -162,7 +163,7 @@ private fun SaleOrderCard(order: Order) {
                 )
             }
             Text(
-                text = "%.2f MAD".format(order.totalAmount),
+                text = formatMad(order.totalCentimes),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.secondary

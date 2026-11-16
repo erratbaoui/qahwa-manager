@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
+import com.example.qahwamanager.ui.common.formatMad
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -98,7 +99,7 @@ fun HomeScreen(
             SummaryCard(
                 modifier = Modifier.weight(1f),
                 label = stringResource(R.string.today_revenue),
-                value = "%.2f MAD".format(uiState.todayRevenue),
+                value = formatMad(uiState.todayRevenueCentimes),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             )

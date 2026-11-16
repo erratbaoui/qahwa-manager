@@ -56,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.InventoryItem
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
+import com.example.qahwamanager.util.parseDecimalInput
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -324,6 +325,12 @@ private fun InventoryItemDialog(
 
     val commonUnits = listOf("kg", "L", "pcs", "g", "pack")
 
+    // Accepts "2.5" and "2,5"; invalid input is flagged instead of being saved as 0 / 1.0.
+    val parsedQuantity = parseDecimalInput(quantity)
+    val parsedThreshold = parseDecimalInput(threshold)
+    val quantityError = quantity.isNotBlank() && parsedQuantity == null
+    val thresholdError = threshold.isNotBlank() && parsedThreshold == null
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -346,6 +353,10 @@ private fun InventoryItemDialog(
                     value = quantity,
                     onValueChange = { quantity = it },
                     label = { Text(stringResource(R.string.quantity)) },
+                    isError = quantityError,
+                    supportingText = if (quantityError) {
+                        { Text(stringResource(R.string.invalid_number)) }
+                    } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -360,7 +371,7 @@ private fun InventoryItemDialog(
                     stepValues.forEach { step ->
                         OutlinedButton(
                             onClick = {
-                                val current = quantity.toDoubleOrNull() ?: 0.0
+                                val current = parseDecimalInput(quantity) ?: 0.0
                                 val updated = maxOf(0.0, current + step)
                                 quantity = updated.toString()
                             },
@@ -400,6 +411,10 @@ private fun InventoryItemDialog(
                     value = threshold,
                     onValueChange = { threshold = it },
                     label = { Text(stringResource(R.string.low_stock_threshold)) },
+                    isError = thresholdError,
+                    supportingText = if (thresholdError) {
+                        { Text(stringResource(R.string.invalid_number)) }
+                    } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -408,10 +423,11 @@ private fun InventoryItemDialog(
         },
         confirmButton = {
             TextButton(
+                enabled = name.isNotBlank() && parsedQuantity != null && parsedThreshold != null,
                 onClick = {
-                    val qty = quantity.toDoubleOrNull() ?: 0.0
-                    val thr = threshold.toDoubleOrNull() ?: 1.0
-                    if (name.isNotBlank()) {
+                    val qty = parsedQuantity
+                    val thr = parsedThreshold
+                    if (name.isNotBlank() && qty != null && thr != null) {
                         onConfirm(
                             InventoryItem(
                                 id = item?.id ?: 0,

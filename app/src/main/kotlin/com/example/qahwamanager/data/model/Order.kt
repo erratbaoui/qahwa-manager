@@ -11,6 +11,5 @@ data class Order(
     val tableNumber: String,
     val status: OrderStatus = OrderStatus.OPEN,
     val createdAt: Long = System.currentTimeMillis(),
-    val totalAmount: Double = 0.0
+    val totalCentimes: Long = 0 // MAD × 100
 )
-

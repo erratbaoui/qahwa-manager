@@ -39,5 +39,6 @@
     <string name="language_english">English (الإنجليزية)</string>
     <string name="language_arabic">العربية</string>
     <string name="language_french">Français (الفرنسية)</string>
+    <string name="invalid_number">أدخل رقمًا صحيحًا</string>
 </resources>
 

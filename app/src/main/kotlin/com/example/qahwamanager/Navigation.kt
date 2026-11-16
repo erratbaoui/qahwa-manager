@@ -3,26 +3,24 @@ package com.example.qahwamanager
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.example.qahwamanager.ui.home.HomeScreen
 import com.example.qahwamanager.ui.inventory.InventoryScreen
@@ -34,14 +32,15 @@ import com.example.qahwamanager.ui.sales.SalesScreen
 
 @Composable
 fun MainNavigation() {
-    var currentTab by remember { mutableStateOf<NavKey>(Home) }
     val backStack = rememberNavBackStack(Home)
+    // Derived from the (saved) back stack, so it survives rotation and language changes.
+    val currentTab = backStack.firstOrNull() ?: Home
 
     val tabs = listOf(
         Triple(Home as NavKey, R.string.home, Icons.Default.Home),
         Triple(Menu as NavKey, R.string.menu, Icons.Default.Restaurant),
         Triple(Orders as NavKey, R.string.orders, Icons.Default.ShoppingCart),
-        Triple(Sales as NavKey, R.string.sales, Icons.Default.TrendingUp),
+        Triple(Sales as NavKey, R.string.sales, Icons.AutoMirrored.Filled.TrendingUp),
         Triple(Inventory as NavKey, R.string.inventory, Icons.Default.Inventory),
     )
 
@@ -52,7 +51,6 @@ fun MainNavigation() {
                     NavigationBarItem(
                         selected = currentTab == destination,
                         onClick = {
-                            currentTab = destination
                             backStack.clear()
                             backStack.add(destination)
                         },
@@ -66,6 +64,12 @@ fun MainNavigation() {
         NavDisplay(
             backStack = backStack,
             onBack = { backStack.removeLastOrNull() },
+            // Give each entry its own ViewModelStore so hiltViewModel() is scoped to the
+            // screen (e.g. a fresh cart per New Order) and cleared when it is popped.
+            entryDecorators = listOf(
+                rememberSaveableStateHolderNavEntryDecorator(),
+                rememberViewModelStoreNavEntryDecorator(),
+            ),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),

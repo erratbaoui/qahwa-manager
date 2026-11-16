@@ -15,7 +15,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -44,6 +44,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.MenuItem
+import com.example.qahwamanager.ui.common.currentLanguage
+import com.example.qahwamanager.ui.common.formatMad
+import com.example.qahwamanager.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +57,8 @@ fun NewOrderScreen(
 ) {
     val menuItems by viewModel.availableMenuItems.collectAsStateWithLifecycle()
     val cart by viewModel.cart.collectAsStateWithLifecycle()
+    val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val language = currentLanguage()
     var tableNumber by remember { mutableStateOf("") }
     var isTakeaway by remember { mutableStateOf(false) }
 
@@ -63,7 +68,7 @@ fun NewOrderScreen(
                 title = { Text(stringResource(R.string.new_order)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -114,6 +119,7 @@ fun NewOrderScreen(
                     val cartItem = cart.find { it.menuItem.id == item.id }
                     MenuItemSelectCard(
                         item = item,
+                        language = language,
                         quantity = cartItem?.quantity ?: 0,
                         onAdd = { viewModel.addToCart(item) },
                         onRemove = { viewModel.removeFromCart(item) }
@@ -138,9 +144,8 @@ fun NewOrderScreen(
                         LazyColumn(modifier = Modifier.height(80.dp)) {
                             items(cart) { cartItem ->
                                 Text(
-                                    "${cartItem.quantity}× ${cartItem.menuItem.name} — %.2f MAD".format(
-                                        cartItem.menuItem.price * cartItem.quantity
-                                    ),
+                                    "${cartItem.quantity}× ${cartItem.menuItem.displayName(language)} — " +
+                                        formatMad(cartItem.menuItem.priceCentimes * cartItem.quantity),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
@@ -148,7 +153,7 @@ fun NewOrderScreen(
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Total: %.2f MAD".format(viewModel.cartTotal),
+                            "Total: " + formatMad(viewModel.cartTotalCentimes),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -165,7 +170,7 @@ fun NewOrderScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = cart.isNotEmpty() && (isTakeaway || tableNumber.isNotBlank())
+                enabled = !isSaving && cart.isNotEmpty() && (isTakeaway || tableNumber.isNotBlank())
             ) {
                 Text(stringResource(R.string.place_order))
             }
@@ -177,6 +182,7 @@ fun NewOrderScreen(
 @Composable
 private fun MenuItemSelectCard(
     item: MenuItem,
+    language: String,
     quantity: Int,
     onAdd: () -> Unit,
     onRemove: () -> Unit
@@ -195,13 +201,13 @@ private fun MenuItemSelectCard(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = item.name,
+                text = item.displayName(language),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2
             )
             Text(
-                text = "%.2f MAD".format(item.price),
+                text = formatMad(item.priceCentimes),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -225,3 +231,4 @@ private fun MenuItemSelectCard(
     }
 }
 
+private fun MenuItem.displayName(language: String) = localizedName(name, nameAr, nameFr, language)

@@ -2,45 +2,49 @@ package com.example.qahwamanager.data.db
 
 import androidx.room.Dao
 import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Update
+import androidx.room.Transaction
 import com.example.qahwamanager.data.model.Order
+import com.example.qahwamanager.data.model.OrderItem
 import com.example.qahwamanager.data.model.OrderStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface OrderDao {
+abstract class OrderDao {
     @Query("SELECT * FROM orders ORDER BY createdAt DESC")
-    fun getAllOrders(): Flow<List<Order>>
+    abstract fun getAllOrders(): Flow<List<Order>>
 
     @Query("SELECT * FROM orders WHERE status = :status ORDER BY createdAt DESC")
-    fun getOrdersByStatus(status: OrderStatus): Flow<List<Order>>
+    abstract fun getOrdersByStatus(status: OrderStatus): Flow<List<Order>>
 
     @Query("""
-        SELECT * FROM orders 
-        WHERE createdAt >= :startOfDay AND createdAt < :endOfDay 
-        ORDER BY createdAt DESC
-    """)
-    fun getOrdersForDay(startOfDay: Long, endOfDay: Long): Flow<List<Order>>
-
-    @Query("""
-        SELECT * FROM orders 
+        SELECT * FROM orders
         WHERE createdAt >= :startMs AND status = 'PAID'
         ORDER BY createdAt DESC
     """)
-    fun getPaidOrdersSince(startMs: Long): Flow<List<Order>>
+    abstract fun getPaidOrdersSince(startMs: Long): Flow<List<Order>>
 
-    @Query("SELECT SUM(totalAmount) FROM orders WHERE status = 'PAID' AND createdAt >= :startMs")
-    fun getTotalRevenueSince(startMs: Long): Flow<Double?>
+    @Query("SELECT COALESCE(SUM(totalCentimes), 0) FROM orders WHERE status = 'PAID' AND createdAt >= :startMs")
+    abstract fun getRevenueSince(startMs: Long): Flow<Long>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(order: Order): Long
+    @Insert
+    abstract suspend fun insertOrder(order: Order): Long
 
-    @Update
-    suspend fun update(order: Order)
+    @Insert
+    abstract suspend fun insertOrderItems(items: List<OrderItem>)
+
+    /** Inserts the order and its items atomically; returns the new order id. */
+    @Transaction
+    open suspend fun insertOrderWithItems(order: Order, items: List<OrderItem>): Long {
+        val orderId = insertOrder(order)
+        insertOrderItems(items.map { it.copy(orderId = orderId) })
+        return orderId
+    }
+
+    /** Moves an OPEN order to [status]; closed orders are left alone. Returns rows changed. */
+    @Query("UPDATE orders SET status = :status WHERE id = :id AND status = 'OPEN'")
+    abstract suspend fun updateStatusIfOpen(id: Long, status: OrderStatus): Int
 
     @Query("SELECT * FROM orders WHERE id = :id")
-    suspend fun getById(id: Long): Order?
+    abstract fun observeById(id: Long): Flow<Order?>
 }
-

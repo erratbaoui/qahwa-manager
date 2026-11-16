@@ -37,15 +37,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
+import com.example.qahwamanager.ui.common.formatMad
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
+import com.example.qahwamanager.util.parseMadToCentimes
 
 val CATEGORIES = listOf("coffee", "tea", "food", "juice")
 val CATEGORY_LABELS = mapOf(
@@ -167,7 +171,7 @@ private fun MenuScreenPreview() {
                 nameAr = "إسبريسو",
                 nameFr = "Espresso",
                 category = "coffee",
-                price = 15.0,
+                priceCentimes = 1500,
                 description = "Rich espresso shot",
                 isAvailable = true
             ),
@@ -177,7 +181,7 @@ private fun MenuScreenPreview() {
                 nameAr = "كابتشينو",
                 nameFr = "Cappuccino",
                 category = "coffee",
-                price = 20.0,
+                priceCentimes = 2000,
                 description = "Espresso with milk foam",
                 isAvailable = false
             )
@@ -230,7 +234,7 @@ private fun MenuItemCard(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "%.2f MAD".format(item.price),
+                    text = formatMad(item.priceCentimes),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -276,6 +280,9 @@ private fun AddMenuItemDialog(
     var price by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(defaultCategory) }
+    // Accepts "12", "12.5" and "12,50"; anything else (or zero) is flagged instead of dropped silently.
+    val priceCentimes = parseMadToCentimes(price)?.takeIf { it > 0 }
+    val showPriceError = price.isNotBlank() && priceCentimes == null
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -304,6 +311,12 @@ private fun AddMenuItemDialog(
                     value = price,
                     onValueChange = { price = it },
                     label = { Text(stringResource(R.string.price_mad)) },
+                    isError = showPriceError,
+                    supportingText = if (showPriceError) {
+                        { Text(stringResource(R.string.invalid_number)) }
+                    } else null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -329,16 +342,16 @@ private fun AddMenuItemDialog(
         },
         confirmButton = {
             TextButton(
+                enabled = name.isNotBlank() && priceCentimes != null,
                 onClick = {
-                    val priceVal = price.toDoubleOrNull() ?: 0.0
-                    if (name.isNotBlank() && priceVal > 0) {
+                    if (name.isNotBlank() && priceCentimes != null) {
                         onConfirm(
                             MenuItem(
                                 name = name.trim(),
                                 nameAr = nameAr.trim(),
                                 nameFr = nameFr.trim(),
                                 category = category,
-                                price = priceVal,
+                                priceCentimes = priceCentimes,
                                 description = description.trim()
                             )
                         )
