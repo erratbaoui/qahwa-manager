@@ -1,10 +1,8 @@
 package com.example.qahwamanager.ui.inventory
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,30 +12,33 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,37 +46,74 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
+import com.example.qahwamanager.ui.common.formatQuantity
 import com.example.qahwamanager.data.model.InventoryItem
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
-import com.example.qahwamanager.ui.common.QahwaCard
-import com.example.qahwamanager.ui.common.QahwaDivider
-import com.example.qahwamanager.ui.common.QahwaEmptyState
-import com.example.qahwamanager.ui.common.QahwaPageHeader
-import com.example.qahwamanager.ui.common.QahwaPrimaryButton
-import com.example.qahwamanager.ui.common.QahwaQuantityControl
-import com.example.qahwamanager.ui.common.QahwaTextField
-import com.example.qahwamanager.ui.theme.BackgroundMain
-import com.example.qahwamanager.ui.theme.DividerColor
-import com.example.qahwamanager.ui.theme.PrimaryGreen
-import com.example.qahwamanager.ui.theme.TextMain
-import com.example.qahwamanager.ui.theme.TextSecondary
-import com.example.qahwamanager.ui.theme.WarningContainer
-import com.example.qahwamanager.ui.theme.WarningTerracotta
+import com.example.qahwamanager.util.parseDecimalInput
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
+fun InventoryScreen(
+    viewModel: InventoryViewModel = hiltViewModel(),
+) {
     val items by viewModel.inventoryItems.collectAsStateWithLifecycle()
-    var showAddDialog by remember { mutableStateOf(false) }
-    var editItem by remember { mutableStateOf<InventoryItem?>(null) }
+    var showAddDialog by remember { mutableStateOf(value = false) }
+    var editItem by remember { mutableStateOf<InventoryItem?>(value = null) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.inventory)) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+                actions = {
+                    LanguageSelectorButton()
+                },
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+            ) {
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_item))
+            }
+        },
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(16.dp),
+        ) {
+            items(items, key = { it.id }) { item ->
+                InventoryItemCard(
+                    item = item,
+                    onEdit = { editItem = item },
+                    onIncrement = {
+                        val step = if (item.unit.equals("pcs", ignoreCase = true)) 1.0 else 0.5
+                        viewModel.adjustQuantity(item, step)
+                    },
+                    onDecrement = {
+                        val step = if (item.unit.equals("pcs", ignoreCase = true)) 1.0 else 0.5
+                        viewModel.adjustQuantity(item, -step)
+                    },
+                    onDelete = { viewModel.deleteItem(item) },
+                )
+            }
+        }
+    }
 
     if (showAddDialog) {
         InventoryItemDialog(
@@ -98,72 +136,6 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
             },
         )
     }
-
-    Scaffold(
-        containerColor = BackgroundMain,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddDialog = true },
-                containerColor = PrimaryGreen,
-                contentColor = Color.White,
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.add_item),
-                )
-            }
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 840.dp)
-                    .align(Alignment.CenterHorizontally),
-            ) {
-                QahwaPageHeader(
-                    title = stringResource(R.string.inventory),
-                    action = { LanguageSelectorButton() },
-                )
-            }
-
-            if (items.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    QahwaEmptyState(
-                        message = stringResource(R.string.no_items_yet),
-                        icon = Icons.Default.Inventory2,
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .widthIn(max = 840.dp)
-                        .align(Alignment.CenterHorizontally),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                ) {
-                    items(items, key = { it.id }) { item ->
-                        val step = if (item.unit.equals("pcs", ignoreCase = true)) 1.0 else 0.5
-                        InventoryItemCard(
-                            item = item,
-                            onEdit = { editItem = item },
-                            onIncrement = { viewModel.adjustQuantity(item, step) },
-                            onDecrement = { viewModel.adjustQuantity(item, -step) },
-                        )
-                    }
-                }
-            }
-        }
-    }
 }
 
 @Composable
@@ -172,270 +144,313 @@ private fun InventoryItemCard(
     onEdit: () -> Unit,
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
+    onDelete: () -> Unit,
 ) {
-    val isLow = item.quantity <= item.lowStockThreshold
-    val formattedQty = if (item.quantity % 1.0 == 0.0) {
-        item.quantity.toInt().toString()
-    } else {
-        "%.1f".format(item.quantity)
-    }
-
-    QahwaCard(modifier = Modifier.fillMaxWidth()) {
+    val isLowStock = item.quantity <= item.lowStockThreshold
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onEdit),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isLowStock) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextMain,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = "$formattedQty ${item.unit}",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontFeatureSettings = "tnum",
-                            ),
-                            fontWeight = FontWeight.Bold,
-                            color = if (isLow) WarningTerracotta else TextMain,
-                        )
-                        if (isLow) {
-                            Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = stringResource(R.string.low_stock),
-                                tint = WarningTerracotta,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
-                    Text(
-                        text = stringResource(R.string.min_threshold, item.lowStockThreshold, item.unit),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
-                    )
-                }
-
-                IconButton(
-                    onClick = onEdit,
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = stringResource(R.string.edit),
-                        tint = TextSecondary,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-
-            QahwaDivider()
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (isLow) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = WarningContainer,
-                        border = BorderStroke(1.dp, WarningTerracotta.copy(alpha = 0.35f)),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.low_stock),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = WarningTerracotta,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    if (isLowStock) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = stringResource(R.string.low_stock),
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(22.dp),
                         )
                     }
-                } else {
-                    Spacer(Modifier.width(0.dp))
+                    Column {
+                        Text(
+                            text = item.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isLowStock) {
+                                MaterialTheme.colorScheme.onErrorContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.min_stock, formatQuantity(item.lowStockThreshold), item.unit),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            if (isLowStock) {
+                                Text(
+                                    text = "• " + stringResource(R.string.low_stock),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
+                    }
                 }
 
-                // Perfectly centered quantity stepper that seamlessly displays decimal or integer values
-                QahwaQuantityControl(
-                    valueText = formattedQty,
-                    onAdd = onIncrement,
-                    onRemove = onDecrement,
-                    canRemove = item.quantity > 0,
-                )
+                // Quick Action Buttons (Edit & Delete)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onEdit,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = stringResource(R.string.edit_item),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    IconButton(
+                        onClick = onDelete,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.delete),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Quantity Modifier Bar
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.quantity_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 6.dp),
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        IconButton(
+                            onClick = onDecrement,
+                            enabled = item.quantity > 0,
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Remove,
+                                contentDescription = stringResource(R.string.decrease),
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = MaterialTheme.shapes.extraSmall,
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        ) {
+                            Text(
+                                text = "${formatQuantity(item.quantity)} ${item.unit}",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            )
+                        }
+
+                        IconButton(
+                            onClick = onIncrement,
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = stringResource(R.string.increase),
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun InventoryItemDialog(
     item: InventoryItem?,
     onDismiss: () -> Unit,
     onConfirm: (InventoryItem) -> Unit,
 ) {
-    var name by remember { mutableStateOf(item?.name ?: "") }
-    var quantity by remember { mutableStateOf(item?.quantity?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "0") }
-    var unit by remember { mutableStateOf(item?.unit ?: "kg") }
-    var threshold by remember { mutableStateOf(item?.lowStockThreshold?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "1.0") }
+    var name by remember { mutableStateOf(value = item?.name ?: "") }
+    var quantity by remember { mutableStateOf(value = item?.quantity?.toString() ?: "") }
+    var unit by remember { mutableStateOf(value = item?.unit ?: "kg") }
+    var threshold by remember { mutableStateOf(value = item?.lowStockThreshold?.toString() ?: "1.0") }
+
     val commonUnits = listOf("kg", "L", "pcs", "g", "pack")
 
-    val isNameValid = name.isNotBlank()
-    val qtyDouble = quantity.toDoubleOrNull()
-    val thresholdDouble = threshold.toDoubleOrNull()
-    val isValid = isNameValid && qtyDouble != null && thresholdDouble != null
+    // Accepts "2.5" and "2,5"; invalid input is flagged instead of being saved as 0 / 1.0.
+    val parsedQuantity = parseDecimalInput(quantity)
+    val parsedThreshold = parseDecimalInput(threshold)
+    val quantityError = quantity.isNotBlank() && parsedQuantity == null
+    val thresholdError = threshold.isNotBlank() && parsedThreshold == null
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = Color.White,
-            modifier = Modifier.widthIn(max = 420.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Text(
-                    text = if (item == null) stringResource(R.string.add_item) else stringResource(R.string.edit_item),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextMain,
-                )
-
-                QahwaTextField(
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                if (item == null) stringResource(R.string.add_item)
+                else stringResource(R.string.edit_item),
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = stringResource(R.string.item_name),
+                    label = { Text(stringResource(R.string.item_name)) },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                QahwaTextField(
+                OutlinedTextField(
                     value = quantity,
                     onValueChange = { quantity = it },
-                    label = stringResource(R.string.quantity),
+                    label = { Text(stringResource(R.string.quantity)) },
+                    isError = quantityError,
+                    supportingText = if (quantityError) {
+                        { Text(stringResource(R.string.invalid_number)) }
+                    } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                // Quick step adjusters
+                // Quick Quantity Step Adjusters (+1, +5, -1, -5)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    listOf(-5.0, -1.0, 1.0, 5.0).forEach { step ->
+                    val stepValues = listOf(-5.0, -1.0, 1.0, 5.0)
+                    stepValues.forEach { step ->
                         OutlinedButton(
                             onClick = {
-                                val cur = quantity.toDoubleOrNull() ?: 0.0
-                                val updated = maxOf(0.0, cur + step)
-                                quantity = if (updated % 1.0 == 0.0) updated.toInt().toString() else "%.1f".format(updated)
+                                val current = parseDecimalInput(quantity) ?: 0.0
+                                val updated = maxOf(0.0, current + step)
+                                quantity = updated.toString()
                             },
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(34.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, DividerColor),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.weight(1f).height(32.dp),
                         ) {
                             Text(
                                 text = if (step > 0) "+${step.toInt()}" else step.toInt().toString(),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextMain,
                             )
                         }
                     }
                 }
 
                 // Unit selection chips
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column {
                     Text(
                         text = stringResource(R.string.unit),
                         style = MaterialTheme.typography.labelMedium,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         commonUnits.forEach { u ->
-                            val isSelected = unit.equals(u, ignoreCase = true)
                             FilterChip(
-                                selected = isSelected,
+                                selected = unit.equals(u, ignoreCase = true),
                                 onClick = { unit = u },
                                 label = { Text(u) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = PrimaryGreen,
-                                    selectedLabelColor = Color.White,
-                                    containerColor = Color.White,
-                                    labelColor = TextSecondary,
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = isSelected,
-                                    borderColor = DividerColor,
-                                    selectedBorderColor = Color.Transparent,
-                                ),
-                                shape = RoundedCornerShape(8.dp),
                             )
                         }
                     }
                 }
 
-                QahwaTextField(
+                OutlinedTextField(
                     value = threshold,
                     onValueChange = { threshold = it },
-                    label = stringResource(R.string.low_stock_threshold),
+                    label = { Text(stringResource(R.string.low_stock_threshold)) },
+                    isError = thresholdError,
+                    supportingText = if (thresholdError) {
+                        { Text(stringResource(R.string.invalid_number)) }
+                    } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-
-                Spacer(Modifier.height(4.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    TextButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                    ) {
-                        Text(stringResource(R.string.cancel), color = TextSecondary)
-                    }
-
-                    QahwaPrimaryButton(
-                        text = if (item == null) stringResource(R.string.add_item) else stringResource(R.string.save),
-                        onClick = {
-                            if (isValid) {
-                                onConfirm(
-                                    InventoryItem(
-                                        id = item?.id ?: 0,
-                                        name = name.trim(),
-                                        quantity = qtyDouble,
-                                        unit = unit.trim(),
-                                        lowStockThreshold = thresholdDouble,
-                                    ),
-                                )
-                            }
-                        },
-                        enabled = isValid,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                    )
-                }
             }
-        }
-    }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = name.isNotBlank() && parsedQuantity != null && parsedThreshold != null,
+                onClick = {
+                    val qty = parsedQuantity
+                    val thr = parsedThreshold
+                    if (name.isNotBlank() && qty != null && thr != null) {
+                        onConfirm(
+                            InventoryItem(
+                                id = item?.id ?: 0,
+                                name = name.trim(),
+                                quantity = qty,
+                                unit = unit.trim(),
+                                lowStockThreshold = thr,
+                            ),
+                        )
+                    }
+                },
+            ) {
+                Text(
+                    if (item == null) stringResource(R.string.add_item)
+                    else stringResource(R.string.save),
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
 }

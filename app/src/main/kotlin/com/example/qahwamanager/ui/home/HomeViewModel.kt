@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 data class HomeUiState(
-    val todayRevenue: Double = 0.0,
+    val todayRevenueCentimes: Long = 0,
     val openOrdersCount: Int = 0,
     val lowStockCount: Int = 0
 )
@@ -31,7 +31,7 @@ class HomeViewModel @Inject constructor(
         inventoryRepository.getLowStockItems()
     ) { revenue, openOrders, lowStock ->
         HomeUiState(
-            todayRevenue = revenue ?: 0.0,
+            todayRevenueCentimes = revenue,
             openOrdersCount = openOrders.size,
             lowStockCount = lowStock.size
         )

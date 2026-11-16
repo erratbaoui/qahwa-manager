@@ -33,13 +33,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.annotation.StringRes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 
 data class SupportedLanguage(
     val code: String,
     val flag: String,
-    val displayNameRes: Int,
+    @param:StringRes val displayNameRes: Int,
     val nativeName: String,
 )
 
@@ -203,7 +204,7 @@ private fun LanguageDialog(
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = stringResource(R.string.language_selected),
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(22.dp),
                                 )

@@ -9,6 +9,7 @@ import com.example.qahwamanager.data.model.OrderStatus
 import com.example.qahwamanager.data.repository.MenuRepository
 import com.example.qahwamanager.data.repository.OrderRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +36,11 @@ class OrdersViewModel @Inject constructor(
     private val _cart = MutableStateFlow<List<CartItem>>(emptyList())
     val cart: StateFlow<List<CartItem>> = _cart.asStateFlow()
 
-    val cartTotal: Double get() = _cart.value.sumOf { it.menuItem.price * it.quantity }
+    /** True while an order write is in flight; the UI disables its buttons meanwhile. */
+    private val _isSaving = MutableStateFlow(false)
+    val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+
+    val cartTotalCentimes: Long get() = _cart.value.sumOf { it.menuItem.priceCentimes * it.quantity }
 
     fun addToCart(item: MenuItem) {
         _cart.update { current ->
@@ -61,35 +66,53 @@ class OrdersViewModel @Inject constructor(
 
     fun clearCart() { _cart.value = emptyList() }
 
-    fun placeOrder(tableNumber: String, onSuccess: (Long) -> Unit) = viewModelScope.launch {
+    fun placeOrder(tableNumber: String, onSuccess: (Long) -> Unit) {
         val cartItems = _cart.value
-        if (cartItems.isEmpty()) return@launch
+        if (cartItems.isEmpty()) return
         val orderItems = cartItems.map { cartItem ->
             OrderItem(
                 orderId = 0,
                 menuItemId = cartItem.menuItem.id,
                 menuItemName = cartItem.menuItem.name,
+                menuItemNameAr = cartItem.menuItem.nameAr,
+                menuItemNameFr = cartItem.menuItem.nameFr,
                 quantity = cartItem.quantity,
-                unitPrice = cartItem.menuItem.price
+                unitPriceCentimes = cartItem.menuItem.priceCentimes
             )
         }
-        val orderId = orderRepository.createOrder(tableNumber, orderItems)
-        clearCart()
-        onSuccess(orderId)
+        save {
+            val orderId = orderRepository.createOrder(tableNumber, orderItems)
+            clearCart()
+            onSuccess(orderId)
+        }
     }
 
-    fun markAsPaid(orderId: Long) = viewModelScope.launch {
+    /** Marks the order paid, then calls [onDone] once the change is stored. */
+    fun markAsPaid(orderId: Long, onDone: () -> Unit = {}) = save {
         orderRepository.updateOrderStatus(orderId, OrderStatus.PAID)
+        onDone()
     }
 
-    fun cancelOrder(orderId: Long) = viewModelScope.launch {
+    /** Cancels the order, then calls [onDone] once the change is stored. */
+    fun cancelOrder(orderId: Long, onDone: () -> Unit = {}) = save {
         orderRepository.updateOrderStatus(orderId, OrderStatus.CANCELLED)
+        onDone()
     }
 
-    fun getOrderItems(orderId: Long): StateFlow<List<OrderItem>> =
-        orderRepository.getOrderItems(orderId)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    fun observeOrder(orderId: Long): Flow<Order?> = orderRepository.observeOrder(orderId)
 
-    suspend fun getOrderById(id: Long): Order? = orderRepository.getOrderById(id)
+    fun observeOrderItems(orderId: Long): Flow<List<OrderItem>> = orderRepository.getOrderItems(orderId)
+
+    /** Runs one write at a time; taps that arrive while a write is in flight are ignored. */
+    private fun save(block: suspend () -> Unit) {
+        if (_isSaving.value) return
+        _isSaving.value = true
+        viewModelScope.launch {
+            try {
+                block()
+            } finally {
+                _isSaving.value = false
+            }
+        }
+    }
 }
-

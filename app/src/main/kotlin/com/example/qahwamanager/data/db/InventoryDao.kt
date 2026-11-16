@@ -26,6 +26,10 @@ interface InventoryDao {
     @Delete
     suspend fun delete(item: InventoryItem)
 
+    /** Applies [delta] to the stored quantity in one statement, so rapid taps can't overwrite each other. */
+    @Query("UPDATE inventory_items SET quantity = MAX(0, quantity + :delta) WHERE id = :id")
+    suspend fun adjustQuantity(id: Long, delta: Double)
+
     @Query("SELECT * FROM inventory_items WHERE id = :id")
     suspend fun getById(id: Long): InventoryItem?
 }

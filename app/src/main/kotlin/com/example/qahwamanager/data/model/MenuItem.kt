@@ -10,8 +10,7 @@ data class MenuItem(
     val nameAr: String,
     val nameFr: String,
     val category: String, // "coffee", "tea", "food", "juice"
-    val price: Double,    // in MAD
+    val priceCentimes: Long, // MAD × 100
     val description: String = "",
     val isAvailable: Boolean = true
 )
-

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.repository.MenuRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class MenuViewModel @Inject constructor(
     private val menuRepository: MenuRepository

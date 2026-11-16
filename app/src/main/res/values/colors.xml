@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="splash_background">#2B1508</color>
-    <color name="ic_launcher_background">#3B1E0C</color>
-    <color name="coffee_primary">#6B4226</color>
-    <color name="coffee_cream">#FAF7F2</color>
-    <color name="coffee_gold">#D4A373</color>
 </resources>

@@ -18,26 +18,20 @@ class OrderRepository @Inject constructor(
 
     fun getOpenOrders(): Flow<List<Order>> = orderDao.getOrdersByStatus(OrderStatus.OPEN)
 
-    fun getOrdersForDay(startOfDay: Long, endOfDay: Long): Flow<List<Order>> =
-        orderDao.getOrdersForDay(startOfDay, endOfDay)
+    fun observeOrder(orderId: Long): Flow<Order?> = orderDao.observeById(orderId)
 
     fun getOrderItems(orderId: Long): Flow<List<OrderItem>> =
         orderItemDao.getItemsForOrder(orderId)
 
+    /** Creates the order and its items atomically; returns the new order id. */
     suspend fun createOrder(tableNumber: String, items: List<OrderItem>): Long {
-        val total = items.sumOf { it.unitPrice * it.quantity }
-        val order = Order(tableNumber = tableNumber, totalAmount = total)
-        val orderId = orderDao.insert(order)
-        val orderItems = items.map { it.copy(orderId = orderId) }
-        orderItemDao.insertAll(orderItems)
-        return orderId
+        val total = items.sumOf { it.unitPriceCentimes * it.quantity }
+        val order = Order(tableNumber = tableNumber, totalCentimes = total)
+        return orderDao.insertOrderWithItems(order, items)
     }
 
+    /** Closes an open order as paid or cancelled. Orders that are already closed are left alone. */
     suspend fun updateOrderStatus(orderId: Long, status: OrderStatus) {
-        val order = orderDao.getById(orderId) ?: return
-        orderDao.update(order.copy(status = status))
+        orderDao.updateStatusIfOpen(orderId, status)
     }
-
-    suspend fun getOrderById(id: Long): Order? = orderDao.getById(id)
 }
-

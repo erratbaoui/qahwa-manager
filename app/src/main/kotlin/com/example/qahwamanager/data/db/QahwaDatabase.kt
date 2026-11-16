@@ -13,8 +13,8 @@ import com.example.qahwamanager.data.model.OrderItem
 
 @Database(
     entities = [MenuItem::class, Order::class, OrderItem::class, InventoryItem::class],
-    version = 1,
-    exportSchema = false
+    version = 2,
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class QahwaDatabase : RoomDatabase() {
@@ -30,20 +30,21 @@ abstract class QahwaDatabase : RoomDatabase() {
                 QahwaDatabase::class.java,
                 "qahwa_database"
             )
+                .addMigrations(MIGRATION_1_2)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
-                        // Pre-populate with typical Moroccan coffee shop items
-                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, price, description, isAvailable) VALUES ('Café Cassé', 'كافيه كاسيه', 'Café Cassé', 'coffee', 8.0, 'Half coffee, half milk — Moroccan style', 1)")
-                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, price, description, isAvailable) VALUES ('Café au Lait', 'قهوة بالحليب', 'Café au Lait', 'coffee', 10.0, 'Coffee with steamed milk', 1)")
-                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, price, description, isAvailable) VALUES ('Espresso', 'إسبريسو', 'Espresso', 'coffee', 7.0, 'Short, strong espresso shot', 1)")
-                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, price, description, isAvailable) VALUES ('Café Noir', 'قهوة سوداء', 'Café Noir', 'coffee', 6.0, 'Black filter coffee', 1)")
-                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, price, description, isAvailable) VALUES ('Atay Naa''naa', 'أتاي بالنعناع', 'Thé à la Menthe', 'tea', 8.0, 'Traditional Moroccan mint tea', 1)")
-                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, price, description, isAvailable) VALUES ('Atay Chiba', 'أتاي بالشيبة', 'Thé à l''Absinthe', 'tea', 8.0, 'Moroccan tea with wormwood', 1)")
-                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, price, description, isAvailable) VALUES ('Jus d''Orange', 'عصير البرتقال', 'Jus d''Orange', 'juice', 12.0, 'Fresh-squeezed orange juice', 1)")
-                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, price, description, isAvailable) VALUES ('Jus d''Avocat', 'عصير الأفوكادو', 'Jus d''Avocat', 'juice', 18.0, 'Creamy avocado shake', 1)")
-                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, price, description, isAvailable) VALUES ('Makroud', 'مقروض', 'Makroud', 'food', 5.0, 'Semolina and date pastry', 1)")
-                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, price, description, isAvailable) VALUES ('Msemen', 'مسمن', 'Msemen', 'food', 6.0, 'Moroccan layered flatbread', 1)")
+                        // Pre-populate with typical Moroccan coffee shop items (prices in centimes)
+                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, priceCentimes, description, isAvailable) VALUES ('Café Cassé', 'كافيه كاسيه', 'Café Cassé', 'coffee', 800, 'Half coffee, half milk — Moroccan style', 1)")
+                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, priceCentimes, description, isAvailable) VALUES ('Café au Lait', 'قهوة بالحليب', 'Café au Lait', 'coffee', 1000, 'Coffee with steamed milk', 1)")
+                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, priceCentimes, description, isAvailable) VALUES ('Espresso', 'إسبريسو', 'Espresso', 'coffee', 700, 'Short, strong espresso shot', 1)")
+                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, priceCentimes, description, isAvailable) VALUES ('Café Noir', 'قهوة سوداء', 'Café Noir', 'coffee', 600, 'Black filter coffee', 1)")
+                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, priceCentimes, description, isAvailable) VALUES ('Atay Naa''naa', 'أتاي بالنعناع', 'Thé à la Menthe', 'tea', 800, 'Traditional Moroccan mint tea', 1)")
+                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, priceCentimes, description, isAvailable) VALUES ('Atay Chiba', 'أتاي بالشيبة', 'Thé à l''Absinthe', 'tea', 800, 'Moroccan tea with wormwood', 1)")
+                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, priceCentimes, description, isAvailable) VALUES ('Jus d''Orange', 'عصير البرتقال', 'Jus d''Orange', 'juice', 1200, 'Fresh-squeezed orange juice', 1)")
+                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, priceCentimes, description, isAvailable) VALUES ('Jus d''Avocat', 'عصير الأفوكادو', 'Jus d''Avocat', 'juice', 1800, 'Creamy avocado shake', 1)")
+                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, priceCentimes, description, isAvailable) VALUES ('Makroud', 'مقروض', 'Makroud', 'food', 500, 'Semolina and date pastry', 1)")
+                        db.execSQL("INSERT INTO menu_items (name, nameAr, nameFr, category, priceCentimes, description, isAvailable) VALUES ('Msemen', 'مسمن', 'Msemen', 'food', 600, 'Moroccan layered flatbread', 1)")
 
                         db.execSQL("INSERT INTO inventory_items (name, quantity, unit, lowStockThreshold) VALUES ('Coffee Beans', 5.0, 'kg', 1.0)")
                         db.execSQL("INSERT INTO inventory_items (name, quantity, unit, lowStockThreshold) VALUES ('Milk', 10.0, 'L', 2.0)")

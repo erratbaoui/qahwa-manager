@@ -1,41 +1,36 @@
 package com.example.qahwamanager.ui.orders
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,37 +38,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.MenuItem
-import com.example.qahwamanager.ui.common.QahwaCard
-import com.example.qahwamanager.ui.common.QahwaCurrencyText
-import com.example.qahwamanager.ui.common.QahwaDivider
-import com.example.qahwamanager.ui.common.QahwaEmptyState
-import com.example.qahwamanager.ui.common.QahwaPrimaryButton
-import com.example.qahwamanager.ui.common.QahwaQuantityControl
-import com.example.qahwamanager.ui.common.QahwaSectionHeader
-import com.example.qahwamanager.ui.common.QahwaTextField
-import com.example.qahwamanager.ui.common.getLocalizedCategoryName
-import com.example.qahwamanager.ui.common.getLocalizedName
-import com.example.qahwamanager.ui.theme.BackgroundMain
-import com.example.qahwamanager.ui.theme.DividerColor
-import com.example.qahwamanager.ui.theme.PrimaryDark
-import com.example.qahwamanager.ui.theme.PrimaryGreen
-import com.example.qahwamanager.ui.theme.TextMain
-import com.example.qahwamanager.ui.theme.TextSecondary
+import com.example.qahwamanager.data.model.Order
+import com.example.qahwamanager.ui.common.currentLanguage
+import com.example.qahwamanager.ui.common.formatMad
+import com.example.qahwamanager.ui.common.formatQuantity
+import com.example.qahwamanager.util.localizedName
 
-private val POS_CATEGORIES = listOf("coffee", "tea", "food", "juice")
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewOrderScreen(
     onOrderPlaced: () -> Unit,
@@ -82,511 +60,180 @@ fun NewOrderScreen(
 ) {
     val menuItems by viewModel.availableMenuItems.collectAsStateWithLifecycle()
     val cart by viewModel.cart.collectAsStateWithLifecycle()
+    val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val language = currentLanguage()
     var tableNumber by remember { mutableStateOf("") }
     var isTakeaway by remember { mutableStateOf(false) }
-    var selectedCategory by remember { mutableStateOf("coffee") }
-    val focusManager = LocalFocusManager.current
-
-    val filteredItems = remember(menuItems, selectedCategory) {
-        menuItems.filter { it.category.equals(selectedCategory, ignoreCase = true) }
-    }
-
-    val canPlaceOrder = cart.isNotEmpty() && (isTakeaway || tableNumber.isNotBlank())
 
     Scaffold(
-        containerColor = BackgroundMain,
         topBar = {
-            Surface(
-                color = Color.White,
-                shadowElevation = 0.dp,
-                border = androidx.compose.foundation.BorderStroke(1.dp, DividerColor),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+            TopAppBar(
+                title = { Text(stringResource(R.string.new_order)) },
+                navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                            tint = TextMain,
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
-                    Text(
-                        text = stringResource(R.string.new_order),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextMain,
-                    )
-                }
-            }
-        },
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        }
     ) { innerPadding ->
-        BoxWithConstraints(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                // Shrink above the keyboard so "Place Order" stays visible while typing the table.
+                .imePadding()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val isTabletOrWide = maxWidth >= 720.dp
-
-            if (isTabletOrWide) {
-                // Two-pane responsive layout for tablets/desktops
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    // Left Pane: Category Filter + Product Grid
-                    Column(
-                        modifier = Modifier
-                            .weight(1.35f)
-                            .fillMaxHeight(),
-                    ) {
-                        CategoryChipsRow(
-                            selectedCategory = selectedCategory,
-                            onCategorySelected = { selectedCategory = it },
-                        )
-                        Spacer(Modifier.height(10.dp))
-                        ProductGrid(
-                            items = filteredItems,
-                            cart = cart,
-                            onAddToCart = viewModel::addToCart,
-                            onRemoveFromCart = viewModel::removeFromCart,
-                            modifier = Modifier.weight(1f),
-                            minCellSize = 160.dp,
-                        )
-                    }
-
-                    // Right Pane: Order Details & Cart Checkout
-                    QahwaCard(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                        ) {
-                            TableTakeawaySelector(
-                                tableNumber = tableNumber,
-                                onTableNumberChange = { tableNumber = it },
-                                isTakeaway = isTakeaway,
-                                onTakeawayChange = {
-                                    isTakeaway = it
-                                    if (it) tableNumber = ""
-                                },
-                                onDone = { focusManager.clearFocus() },
-                            )
-
-                            Spacer(Modifier.height(14.dp))
-                            QahwaDivider()
-                            Spacer(Modifier.height(10.dp))
-
-                            QahwaSectionHeader(
-                                title = stringResource(R.string.order_summary),
-                            )
-                            Spacer(Modifier.height(8.dp))
-
-                            if (cart.isEmpty()) {
-                                Box(
-                                    modifier = Modifier.weight(1f),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    QahwaEmptyState(
-                                        message = stringResource(R.string.no_items_yet),
-                                        icon = Icons.Default.ShoppingCart,
-                                    )
-                                }
-                            } else {
-                                LazyColumn(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    items(cart, key = { it.menuItem.id }) { cartItem ->
-                                        CartItemRow(
-                                            cartItem = cartItem,
-                                            onAdd = { viewModel.addToCart(cartItem.menuItem) },
-                                            onRemove = { viewModel.removeFromCart(cartItem.menuItem) },
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(Modifier.height(12.dp))
-                            QahwaDivider()
-                            Spacer(Modifier.height(12.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.cart_total),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = TextMain,
-                                )
-                                QahwaCurrencyText(
-                                    amount = viewModel.cartTotal,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = PrimaryDark,
-                                )
-                            }
-
-                            Spacer(Modifier.height(16.dp))
-
-                            QahwaPrimaryButton(
-                                text = stringResource(R.string.place_order),
-                                onClick = {
-                                    val table = if (isTakeaway) "takeaway" else tableNumber.trim()
-                                    if (canPlaceOrder) {
-                                        viewModel.placeOrder(table) { onOrderPlaced() }
-                                    }
-                                },
-                                enabled = canPlaceOrder,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
-                }
-            } else {
-                // Mobile Portrait layout
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        TableTakeawaySelector(
-                            tableNumber = tableNumber,
-                            onTableNumberChange = { tableNumber = it },
-                            isTakeaway = isTakeaway,
-                            onTakeawayChange = {
-                                isTakeaway = it
-                                if (it) tableNumber = ""
-                            },
-                            onDone = { focusManager.clearFocus() },
-                        )
-                        CategoryChipsRow(
-                            selectedCategory = selectedCategory,
-                            onCategorySelected = { selectedCategory = it },
-                        )
-                    }
-
-                    ProductGrid(
-                        items = filteredItems,
-                        cart = cart,
-                        onAddToCart = viewModel::addToCart,
-                        onRemoveFromCart = viewModel::removeFromCart,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 16.dp),
-                        minCellSize = 145.dp,
-                    )
-
-                    // Docked Cart summary if items selected
-                    if (cart.isNotEmpty()) {
-                        Surface(
-                            color = Color.White,
-                            shadowElevation = 0.dp,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, DividerColor),
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = stringResource(R.string.order_summary),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = TextSecondary,
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.items_count, cart.sumOf { it.quantity }),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Medium,
-                                            color = TextMain,
-                                        )
-                                    }
-                                    QahwaCurrencyText(
-                                        amount = viewModel.cartTotal,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        color = PrimaryDark,
-                                    )
-                                }
-
-                                Spacer(Modifier.height(10.dp))
-
-                                QahwaPrimaryButton(
-                                    text = stringResource(R.string.place_order),
-                                    onClick = {
-                                        val table = if (isTakeaway) "takeaway" else tableNumber.trim()
-                                        if (canPlaceOrder) {
-                                            viewModel.placeOrder(table) { onOrderPlaced() }
-                                        }
-                                    },
-                                    enabled = canPlaceOrder,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TableTakeawaySelector(
-    tableNumber: String,
-    onTableNumberChange: (String) -> Unit,
-    isTakeaway: Boolean,
-    onTakeawayChange: (Boolean) -> Unit,
-    onDone: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        QahwaTextField(
-            value = if (isTakeaway) "" else tableNumber,
-            onValueChange = onTableNumberChange,
-            label = stringResource(R.string.table_number),
-            enabled = !isTakeaway,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Done,
-            ),
-            keyboardActions = KeyboardActions(onDone = { onDone() }),
-            modifier = Modifier.weight(1f),
-        )
-
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = if (isTakeaway) PrimaryGreen.copy(alpha = 0.12f) else Color.White,
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                if (isTakeaway) PrimaryGreen else DividerColor,
-            ),
-            modifier = Modifier.height(52.dp),
-        ) {
+            // Table / Takeaway
             Row(
-                modifier = Modifier
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = stringResource(R.string.takeaway),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isTakeaway) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isTakeaway) PrimaryDark else TextMain,
+                OutlinedTextField(
+                    value = tableNumber,
+                    onValueChange = { tableNumber = it },
+                    label = { Text(stringResource(R.string.table_number)) },
+                    enabled = !isTakeaway,
+                    modifier = Modifier.weight(1f)
                 )
-                Switch(
-                    checked = isTakeaway,
-                    onCheckedChange = onTakeawayChange,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = PrimaryGreen,
-                        uncheckedTrackColor = DividerColor,
-                        uncheckedThumbColor = TextSecondary,
-                    ),
+                FilterChip(
+                    selected = isTakeaway,
+                    onClick = {
+                        isTakeaway = !isTakeaway
+                        if (isTakeaway) tableNumber = ""
+                    },
+                    label = { Text(stringResource(R.string.takeaway)) }
                 )
             }
-        }
-    }
-}
 
-@Composable
-private fun CategoryChipsRow(
-    selectedCategory: String,
-    onCategorySelected: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        POS_CATEGORIES.forEach { cat ->
-            val isSelected = selectedCategory.equals(cat, ignoreCase = true)
-            FilterChip(
-                selected = isSelected,
-                onClick = { onCategorySelected(cat) },
-                label = {
-                    Text(
-                        text = getLocalizedCategoryName(cat),
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            // Menu grid
+            Text(stringResource(R.string.select_items), style = MaterialTheme.typography.titleSmall)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(menuItems) { item ->
+                    val cartItem = cart.find { it.menuItem.id == item.id }
+                    MenuItemSelectCard(
+                        item = item,
+                        language = language,
+                        quantity = cartItem?.quantity ?: 0,
+                        onAdd = { viewModel.addToCart(item) },
+                        onRemove = { viewModel.removeFromCart(item) }
                     )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = PrimaryGreen,
-                    selectedLabelColor = Color.White,
-                    containerColor = Color.White,
-                    labelColor = TextSecondary,
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = DividerColor,
-                    selectedBorderColor = Color.Transparent,
-                ),
-                shape = RoundedCornerShape(10.dp),
-            )
-        }
-    }
-}
+                }
+            }
 
-@Composable
-private fun ProductGrid(
-    items: List<MenuItem>,
-    cart: List<CartItem>,
-    onAddToCart: (MenuItem) -> Unit,
-    onRemoveFromCart: (MenuItem) -> Unit,
-    modifier: Modifier = Modifier,
-    minCellSize: androidx.compose.ui.unit.Dp = 150.dp,
-) {
-    if (items.isEmpty()) {
-        Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            QahwaEmptyState(
-                message = stringResource(R.string.no_items_yet),
-            )
-        }
-    } else {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = minCellSize),
-            modifier = modifier,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(vertical = 8.dp),
-        ) {
-            items(items, key = { it.id }) { item ->
-                val cartItem = cart.find { it.menuItem.id == item.id }
-                ProductCard(
-                    item = item,
-                    quantity = cartItem?.quantity ?: 0,
-                    onAdd = { onAddToCart(item) },
-                    onRemove = { onRemoveFromCart(item) },
-                )
+            // Cart summary
+            if (cart.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            stringResource(R.string.order_summary),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        LazyColumn(modifier = Modifier.height(80.dp)) {
+                            items(cart) { cartItem ->
+                                Text(
+                                    "${formatQuantity(cartItem.quantity)}× ${cartItem.menuItem.displayName(language)} — " +
+                                        formatMad(cartItem.menuItem.priceCentimes * cartItem.quantity),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            stringResource(R.string.total_amount, formatMad(viewModel.cartTotalCentimes)),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+            }
+
+            Button(
+                onClick = {
+                    val table = if (isTakeaway) Order.TAKEAWAY else tableNumber
+                    if (table.isNotBlank() && cart.isNotEmpty()) {
+                        viewModel.placeOrder(table) { onOrderPlaced() }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSaving && cart.isNotEmpty() && (isTakeaway || tableNumber.isNotBlank())
+            ) {
+                Text(stringResource(R.string.place_order))
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProductCard(
+private fun MenuItemSelectCard(
     item: MenuItem,
+    language: String,
     quantity: Int,
     onAdd: () -> Unit,
-    onRemove: () -> Unit,
+    onRemove: () -> Unit
 ) {
-    val isInCart = quantity > 0
-
-    QahwaCard(
-        selected = isInCart,
+    Card(
         modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (quantity > 0)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp),
-            ) {
-                Text(
-                    text = item.getLocalizedName(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = TextMain,
-                )
-            }
-
-            QahwaCurrencyText(
-                amount = item.price,
-                style = MaterialTheme.typography.labelLarge,
-                color = PrimaryDark,
+            Text(
+                text = item.displayName(language),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2
             )
-
-            // Perfectly centered quantity control
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 2.dp),
-                contentAlignment = Alignment.Center,
+            Text(
+                text = formatMad(item.priceCentimes),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                QahwaQuantityControl(
-                    quantity = quantity,
-                    onAdd = onAdd,
-                    onRemove = onRemove,
+                IconButton(onClick = onRemove, enabled = quantity > 0) {
+                    Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.decrease))
+                }
+                Text(
+                    text = formatQuantity(quantity),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
+                IconButton(onClick = onAdd) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.increase))
+                }
             }
         }
     }
 }
 
-@Composable
-private fun CartItemRow(
-    cartItem: CartItem,
-    onAdd: () -> Unit,
-    onRemove: () -> Unit,
-) {
-    Surface(
-        color = BackgroundMain,
-        shape = RoundedCornerShape(10.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, DividerColor),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = cartItem.menuItem.getLocalizedName(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = TextMain,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                QahwaCurrencyText(
-                    amount = cartItem.menuItem.price * cartItem.quantity,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                )
-            }
-
-            QahwaQuantityControl(
-                quantity = cartItem.quantity,
-                onAdd = onAdd,
-                onRemove = onRemove,
-            )
-        }
-    }
-}
+private fun MenuItem.displayName(language: String) = localizedName(name, nameAr, nameFr, language)

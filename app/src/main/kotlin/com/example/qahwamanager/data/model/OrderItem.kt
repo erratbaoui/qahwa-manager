@@ -21,8 +21,10 @@ data class OrderItem(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val orderId: Long,
     val menuItemId: Long,
+    // Names are snapshotted so past orders keep showing what was sold, in every language.
     val menuItemName: String,
+    val menuItemNameAr: String = "",
+    val menuItemNameFr: String = "",
     val quantity: Int,
-    val unitPrice: Double
+    val unitPriceCentimes: Long // MAD × 100
 )
-

@@ -27,9 +27,9 @@ class InventoryViewModel @Inject constructor(
         inventoryRepository.updateItem(item)
     }
 
+    /** Applies [delta] to the stored quantity (never below zero), not to the possibly stale [item] snapshot. */
     fun adjustQuantity(item: InventoryItem, delta: Double) = viewModelScope.launch {
-        val newQuantity = maxOf(0.0, item.quantity + delta)
-        inventoryRepository.updateItem(item.copy(quantity = newQuantity))
+        inventoryRepository.adjustQuantity(item.id, delta)
     }
 
     fun deleteItem(item: InventoryItem) = viewModelScope.launch {

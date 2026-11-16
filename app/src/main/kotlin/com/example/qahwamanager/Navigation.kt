@@ -1,5 +1,6 @@
 package com.example.qahwamanager
 
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,7 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.example.qahwamanager.ui.home.HomeScreen
 import com.example.qahwamanager.ui.inventory.InventoryScreen
@@ -44,15 +47,15 @@ import com.example.qahwamanager.ui.orders.OrderDetailScreen
 import com.example.qahwamanager.ui.orders.OrdersListScreen
 import com.example.qahwamanager.ui.sales.SalesScreen
 import com.example.qahwamanager.ui.theme.BackgroundMain
-import com.example.qahwamanager.ui.theme.DividerColor
 import com.example.qahwamanager.ui.theme.PrimaryDark
 import com.example.qahwamanager.ui.theme.PrimaryGreen
 import com.example.qahwamanager.ui.theme.TextSecondary
 
 @Composable
 fun MainNavigation() {
-    var currentTab by remember { mutableStateOf<NavKey>(Home) }
     val backStack = rememberNavBackStack(Home)
+    // Derived from the (saved) back stack, so it survives rotation and language changes.
+    val currentTab = backStack.firstOrNull() ?: Home
 
     val tabs = listOf(
         Triple(Home as NavKey, R.string.home, Icons.Default.Home),
@@ -76,7 +79,6 @@ fun MainNavigation() {
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
-                            currentTab = destination
                             backStack.clear()
                             backStack.add(destination)
                         },
@@ -125,9 +127,18 @@ fun MainNavigation() {
         NavDisplay(
             backStack = backStack,
             onBack = { backStack.removeLastOrNull() },
+            // Give each entry its own ViewModelStore so hiltViewModel() is scoped to the
+            // screen (e.g. a fresh cart per New Order) and cleared when it is popped.
+            entryDecorators = listOf(
+                rememberSaveableStateHolderNavEntryDecorator(),
+                rememberViewModelStoreNavEntryDecorator(),
+            ),
+            // Mark the status/navigation bar space this padding covers as consumed, so the
+            // screens' own Scaffolds and TopAppBars don't add the same insets a second time.
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding),
             entryProvider = entryProvider {
                 entry<Home> {
                     HomeScreen(onNewOrder = { backStack.add(NewOrder) })
