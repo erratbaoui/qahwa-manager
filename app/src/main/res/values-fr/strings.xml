@@ -15,6 +15,9 @@
     <string name="cancel_order">Annuler la commande</string>
     <string name="add_item">Ajouter un article</string>
     <string name="price_mad">Prix (MAD)</string>
+    <string name="low_stock_count">%d articles en rupture</string>
+    <string name="decrease_quantity">Diminuer la quantité</string>
+    <string name="increase_quantity">Augmenter la quantité</string>
     <string name="category">Catégorie</string>
     <string name="available">Disponible</string>
     <string name="sales">Ventes</string>

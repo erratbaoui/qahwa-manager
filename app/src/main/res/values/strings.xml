@@ -20,6 +20,9 @@
     <string name="sales">Sales</string>
     <string name="today">Today</string>
     <string name="this_week">This Week</string>
+    <string name="low_stock_count">%d items low</string>
+    <string name="decrease_quantity">Decrease quantity</string>
+    <string name="increase_quantity">Increase quantity</string>
     <string name="all_time">All Time</string>
     <string name="total_revenue">Total Revenue</string>
     <string name="quantity">Quantity</string>

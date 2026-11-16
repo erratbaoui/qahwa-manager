@@ -5,6 +5,9 @@
     <string name="orders">الطلبات</string>
     <string name="inventory">المخزون</string>
     <string name="today_revenue">إيرادات اليوم</string>
+    <string name="low_stock_count">%d عناصر منخفضة</string>
+    <string name="decrease_quantity">إنقاص الكمية</string>
+    <string name="increase_quantity">زيادة الكمية</string>
     <string name="open_orders">الطلبات المفتوحة</string>
     <string name="low_stock_alerts">تحذيرات نقص المخزون</string>
     <string name="new_order">طلب جديد</string>
