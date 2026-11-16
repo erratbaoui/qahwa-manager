@@ -39,6 +39,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.ui.common.currentLanguage
 import com.example.qahwamanager.ui.common.formatMad
+import com.example.qahwamanager.ui.common.formatQuantity
+import com.example.qahwamanager.ui.common.statusLabel
+import com.example.qahwamanager.ui.common.tableLabel
 import com.example.qahwamanager.util.localizedName
 import com.example.qahwamanager.data.model.OrderItem
 import com.example.qahwamanager.data.model.OrderStatus
@@ -60,10 +63,10 @@ fun OrderDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Order #$orderId") },
+                title = { Text(stringResource(R.string.order_title, orderId)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -93,14 +96,12 @@ fun OrderDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = if (ord.tableNumber == "takeaway")
-                                    stringResource(R.string.takeaway)
-                                else "Table ${ord.tableNumber}",
+                                text = tableLabel(ord),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = ord.status.name,
+                                text = statusLabel(ord.status),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = when (ord.status) {
                                     OrderStatus.OPEN -> MaterialTheme.colorScheme.primary
@@ -113,7 +114,7 @@ fun OrderDetailScreen(
                 }
             }
 
-            Text("Items", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.order_items), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
@@ -132,7 +133,7 @@ fun OrderDetailScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(R.string.total_revenue),
+                    text = stringResource(R.string.total),
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
@@ -181,7 +182,7 @@ private fun OrderItemRow(item: OrderItem, language: String) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = "${item.quantity}× " +
+            text = "${formatQuantity(item.quantity)}× " +
                 localizedName(item.menuItemName, item.menuItemNameAr, item.menuItemNameFr, language),
             style = MaterialTheme.typography.bodyMedium
         )

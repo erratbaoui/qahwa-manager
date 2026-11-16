@@ -12,4 +12,11 @@ data class Order(
     val status: OrderStatus = OrderStatus.OPEN,
     val createdAt: Long = System.currentTimeMillis(),
     val totalCentimes: Long = 0 // MAD × 100
-)
+) {
+    companion object {
+        /** Stored in [tableNumber] for takeaway orders. Existing rows rely on this exact value. */
+        const val TAKEAWAY = "takeaway"
+    }
+}
+
+val Order.isTakeaway: Boolean get() = tableNumber == Order.TAKEAWAY

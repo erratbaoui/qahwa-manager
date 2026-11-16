@@ -23,7 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -53,11 +53,15 @@ import com.example.qahwamanager.util.parseMadToCentimes
 
 val CATEGORIES = listOf("coffee", "tea", "food", "juice")
 val CATEGORY_LABELS = mapOf(
-    "coffee" to "☕ Coffee",
-    "tea" to "🍵 Tea",
-    "food" to "🥐 Food",
-    "juice" to "🥤 Juice"
+    "coffee" to R.string.category_coffee,
+    "tea" to R.string.category_tea,
+    "food" to R.string.category_food,
+    "juice" to R.string.category_juice
 )
+
+@Composable
+private fun categoryLabel(category: String): String =
+    CATEGORY_LABELS[category]?.let { stringResource(it) } ?: category
 
 @Composable
 fun MenuScreen(
@@ -117,7 +121,7 @@ fun MenuScreenContent(
                 .padding(innerPadding)
         ) {
             // Category tabs
-            ScrollableTabRow(
+            PrimaryScrollableTabRow(
                 selectedTabIndex = CATEGORIES.indexOf(selectedCategory).coerceAtLeast(0),
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
@@ -125,7 +129,7 @@ fun MenuScreenContent(
                     Tab(
                         selected = selectedCategory == category,
                         onClick = { onSelectCategory(category) },
-                        text = { Text(CATEGORY_LABELS[category] ?: category) }
+                        text = { Text(categoryLabel(category)) }
                     )
                 }
             }
@@ -253,13 +257,13 @@ private fun MenuItemCard(
                     onCheckedChange = { onToggleAvailability() }
                 )
                 Text(
-                    text = if (item.isAvailable) stringResource(R.string.available) else "Off",
+                    text = if (item.isAvailable) stringResource(R.string.available) else stringResource(R.string.unavailable),
                     style = MaterialTheme.typography.labelSmall
                 )
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "Delete",
+                        contentDescription = stringResource(R.string.delete),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -268,6 +272,7 @@ private fun MenuItemCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddMenuItemDialog(
     onDismiss: () -> Unit,
@@ -292,19 +297,19 @@ private fun AddMenuItemDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name (EN)") },
+                    label = { Text(stringResource(R.string.name_en)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = nameFr,
                     onValueChange = { nameFr = it },
-                    label = { Text("Nom (FR)") },
+                    label = { Text(stringResource(R.string.name_fr)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = nameAr,
                     onValueChange = { nameAr = it },
-                    label = { Text("الاسم (AR)") },
+                    label = { Text(stringResource(R.string.name_ar)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -322,19 +327,19 @@ private fun AddMenuItemDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") },
+                    label = { Text(stringResource(R.string.description)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 // Category selector
                 Text(stringResource(R.string.category), style = MaterialTheme.typography.labelMedium)
-                ScrollableTabRow(
+                PrimaryScrollableTabRow(
                     selectedTabIndex = CATEGORIES.indexOf(category).coerceAtLeast(0)
                 ) {
                     CATEGORIES.forEach { cat ->
                         Tab(
                             selected = category == cat,
                             onClick = { category = cat },
-                            text = { Text(CATEGORY_LABELS[cat] ?: cat) }
+                            text = { Text(categoryLabel(cat)) }
                         )
                     }
                 }
@@ -357,10 +362,10 @@ private fun AddMenuItemDialog(
                         )
                     }
                 }
-            ) { Text("Add") }
+            ) { Text(stringResource(R.string.add)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

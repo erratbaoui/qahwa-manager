@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,9 +31,9 @@ import com.example.qahwamanager.R
 import com.example.qahwamanager.ui.common.formatMad
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
-import java.text.SimpleDateFormat
+import com.example.qahwamanager.ui.common.rememberDateFormat
+import com.example.qahwamanager.ui.common.tableLabel
 import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,7 +104,7 @@ fun SalesScreen(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        text = "${orders.size} orders",
+                        text = pluralStringResource(R.plurals.orders_count, orders.size, orders.size),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
@@ -111,14 +112,14 @@ fun SalesScreen(
             }
 
             Text(
-                text = "Order History",
+                text = stringResource(R.string.order_history),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
 
             if (orders.isEmpty()) {
                 Text(
-                    text = "No paid orders for this period",
+                    text = stringResource(R.string.no_paid_orders),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -138,7 +139,7 @@ fun SalesScreen(
 
 @Composable
 private fun SaleOrderCard(order: Order) {
-    val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+    val dateFormat = rememberDateFormat("yyyyMMMdHm")
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -152,7 +153,7 @@ private fun SaleOrderCard(order: Order) {
         ) {
             Column {
                 Text(
-                    text = if (order.tableNumber == "takeaway") "Takeaway" else "Table ${order.tableNumber}",
+                    text = tableLabel(order),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )

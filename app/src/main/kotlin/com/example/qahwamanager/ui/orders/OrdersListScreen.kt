@@ -34,9 +34,9 @@ import com.example.qahwamanager.R
 import com.example.qahwamanager.ui.common.formatMad
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
-import java.text.SimpleDateFormat
+import com.example.qahwamanager.ui.common.rememberDateFormat
+import com.example.qahwamanager.ui.common.tableLabel
 import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +79,7 @@ fun OrdersListScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("☕", style = MaterialTheme.typography.displayLarge)
                     Text(
-                        "No open orders",
+                        stringResource(R.string.no_open_orders),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -104,7 +104,7 @@ fun OrdersListScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OrderCard(order: Order, onClick: () -> Unit) {
-    val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val dateFormat = rememberDateFormat("Hm")
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -119,8 +119,7 @@ private fun OrderCard(order: Order, onClick: () -> Unit) {
         ) {
             Column {
                 Text(
-                    text = if (order.tableNumber == "takeaway") stringResource(R.string.takeaway)
-                    else "Table ${order.tableNumber}",
+                    text = tableLabel(order),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )

@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.annotation.StringRes
 import androidx.core.os.LocaleListCompat
 import com.example.qahwamanager.R
 import java.util.Locale
@@ -40,14 +41,14 @@ import java.util.Locale
 data class SupportedLanguage(
     val code: String,
     val flag: String,
-    val displayName: String,
+    @param:StringRes val displayNameRes: Int,
     val nativeName: String,
 )
 
 val SUPPORTED_LANGUAGES = listOf(
-    SupportedLanguage(code = "en", flag = "🇬🇧", displayName = "English", nativeName = "English"),
-    SupportedLanguage(code = "ar", flag = "🇲🇦", displayName = "Arabic", nativeName = "العربية"),
-    SupportedLanguage(code = "fr", flag = "🇫🇷", displayName = "French", nativeName = "Français"),
+    SupportedLanguage(code = "en", flag = "🇬🇧", displayNameRes = R.string.language_english, nativeName = "English"),
+    SupportedLanguage(code = "ar", flag = "🇲🇦", displayNameRes = R.string.language_arabic, nativeName = "العربية"),
+    SupportedLanguage(code = "fr", flag = "🇫🇷", displayNameRes = R.string.language_french, nativeName = "Français"),
 )
 
 @Composable
@@ -198,7 +199,7 @@ private fun LanguageDialog(
                                         },
                                     )
                                     Text(
-                                        text = lang.displayName,
+                                        text = stringResource(lang.displayNameRes),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = if (isSelected) {
                                             MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
@@ -212,7 +213,7 @@ private fun LanguageDialog(
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = stringResource(R.string.language_selected),
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(22.dp),
                                 )

@@ -36,9 +36,49 @@
     <string name="modify_inventory">Modifier l\'inventaire</string>
     <string name="delete">Supprimer</string>
     <string name="change_language">Changer de langue</string>
-    <string name="language_english">English (Anglais)</string>
-    <string name="language_arabic">العربية (Arabe)</string>
+    <string name="language_english">Anglais</string>
+    <string name="language_arabic">Arabe</string>
     <string name="language_french">Français</string>
     <string name="invalid_number">Saisissez un nombre valide</string>
+    <string name="language_selected">Sélectionnée</string>
+    <string name="back">Retour</string>
+    <string name="add">Ajouter</string>
+    <string name="increase">Augmenter</string>
+    <string name="decrease">Diminuer</string>
+    <string name="quick_actions">Actions rapides</string>
+    <string name="select_items">Choisir les articles</string>
+    <string name="order_summary">Récapitulatif de la commande</string>
+    <string name="total">Total</string>
+    <string name="total_amount">Total : %1$s</string>
+    <string name="table_label">Table %1$s</string>
+    <string name="order_title">Commande n° %1$d</string>
+    <string name="order_items">Articles</string>
+    <string name="no_open_orders">Aucune commande en cours</string>
+    <string name="order_history">Historique des commandes</string>
+    <string name="no_paid_orders">Aucune commande payée sur cette période</string>
+    <string name="status_open">En cours</string>
+    <string name="status_paid">Payée</string>
+    <string name="status_cancelled">Annulée</string>
+    <string name="category_coffee">☕ Café</string>
+    <string name="category_tea">🍵 Thé</string>
+    <string name="category_food">🥐 Nourriture</string>
+    <string name="category_juice">🥤 Jus</string>
+    <string name="unavailable">Indisponible</string>
+    <string name="name_en">Nom (EN)</string>
+    <string name="name_fr">Nom (FR)</string>
+    <string name="name_ar">Nom (AR)</string>
+    <string name="description">Description</string>
+    <string name="quantity_label">Quantité :</string>
+    <string name="min_stock">Min : %1$s %2$s</string>
+    <plurals name="orders_count">
+        <item quantity="one">%d commande</item>
+        <item quantity="many">%d commandes</item>
+        <item quantity="other">%d commandes</item>
+    </plurals>
+    <plurals name="low_stock_count">
+        <item quantity="one">%d article en stock faible</item>
+        <item quantity="many">%d articles en stock faible</item>
+        <item quantity="other">%d articles en stock faible</item>
+    </plurals>
 </resources>
 

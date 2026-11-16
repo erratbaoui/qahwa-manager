@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -44,8 +45,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.MenuItem
+import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.ui.common.currentLanguage
 import com.example.qahwamanager.ui.common.formatMad
+import com.example.qahwamanager.ui.common.formatQuantity
 import com.example.qahwamanager.util.localizedName
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,7 +71,7 @@ fun NewOrderScreen(
                 title = { Text(stringResource(R.string.new_order)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -82,6 +85,8 @@ fun NewOrderScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                // Shrink above the keyboard so "Place Order" stays visible while typing the table.
+                .imePadding()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -108,7 +113,7 @@ fun NewOrderScreen(
             }
 
             // Menu grid
-            Text("Select Items", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.select_items), style = MaterialTheme.typography.titleSmall)
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.weight(1f),
@@ -137,14 +142,14 @@ fun NewOrderScreen(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            "Order Summary",
+                            stringResource(R.string.order_summary),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         LazyColumn(modifier = Modifier.height(80.dp)) {
                             items(cart) { cartItem ->
                                 Text(
-                                    "${cartItem.quantity}× ${cartItem.menuItem.displayName(language)} — " +
+                                    "${formatQuantity(cartItem.quantity)}× ${cartItem.menuItem.displayName(language)} — " +
                                         formatMad(cartItem.menuItem.priceCentimes * cartItem.quantity),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -153,7 +158,7 @@ fun NewOrderScreen(
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Total: " + formatMad(viewModel.cartTotalCentimes),
+                            stringResource(R.string.total_amount, formatMad(viewModel.cartTotalCentimes)),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -164,7 +169,7 @@ fun NewOrderScreen(
 
             Button(
                 onClick = {
-                    val table = if (isTakeaway) "takeaway" else tableNumber
+                    val table = if (isTakeaway) Order.TAKEAWAY else tableNumber
                     if (table.isNotBlank() && cart.isNotEmpty()) {
                         viewModel.placeOrder(table) { onOrderPlaced() }
                     }
@@ -216,15 +221,15 @@ private fun MenuItemSelectCard(
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 IconButton(onClick = onRemove, enabled = quantity > 0) {
-                    Icon(Icons.Default.Remove, contentDescription = "Remove")
+                    Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.decrease))
                 }
                 Text(
-                    text = quantity.toString(),
+                    text = formatQuantity(quantity),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onAdd) {
-                    Icon(Icons.Default.Add, contentDescription = "Add")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.increase))
                 }
             }
         }

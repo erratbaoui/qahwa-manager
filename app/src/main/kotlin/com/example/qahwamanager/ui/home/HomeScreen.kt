@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,9 +35,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
 import com.example.qahwamanager.ui.common.formatMad
-import java.text.SimpleDateFormat
+import com.example.qahwamanager.ui.common.formatQuantity
+import com.example.qahwamanager.ui.common.rememberDateFormat
 import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,8 +46,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val dateFormat = SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault())
-    val today = dateFormat.format(Date())
+    val today = rememberDateFormat("EEEEdMMMMyyyy").format(Date())
 
     Column(
         modifier = Modifier
@@ -106,7 +106,7 @@ fun HomeScreen(
             SummaryCard(
                 modifier = Modifier.weight(1f),
                 label = stringResource(R.string.open_orders),
-                value = uiState.openOrdersCount.toString(),
+                value = formatQuantity(uiState.openOrdersCount),
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer
             )
@@ -135,7 +135,11 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            text = "${uiState.lowStockCount} ${stringResource(R.string.low_stock)}",
+                            text = pluralStringResource(
+                                R.plurals.low_stock_count,
+                                uiState.lowStockCount,
+                                uiState.lowStockCount,
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
@@ -148,7 +152,7 @@ fun HomeScreen(
 
         // Quick actions
         Text(
-            text = "Quick Actions",
+            text = stringResource(R.string.quick_actions),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
         )

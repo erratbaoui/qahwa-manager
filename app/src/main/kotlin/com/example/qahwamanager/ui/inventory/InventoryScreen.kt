@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
+import com.example.qahwamanager.ui.common.formatQuantity
 import com.example.qahwamanager.data.model.InventoryItem
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
 import com.example.qahwamanager.util.parseDecimalInput
@@ -198,7 +199,7 @@ private fun InventoryItemCard(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                text = "Min: ${item.lowStockThreshold} ${item.unit}",
+                                text = stringResource(R.string.min_stock, formatQuantity(item.lowStockThreshold), item.unit),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -259,7 +260,7 @@ private fun InventoryItemCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = stringResource(R.string.quantity) + ":",
+                        text = stringResource(R.string.quantity_label),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 6.dp),
@@ -276,7 +277,7 @@ private fun InventoryItemCard(
                         ) {
                             Icon(
                                 Icons.Default.Remove,
-                                contentDescription = "Decrease",
+                                contentDescription = stringResource(R.string.decrease),
                                 modifier = Modifier.size(16.dp),
                             )
                         }
@@ -287,7 +288,7 @@ private fun InventoryItemCard(
                             modifier = Modifier.padding(horizontal = 4.dp),
                         ) {
                             Text(
-                                text = "${item.quantity} ${item.unit}",
+                                text = "${formatQuantity(item.quantity)} ${item.unit}",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -301,7 +302,7 @@ private fun InventoryItemCard(
                         ) {
                             Icon(
                                 Icons.Default.Add,
-                                contentDescription = "Increase",
+                                contentDescription = stringResource(R.string.increase),
                                 modifier = Modifier.size(16.dp),
                             )
                         }

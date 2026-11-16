@@ -36,9 +36,55 @@
     <string name="modify_inventory">تعديل المخزون</string>
     <string name="delete">حذف</string>
     <string name="change_language">تغيير اللغة</string>
-    <string name="language_english">English (الإنجليزية)</string>
+    <string name="language_english">الإنجليزية</string>
     <string name="language_arabic">العربية</string>
-    <string name="language_french">Français (الفرنسية)</string>
+    <string name="language_french">الفرنسية</string>
     <string name="invalid_number">أدخل رقمًا صحيحًا</string>
+    <string name="language_selected">محددة</string>
+    <string name="back">رجوع</string>
+    <string name="add">إضافة</string>
+    <string name="increase">زيادة</string>
+    <string name="decrease">إنقاص</string>
+    <string name="quick_actions">إجراءات سريعة</string>
+    <string name="select_items">اختر المنتجات</string>
+    <string name="order_summary">ملخص الطلب</string>
+    <string name="total">المجموع</string>
+    <string name="total_amount">المجموع: %1$s</string>
+    <string name="table_label">طاولة %1$s</string>
+    <string name="order_title">الطلب رقم %1$d</string>
+    <string name="order_items">المنتجات</string>
+    <string name="no_open_orders">لا توجد طلبات مفتوحة</string>
+    <string name="order_history">سجل الطلبات</string>
+    <string name="no_paid_orders">لا توجد طلبات مدفوعة في هذه الفترة</string>
+    <string name="status_open">مفتوح</string>
+    <string name="status_paid">مدفوع</string>
+    <string name="status_cancelled">ملغى</string>
+    <string name="category_coffee">☕ قهوة</string>
+    <string name="category_tea">🍵 شاي</string>
+    <string name="category_food">🥐 طعام</string>
+    <string name="category_juice">🥤 عصير</string>
+    <string name="unavailable">غير متاح</string>
+    <string name="name_en">الاسم (EN)</string>
+    <string name="name_fr">الاسم (FR)</string>
+    <string name="name_ar">الاسم (AR)</string>
+    <string name="description">الوصف</string>
+    <string name="quantity_label">الكمية:</string>
+    <string name="min_stock">الحد الأدنى: %1$s %2$s</string>
+    <plurals name="orders_count">
+        <item quantity="zero">%d طلب</item>
+        <item quantity="one">طلب واحد</item>
+        <item quantity="two">طلبان</item>
+        <item quantity="few">%d طلبات</item>
+        <item quantity="many">%d طلبًا</item>
+        <item quantity="other">%d طلب</item>
+    </plurals>
+    <plurals name="low_stock_count">
+        <item quantity="zero">%d صنف منخفض المخزون</item>
+        <item quantity="one">صنف واحد منخفض المخزون</item>
+        <item quantity="two">صنفان منخفضا المخزون</item>
+        <item quantity="few">%d أصناف منخفضة المخزون</item>
+        <item quantity="many">%d صنفًا منخفض المخزون</item>
+        <item quantity="other">%d صنف منخفض المخزون</item>
+    </plurals>
 </resources>
 
