@@ -21,7 +21,8 @@ android {
 
   buildTypes {
     release {
-      isMinifyEnabled = false
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
     }
   }
@@ -44,7 +45,7 @@ android {
 
   // Exported Room schemas, needed by MigrationTestHelper.
   sourceSets {
-    getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    getByName("androidTest").assets.directories.add("$projectDir/schemas")
   }
 }
 
