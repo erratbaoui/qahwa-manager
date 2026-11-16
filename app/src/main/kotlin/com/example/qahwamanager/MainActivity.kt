@@ -1,10 +1,14 @@
 package com.example.qahwamanager
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -20,8 +24,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.qahwamanager.notifications.LowStockScheduler
 import com.example.qahwamanager.ui.common.AppLocaleManager
 import com.example.qahwamanager.ui.common.AppThemeManager
 import com.example.qahwamanager.ui.common.ThemeMode
@@ -32,6 +38,14 @@ import java.util.Locale
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            LowStockScheduler.ensureScheduledAndCheckIfDue(this)
+        }
+    }
 
     override fun attachBaseContext(newBase: Context) {
         val locale = Locale.forLanguageTag(AppLocaleManager.getSavedLanguage(newBase))
@@ -48,6 +62,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         AppLocaleManager.init(this)
         AppThemeManager.init(this)
+        requestNotificationPermissionAndSchedule()
 
         enableEdgeToEdge()
         setContent {
@@ -88,6 +103,23 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun requestNotificationPermissionAndSchedule() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+            if (granted) {
+                LowStockScheduler.ensureScheduledAndCheckIfDue(this)
+            } else {
+                LowStockScheduler.scheduleBiHourlyCheck(this)
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            LowStockScheduler.ensureScheduledAndCheckIfDue(this)
         }
     }
 }

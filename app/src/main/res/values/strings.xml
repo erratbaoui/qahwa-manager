@@ -83,6 +83,9 @@
     <string name="confirm_payment_message">Confirm payment for this order.</string>
     <string name="confirm_delete_title">Delete Item?</string>
     <string name="confirm_delete_message">This item will be permanently removed.</string>
+    <string name="low_stock_notification_channel">Low Stock Restock Alerts</string>
+    <string name="low_stock_notification_title">Restock Reminder — Low Inventory</string>
+    <string name="low_stock_notification_body">Please restock (%1$d low): %2$s</string>
     <plurals name="orders_count">
         <item quantity="one">%d order</item>
         <item quantity="other">%d orders</item>

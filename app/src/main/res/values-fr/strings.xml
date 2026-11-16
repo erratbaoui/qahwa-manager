@@ -83,6 +83,9 @@
     <string name="confirm_payment_message">Confirmer le paiement de cette commande.</string>
     <string name="confirm_delete_title">Supprimer l\'article ?</string>
     <string name="confirm_delete_message">Cet article sera définitivement supprimé.</string>
+    <string name="low_stock_notification_channel">Alertes de réapprovisionnement</string>
+    <string name="low_stock_notification_title">Rappel de réapprovisionnement — Stock faible</string>
+    <string name="low_stock_notification_body">Veuillez réapprovisionner (%1$d faible) : %2$s</string>
     <plurals name="orders_count">
         <item quantity="one">%d commande</item>
         <item quantity="many">%d commandes</item>

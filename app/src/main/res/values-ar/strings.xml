@@ -83,6 +83,9 @@
     <string name="confirm_payment_message">تأكيد دفع هذا الطلب.</string>
     <string name="confirm_delete_title">حذف العنصر؟</string>
     <string name="confirm_delete_message">سيتم حذف هذا العنصر نهائياً.</string>
+    <string name="low_stock_notification_channel">تنبيهات إعادة تعبئة المخزون</string>
+    <string name="low_stock_notification_title">تذكير بإعادة التخزين — مخزون منخفض</string>
+    <string name="low_stock_notification_body">يرجى إعادة تخزين (%1$d منخفض): %2$s</string>
     <plurals name="orders_count">
         <item quantity="zero">%d طلب</item>
         <item quantity="one">طلب واحد</item>
