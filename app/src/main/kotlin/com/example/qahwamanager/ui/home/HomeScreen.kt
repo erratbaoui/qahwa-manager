@@ -26,6 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
 import com.example.qahwamanager.R
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
 import com.example.qahwamanager.ui.common.QahwaLowStockWarning
@@ -45,7 +47,13 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val dateFormat = SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault())
+    val config = LocalConfiguration.current
+    val activeLocale = remember(config) {
+        if (!config.locales.isEmpty) config.locales[0] else Locale.getDefault()
+    }
+    val dateFormat = remember(activeLocale) {
+        SimpleDateFormat("EEEE, d MMMM yyyy", activeLocale)
+    }
     val today = dateFormat.format(Date())
 
     Scaffold(containerColor = BackgroundMain) { innerPadding ->

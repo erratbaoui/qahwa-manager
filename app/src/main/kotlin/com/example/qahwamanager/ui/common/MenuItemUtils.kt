@@ -1,16 +1,28 @@
 package com.example.qahwamanager.ui.common
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.MenuItem
 import java.util.Locale
 
 /**
- * Returns the localized name of a [MenuItem] according to the current system/app locale,
- * gracefully falling back to English, French, or Arabic.
+ * Returns the localized name of a [MenuItem] inside a Composable,
+ * automatically observing the active [LocalConfiguration] locale.
  */
-fun MenuItem.getLocalizedName(locale: Locale = Locale.getDefault()): String {
+@Composable
+fun MenuItem.getLocalizedName(): String {
+    val config = LocalConfiguration.current
+    val locale = if (!config.locales.isEmpty) config.locales[0] else Locale.getDefault()
+    return getLocalizedName(locale)
+}
+
+/**
+ * Returns the localized name of a [MenuItem] for a given [Locale],
+ * gracefully falling back to Arabic, French, or English.
+ */
+fun MenuItem.getLocalizedName(locale: Locale): String {
     val lang = locale.language.lowercase()
     return when {
         lang.startsWith("ar") && nameAr.isNotBlank() -> nameAr

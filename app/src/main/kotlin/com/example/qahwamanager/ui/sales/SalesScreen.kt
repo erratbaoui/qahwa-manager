@@ -31,6 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
@@ -184,7 +186,13 @@ fun SalesScreen(viewModel: SalesViewModel = hiltViewModel()) {
 
 @Composable
 private fun SaleOrderCard(order: Order) {
-    val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+    val config = LocalConfiguration.current
+    val activeLocale = remember(config) {
+        if (!config.locales.isEmpty) config.locales[0] else Locale.getDefault()
+    }
+    val dateFormat = remember(activeLocale) {
+        SimpleDateFormat("dd MMM yyyy, HH:mm", activeLocale)
+    }
     val formattedDate = dateFormat.format(Date(order.createdAt))
 
     QahwaCard(modifier = Modifier.fillMaxWidth()) {

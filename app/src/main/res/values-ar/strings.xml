@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">مدير القهوة | Qahwa</string>
+    <string name="app_tagline">إدارة المقاهي ومحلات القهوة</string>
     <string name="home">الرئيسية</string>
     <string name="menu">القائمة</string>
     <string name="orders">الطلبات</string>
@@ -10,6 +11,7 @@
     <string name="completed_orders">مكتملة</string>
     <string name="low_stock_alerts">تحذيرات نقص المخزون</string>
     <string name="low_stock">عناصر منخفضة</string>
+    <string name="low_stock_count">%d عناصر منخفضة</string>
     <string name="new_order">طلب جديد</string>
     <string name="table_number">رقم الطاولة</string>
     <string name="takeaway">وجبة خارجية</string>
@@ -71,6 +73,7 @@
     <string name="back">رجوع</string>
     <string name="cart_total">المجموع</string>
     <string name="order_items_title">العناصر (%d)</string>
+    <string name="items_count">%d عناصر</string>
     <string name="category_coffee">قهوة</string>
     <string name="category_tea">شاي</string>
     <string name="category_food">مأكولات</string>

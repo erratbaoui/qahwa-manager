@@ -316,7 +316,7 @@ fun NewOrderScreen(
                                             color = TextSecondary,
                                         )
                                         Text(
-                                            text = "${cart.sumOf { it.quantity }} items",
+                                            text = stringResource(R.string.items_count, cart.sumOf { it.quantity }),
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = FontWeight.Medium,
                                             color = TextMain,

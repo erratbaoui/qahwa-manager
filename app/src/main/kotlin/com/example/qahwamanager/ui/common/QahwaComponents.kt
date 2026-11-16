@@ -675,7 +675,7 @@ fun QahwaLowStockWarning(count: Int, modifier: Modifier = Modifier) {
                     color = WarningTerracotta,
                 )
                 Text(
-                    text = "$count ${stringResource(R.string.low_stock)}",
+                    text = stringResource(R.string.low_stock_count, count),
                     style = MaterialTheme.typography.bodySmall,
                     color = WarningTerracotta.copy(alpha = 0.85f),
                 )

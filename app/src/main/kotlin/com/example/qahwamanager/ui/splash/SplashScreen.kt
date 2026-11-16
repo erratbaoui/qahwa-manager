@@ -154,7 +154,7 @@ fun SplashScreen(
 
                 // Subtitle / Tagline
                 Text(
-                    text = "Café & Coffee Shop Management",
+                    text = stringResource(id = R.string.app_tagline),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

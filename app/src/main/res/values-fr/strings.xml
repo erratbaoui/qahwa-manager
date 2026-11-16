@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Gestionnaire Qahwa | قهوة</string>
+    <string name="app_tagline">Gestion de Café &amp; Coffee Shop</string>
     <string name="home">Accueil</string>
     <string name="menu">Menu</string>
     <string name="orders">Commandes</string>
@@ -10,6 +11,7 @@
     <string name="completed_orders">Terminées</string>
     <string name="low_stock_alerts">Alertes stock faible</string>
     <string name="low_stock">articles en rupture</string>
+    <string name="low_stock_count">%d articles en rupture</string>
     <string name="new_order">Nouvelle commande</string>
     <string name="table_number">Numéro de table</string>
     <string name="takeaway">À emporter</string>
@@ -71,6 +73,7 @@
     <string name="back">Retour</string>
     <string name="cart_total">Total</string>
     <string name="order_items_title">Articles (%d)</string>
+    <string name="items_count">%d articles</string>
     <string name="category_coffee">Café</string>
     <string name="category_tea">Thé</string>
     <string name="category_food">Cuisine</string>
