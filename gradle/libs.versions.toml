@@ -15,8 +15,8 @@ nav3Core = "1.0.1"
 lifecycleViewmodelNav3 = "2.10.0"
 hilt = "2.60.1"
 ksp = "2.3.13"
-room = "2.7.1"
-kotlinx-serialization = "1.9.0"
+room = "2.8.5"
+kotlinx-serialization = "1.13.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
