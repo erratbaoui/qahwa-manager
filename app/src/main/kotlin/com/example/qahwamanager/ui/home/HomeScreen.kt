@@ -1,6 +1,7 @@
 package com.example.qahwamanager.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,19 +9,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,11 +28,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.ui.common.LanguageSelectorButton
+import com.example.qahwamanager.ui.common.QahwaLowStockWarning
+import com.example.qahwamanager.ui.common.QahwaPrimaryButton
+import com.example.qahwamanager.ui.common.QahwaStatCard
+import com.example.qahwamanager.ui.theme.BackgroundMain
+import com.example.qahwamanager.ui.theme.PrimaryDark
+import com.example.qahwamanager.ui.theme.TextMain
+import com.example.qahwamanager.ui.theme.TextSecondary
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNewOrder: () -> Unit,
@@ -47,150 +48,85 @@ fun HomeScreen(
     val dateFormat = SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault())
     val today = dateFormat.format(Date())
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Header
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-            ),
+    Scaffold(containerColor = BackgroundMain) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+                    .widthIn(max = 840.dp)
+                    .padding(vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Merhba! / مرحبا! ☕",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                    Text(
-                        text = today,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                    Text(
-                        text = "Qahwa | قهوة",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                    )
-                }
-                LanguageSelectorButton(useTonalStyle = true)
-            }
-        }
-
-        // Summary cards
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            SummaryCard(
-                modifier = Modifier.weight(1f),
-                label = stringResource(R.string.today_revenue),
-                value = "%.2f MAD".format(uiState.todayRevenue),
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-            SummaryCard(
-                modifier = Modifier.weight(1f),
-                label = stringResource(R.string.open_orders),
-                value = uiState.openOrdersCount.toString(),
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-        }
-
-        if (uiState.lowStockCount > 0) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
+                // Header
                 Row(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "⚠️",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(R.string.low_stock_alerts),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            text = stringResource(R.string.greeting),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TextMain,
                         )
+                        Spacer(Modifier.height(2.dp))
                         Text(
-                            text = "${uiState.lowStockCount} ${stringResource(R.string.low_stock)}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            text = today,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary,
                         )
                     }
+                    LanguageSelectorButton()
                 }
+
+                // Stats grid
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    QahwaStatCard(
+                        modifier = Modifier.weight(1f),
+                        label = stringResource(R.string.today_revenue),
+                        value = "%.2f MAD".format(uiState.todayRevenue),
+                        valueColor = PrimaryDark,
+                    )
+                    QahwaStatCard(
+                        modifier = Modifier.weight(1f),
+                        label = stringResource(R.string.open_orders),
+                        value = uiState.openOrdersCount.toString(),
+                    )
+                }
+
+                // Low stock notification bar
+                if (uiState.lowStockCount > 0) {
+                    QahwaLowStockWarning(
+                        count = uiState.lowStockCount,
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                    )
+                }
+
+                // New Order Action
+                Spacer(Modifier.height(8.dp))
+                QahwaPrimaryButton(
+                    text = stringResource(R.string.new_order),
+                    onClick = onNewOrder,
+                    leadingIcon = Icons.Default.Add,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                )
             }
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Quick actions
-        Text(
-            text = "Quick Actions",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Button(
-            onClick = onNewOrder,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null)
-            Spacer(modifier = Modifier.padding(4.dp))
-            Text(stringResource(R.string.new_order))
-        }
     }
 }
-
-@Composable
-private fun SummaryCard(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    containerColor: androidx.compose.ui.graphics.Color,
-    contentColor: androidx.compose.ui.graphics.Color
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = containerColor)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = contentColor
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = contentColor.copy(alpha = 0.8f)
-            )
-        }
-    }
-}
-

@@ -2,58 +2,23 @@ package com.example.qahwamanager.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Moroccan palette
-val Terracotta = Color(0xFFC0392B)
-val WarmGold = Color(0xFFD4AC0D)
-val Cream = Color(0xFFFFF8E7)
-val DarkBrown = Color(0xFF3E1F00)
-val LightTerracotta = Color(0xFFE57373)
-val DeepBrown = Color(0xFF5D2E0C)
-val LightCream = Color(0xFFFFFDF5)
-val MutedGold = Color(0xFF8B6914)
-val SoftTerracotta = Color(0xFFF1948A)
-
-// Light theme colors
-val primaryLight = Terracotta
-val onPrimaryLight = Cream
-val primaryContainerLight = SoftTerracotta
-val onPrimaryContainerLight = DarkBrown
-val secondaryLight = WarmGold
-val onSecondaryLight = DarkBrown
-val secondaryContainerLight = Color(0xFFFFF3C4)
-val onSecondaryContainerLight = Color(0xFF3B2A00)
-val tertiaryLight = DeepBrown
-val onTertiaryLight = Cream
-val tertiaryContainerLight = Color(0xFFD7956A)
-val onTertiaryContainerLight = DarkBrown
-val backgroundLight = LightCream
-val onBackgroundLight = DarkBrown
-val surfaceLight = Cream
-val onSurfaceLight = DarkBrown
-val surfaceVariantLight = Color(0xFFEED9C4)
-val onSurfaceVariantLight = Color(0xFF5C3A1E)
-val outlineLight = Color(0xFF9C7659)
-val outlineVariantLight = Color(0xFFD4B896)
-
-// Dark theme colors
-val primaryDark = LightTerracotta
-val onPrimaryDark = DarkBrown
-val primaryContainerDark = Terracotta
-val onPrimaryContainerDark = Cream
-val secondaryDark = WarmGold
-val onSecondaryDark = DarkBrown
-val secondaryContainerDark = MutedGold
-val onSecondaryContainerDark = Cream
-val tertiaryDark = Color(0xFFD7956A)
-val onTertiaryDark = DarkBrown
-val tertiaryContainerDark = DeepBrown
-val onTertiaryContainerDark = Cream
-val backgroundDark = Color(0xFF1A0A00)
-val onBackgroundDark = Cream
-val surfaceDark = Color(0xFF240D00)
-val onSurfaceDark = Cream
-val surfaceVariantDark = Color(0xFF4A2800)
-val onSurfaceVariantDark = Color(0xFFD4B896)
-val outlineDark = Color(0xFF9C7659)
-val outlineVariantDark = Color(0xFF5C3A1E)
-
+// ── Minimal Moroccan Café palette ───────────────────────────────────────────
+val BackgroundMain       = Color(0xFFF6F4ED)
+val BackgroundCard       = Color(0xFFFFFFFF)
+val PrimaryGreen         = Color(0xFF879B83)
+val PrimaryDark          = Color(0xFF526B58)
+val PrimaryContainer     = Color(0xFFE8EEE7)
+val SecondaryBeige       = Color(0xFFD9C7B3)
+val SecondaryContainer   = Color(0xFFF4EDE4)
+val TextMain             = Color(0xFF343B34)
+val TextSecondary        = Color(0xFF898D85)
+val DividerColor         = Color(0xFFE9E7DF)
+val SuccessGreen         = Color(0xFF789477)
+val WarningTerracotta    = Color(0xFFC17D65)
+val WarningContainer     = Color(0xFFF5E6DF)
+val ErrorRed             = Color(0xFFB86B60)
+val ErrorContainer       = Color(0xFFF5E0DD)
+val SurfaceVariant       = Color(0xFFF0EDE6)
+val OutlineColor         = Color(0xFFD0CCC4)
+val White                = Color(0xFFFFFFFF)
+val Black                = Color(0xFF000000)
