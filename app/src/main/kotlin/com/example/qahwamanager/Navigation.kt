@@ -1,5 +1,6 @@
 package com.example.qahwamanager
 
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -70,9 +71,12 @@ fun MainNavigation() {
                 rememberSaveableStateHolderNavEntryDecorator(),
                 rememberViewModelStoreNavEntryDecorator(),
             ),
+            // Mark the status/navigation bar space this padding covers as consumed, so the
+            // screens' own Scaffolds and TopAppBars don't add the same insets a second time.
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding),
             entryProvider = entryProvider {
                 entry<Home> {
                     HomeScreen(
