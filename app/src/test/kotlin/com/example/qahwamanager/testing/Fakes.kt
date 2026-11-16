@@ -104,7 +104,6 @@ class FakeMenuItemDao(initial: List<MenuItem> = emptyList()) : MenuItemDao {
     override suspend fun delete(item: MenuItem) {
         items.update { list -> list.filter { it.id != item.id } }
     }
-    override suspend fun getById(id: Long): MenuItem? = items.value.find { it.id == id }
 }
 
 class FakeInventoryDao(initial: List<InventoryItem> = emptyList()) : InventoryDao {

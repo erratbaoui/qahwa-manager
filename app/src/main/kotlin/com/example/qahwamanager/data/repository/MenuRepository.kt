@@ -22,7 +22,5 @@ class MenuRepository @Inject constructor(
     suspend fun updateItem(item: MenuItem) = menuItemDao.update(item)
 
     suspend fun deleteItem(item: MenuItem) = menuItemDao.delete(item)
-
-    suspend fun getItemById(id: Long): MenuItem? = menuItemDao.getById(id)
 }
 

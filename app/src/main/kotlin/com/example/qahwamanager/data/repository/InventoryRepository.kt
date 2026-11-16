@@ -21,7 +21,5 @@ class InventoryRepository @Inject constructor(
     suspend fun adjustQuantity(id: Long, delta: Double) = inventoryDao.adjustQuantity(id, delta)
 
     suspend fun deleteItem(item: InventoryItem) = inventoryDao.delete(item)
-
-    suspend fun getItemById(id: Long): InventoryItem? = inventoryDao.getById(id)
 }
 
