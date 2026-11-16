@@ -1,6 +1,5 @@
 package com.example.qahwamanager.ui.common
 
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,14 +28,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.annotation.StringRes
-import androidx.core.os.LocaleListCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
-import java.util.Locale
 
 data class SupportedLanguage(
     val code: String,
@@ -56,18 +55,11 @@ fun LanguageSelectorButton(
     modifier: Modifier = Modifier,
     useTonalStyle: Boolean = false,
 ) {
-    var showDialog by remember { mutableStateOf(value = false) }
+    var showDialog by remember { mutableStateOf(false) }
+    val currentLangCode by AppLocaleManager.currentLanguage.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
-    val currentLangCode = remember {
-        val appLocales = AppCompatDelegate.getApplicationLocales()
-        if (!appLocales.isEmpty) {
-            appLocales[0]?.language ?: "en"
-        } else {
-            Locale.getDefault().language
-        }
-    }
-
-    val (code, flag) = SUPPORTED_LANGUAGES.find { (c) -> c.equals(currentLangCode, ignoreCase = true) }
+    val currentLang = SUPPORTED_LANGUAGES.find { it.code.equals(currentLangCode, ignoreCase = true) }
         ?: SUPPORTED_LANGUAGES.first()
 
     if (useTonalStyle) {
@@ -89,7 +81,7 @@ fun LanguageSelectorButton(
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = "$flag ${code.uppercase()}",
+                    text = "${currentLang.flag} ${currentLang.code.uppercase()}",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -115,12 +107,11 @@ fun LanguageSelectorButton(
         LanguageDialog(
             currentCode = currentLangCode,
             onDismiss = { showDialog = false },
-        ) { (selectedCode) ->
-            showDialog = false
-            AppCompatDelegate.setApplicationLocales(
-                LocaleListCompat.forLanguageTags(selectedCode),
-            )
-        }
+            onLanguageSelected = { selected ->
+                showDialog = false
+                AppLocaleManager.setLanguage(context, selected.code)
+            },
+        )
     }
 }
 
