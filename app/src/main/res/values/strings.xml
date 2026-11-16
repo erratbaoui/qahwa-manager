@@ -1,5 +1,12 @@
 <resources>
-    <string name="app_name">Qahwa Manager | قهوة</string>
+    <string name="app_name">Qahwa manager</string>
+    <string name="brand_tagline">YOUR CAFÉ, PERFECTLY RUN</string>
+    <string name="brewing_dashboard">Brewing your dashboard…</string>
+    <string name="toggle_theme">Switch theme</string>
+    <string name="light_mode">Light</string>
+    <string name="dark_mode">Dark</string>
+    <string name="greeting">Merhba!</string>
+    <string name="all_categories">All</string>
     <string name="home">Home</string>
     <string name="menu">Menu</string>
     <string name="orders">Orders</string>
@@ -59,10 +66,10 @@
     <string name="status_open">Open</string>
     <string name="status_paid">Paid</string>
     <string name="status_cancelled">Cancelled</string>
-    <string name="category_coffee">☕ Coffee</string>
-    <string name="category_tea">🍵 Tea</string>
-    <string name="category_food">🥐 Food</string>
-    <string name="category_juice">🥤 Juice</string>
+    <string name="category_coffee">Coffee</string>
+    <string name="category_tea">Tea</string>
+    <string name="category_food">Food</string>
+    <string name="category_juice">Juice</string>
     <string name="unavailable">Unavailable</string>
     <string name="name_en">Name (EN)</string>
     <string name="name_fr">Name (FR)</string>
@@ -70,6 +77,12 @@
     <string name="description">Description</string>
     <string name="quantity_label">Quantity:</string>
     <string name="min_stock">Min: %1$s %2$s</string>
+    <string name="confirm_cancel_title">Cancel Order?</string>
+    <string name="confirm_cancel_message">This action cannot be undone.</string>
+    <string name="confirm_payment_title">Mark as Paid?</string>
+    <string name="confirm_payment_message">Confirm payment for this order.</string>
+    <string name="confirm_delete_title">Delete Item?</string>
+    <string name="confirm_delete_message">This item will be permanently removed.</string>
     <plurals name="orders_count">
         <item quantity="one">%d order</item>
         <item quantity="other">%d orders</item>

@@ -1,5 +1,7 @@
 package com.example.qahwamanager.ui.common
 
+import androidx.annotation.StringRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -7,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Language
@@ -28,14 +31,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.annotation.StringRes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
+import com.example.qahwamanager.ui.theme.BrandAmberGold
+import com.example.qahwamanager.ui.theme.BrandCream
+import com.example.qahwamanager.ui.theme.QahwaTheme
 
 data class SupportedLanguage(
     val code: String,
@@ -65,8 +71,9 @@ fun LanguageSelectorButton(
     if (useTonalStyle) {
         Surface(
             onClick = { showDialog = true },
-            shape = MaterialTheme.shapes.small,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+            shape = RoundedCornerShape(10.dp),
+            color = BrandCream.copy(alpha = 0.14f),
+            border = BorderStroke(1.dp, BrandCream.copy(alpha = 0.22f)),
             modifier = modifier,
         ) {
             Row(
@@ -77,14 +84,14 @@ fun LanguageSelectorButton(
                 Icon(
                     imageVector = Icons.Default.Language,
                     contentDescription = stringResource(R.string.change_language),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
+                    tint = BrandAmberGold,
+                    modifier = Modifier.size(16.dp),
                 )
                 Text(
                     text = "${currentLang.flag} ${currentLang.code.uppercase()}",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = BrandCream,
                 )
             }
         }
@@ -92,7 +99,7 @@ fun LanguageSelectorButton(
         IconButton(
             onClick = { showDialog = true },
             colors = IconButtonDefaults.iconButtonColors(
-                contentColor = MaterialTheme.colorScheme.primary,
+                contentColor = QahwaTheme.colors.primaryAccent,
             ),
             modifier = modifier,
         ) {
@@ -121,13 +128,15 @@ private fun LanguageDialog(
     onDismiss: () -> Unit,
     onLanguageSelected: (SupportedLanguage) -> Unit,
 ) {
+    val qColors = QahwaTheme.colors
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = qColors.cardSurface,
         icon = {
             Icon(
                 imageVector = Icons.Default.Language,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = qColors.primaryAccent,
                 modifier = Modifier.size(32.dp),
             )
         },
@@ -136,6 +145,7 @@ private fun LanguageDialog(
                 text = stringResource(R.string.change_language),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
+                color = qColors.textPrimary,
             )
         },
         text = {
@@ -154,12 +164,12 @@ private fun LanguageDialog(
                             containerColor = if (isSelected) {
                                 MaterialTheme.colorScheme.primaryContainer
                             } else {
-                                MaterialTheme.colorScheme.surface
+                                qColors.elevatedSurface.copy(alpha = 0.45f)
                             },
                         ),
                         border = if (isSelected) {
                             CardDefaults.outlinedCardBorder().copy(
-                                brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                                brush = SolidColor(qColors.primaryAccent),
                             )
                         } else null,
                     ) {
@@ -186,7 +196,7 @@ private fun LanguageDialog(
                                         color = if (isSelected) {
                                             MaterialTheme.colorScheme.onPrimaryContainer
                                         } else {
-                                            MaterialTheme.colorScheme.onSurface
+                                            qColors.textPrimary
                                         },
                                     )
                                     Text(
@@ -195,7 +205,7 @@ private fun LanguageDialog(
                                         color = if (isSelected) {
                                             MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                         } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                            qColors.textSecondary
                                         },
                                     )
                                 }
@@ -205,7 +215,7 @@ private fun LanguageDialog(
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = stringResource(R.string.language_selected),
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = qColors.primaryAccent,
                                     modifier = Modifier.size(22.dp),
                                 )
                             }
@@ -217,7 +227,7 @@ private fun LanguageDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+                Text(stringResource(R.string.cancel), color = qColors.textSecondary)
             }
         },
     )

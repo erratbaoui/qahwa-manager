@@ -1,10 +1,10 @@
 package com.example.qahwamanager.ui.common
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,8 +23,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -42,37 +43,232 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.OrderStatus
-import com.example.qahwamanager.ui.theme.BackgroundCard
-import com.example.qahwamanager.ui.theme.BackgroundMain
-import com.example.qahwamanager.ui.theme.DividerColor
-import com.example.qahwamanager.ui.theme.ErrorContainer
-import com.example.qahwamanager.ui.theme.ErrorRed
-import com.example.qahwamanager.ui.theme.OutlineColor
-import com.example.qahwamanager.ui.theme.PrimaryContainer
-import com.example.qahwamanager.ui.theme.PrimaryDark
-import com.example.qahwamanager.ui.theme.PrimaryGreen
-import com.example.qahwamanager.ui.theme.SuccessGreen
-import com.example.qahwamanager.ui.theme.TextMain
-import com.example.qahwamanager.ui.theme.TextSecondary
-import com.example.qahwamanager.ui.theme.WarningContainer
-import com.example.qahwamanager.ui.theme.WarningTerracotta
+import com.example.qahwamanager.ui.theme.BrandAmberGold
+import com.example.qahwamanager.ui.theme.BrandCoffeeBrown
+import com.example.qahwamanager.ui.theme.BrandCream
+import com.example.qahwamanager.ui.theme.BrandForest
+import com.example.qahwamanager.ui.theme.BrandForestDeep
+import com.example.qahwamanager.ui.theme.BrandForestMedium
+import com.example.qahwamanager.ui.theme.QahwaTheme
+
+// ── Brand Emblem & Signature Elements (From Reference Photos) ────────────────
+
+/**
+ * Renders the Qahwa Manager coffee bean emblem inspired by the two brand photos:
+ * - Light mode / filled circle style (Photo 1): Deep forest green gradient circle,
+ *   cream coffee bean, and warm amber gold dot at top-right.
+ * - Dark mode / concentric ring style (Photo 2): Translucent concentric rings,
+ *   tilted cream coffee bean, and warm amber gold dot at top-right.
+ */
+@Composable
+fun QahwaBrandEmblem(
+    modifier: Modifier = Modifier,
+    size: Dp = 72.dp,
+    concentricRingStyle: Boolean = false,
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val radius = this.size.minDimension / 2f
+        val center = Offset(this.size.width / 2f, this.size.height / 2f)
+
+        if (concentricRingStyle) {
+            // Photo 2 style: Outer thin ring + translucent inner circle
+            drawCircle(
+                color = BrandCream.copy(alpha = 0.14f),
+                radius = radius * 0.96f,
+                center = center,
+                style = Stroke(width = 1.2.dp.toPx()),
+            )
+            drawCircle(
+                color = BrandCream.copy(alpha = 0.07f),
+                radius = radius * 0.72f,
+                center = center,
+            )
+        } else {
+            // Photo 1 style: Rich forest green gradient circle
+            drawCircle(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        BrandForestMedium,
+                        BrandForest,
+                        BrandForestDeep,
+                    ),
+                    start = Offset(0f, 0f),
+                    end = Offset(this.size.width, this.size.height),
+                ),
+                radius = radius * 0.90f,
+                center = center,
+            )
+        }
+
+        // Cream Coffee Bean in the center (tilted slightly as in Photo 2)
+        val beanRotation = if (concentricRingStyle) -14f else -6f
+        rotate(degrees = beanRotation, pivot = center) {
+            val beanWidth = radius * 0.68f
+            val beanHeight = radius * 0.94f
+            drawOval(
+                color = BrandCream,
+                topLeft = Offset(center.x - beanWidth / 2f, center.y - beanHeight / 2f),
+                size = Size(beanWidth, beanHeight),
+            )
+
+            // S-curve crease down the center of the coffee bean
+            val creasePath = Path().apply {
+                moveTo(center.x - beanWidth * 0.06f, center.y - beanHeight * 0.44f)
+                cubicTo(
+                    center.x - beanWidth * 0.18f, center.y - beanHeight * 0.12f,
+                    center.x + beanWidth * 0.22f, center.y + beanHeight * 0.12f,
+                    center.x + beanWidth * 0.06f, center.y + beanHeight * 0.44f,
+                )
+            }
+            drawPath(
+                path = creasePath,
+                color = BrandForestDeep,
+                style = Stroke(width = (radius * 0.085f).coerceAtLeast(2f), cap = StrokeCap.Round),
+            )
+        }
+
+        // Signature Warm Amber Gold Dot at top-right (~2 o'clock)
+        val dotAngleRad = Math.toRadians(-42.0)
+        val dotDist = if (concentricRingStyle) radius * 0.62f else radius * 0.78f
+        val dotCenter = Offset(
+            x = center.x + (dotDist * kotlin.math.cos(dotAngleRad)).toFloat(),
+            y = center.y + (dotDist * kotlin.math.sin(dotAngleRad)).toFloat(),
+        )
+        drawCircle(
+            color = BrandAmberGold,
+            radius = radius * 0.135f,
+            center = dotCenter,
+        )
+    }
+}
+
+/**
+ * The three signature palette dots from Photo 1:
+ * Deep Forest Green (#193D2E), Warm Coffee Brown (#7D5D44), and Warm Amber Gold (#E2A165).
+ */
+@Composable
+fun QahwaBrandDots(
+    modifier: Modifier = Modifier,
+    dotSize: Dp = 10.dp,
+    spacing: Dp = 10.dp,
+) {
+    val isDark = QahwaTheme.colors.isDark
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(dotSize)
+                .clip(CircleShape)
+                .background(if (isDark) BrandCream else BrandForestDeep)
+        )
+        Box(
+            modifier = Modifier
+                .size(dotSize)
+                .clip(CircleShape)
+                .background(BrandCoffeeBrown)
+        )
+        Box(
+            modifier = Modifier
+                .size(dotSize)
+                .clip(CircleShape)
+                .background(BrandAmberGold)
+        )
+    }
+}
+
+// ── Theme Toggle & Header Actions ────────────────────────────────────────────
+
+@Composable
+fun ThemeToggleButton(
+    modifier: Modifier = Modifier,
+    useTonalStyle: Boolean = false,
+) {
+    val context = LocalContext.current
+    val isDark = QahwaTheme.colors.isDark
+    val icon = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode
+    val label = if (isDark) stringResource(R.string.light_mode) else stringResource(R.string.dark_mode)
+
+    if (useTonalStyle) {
+        Surface(
+            onClick = { AppThemeManager.toggleDarkLight(context, isDark) },
+            shape = RoundedCornerShape(10.dp),
+            color = BrandCream.copy(alpha = 0.14f),
+            border = BorderStroke(1.dp, BrandCream.copy(alpha = 0.22f)),
+            modifier = modifier,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = stringResource(R.string.toggle_theme),
+                    tint = BrandAmberGold,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = BrandCream,
+                )
+            }
+        }
+    } else {
+        IconButton(
+            onClick = { AppThemeManager.toggleDarkLight(context, isDark) },
+            colors = IconButtonDefaults.iconButtonColors(
+                contentColor = QahwaTheme.colors.primaryAccent,
+            ),
+            modifier = modifier,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = stringResource(R.string.toggle_theme),
+            )
+        }
+    }
+}
+
+@Composable
+fun QahwaTopBarActions(
+    useTonalStyle: Boolean = false,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        ThemeToggleButton(useTonalStyle = useTonalStyle)
+        LanguageSelectorButton(useTonalStyle = useTonalStyle)
+    }
+}
 
 // ── Quantity control ─────────────────────────────────────────────────────────
 
@@ -91,7 +287,7 @@ fun QahwaQuantityControl(
     enabled: Boolean = true,
 ) {
     QahwaQuantityControl(
-        valueText = quantity.toString(),
+        valueText = formatQuantity(quantity),
         onAdd = onAdd,
         onRemove = onRemove,
         modifier = modifier,
@@ -111,6 +307,7 @@ fun QahwaQuantityControl(
 ) {
     val decreaseLabel = stringResource(R.string.decrease_quantity)
     val increaseLabel = stringResource(R.string.increase_quantity)
+    val qColors = QahwaTheme.colors
 
     Row(
         modifier = modifier,
@@ -128,7 +325,7 @@ fun QahwaQuantityControl(
         // Perfectly centered value display with tabular numbers
         Box(
             modifier = Modifier
-                .widthIn(min = 38.dp)
+                .widthIn(min = 40.dp)
                 .padding(horizontal = 4.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -137,8 +334,8 @@ fun QahwaQuantityControl(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontFeatureSettings = "tnum",
                 ),
-                fontWeight = FontWeight.SemiBold,
-                color = if (enabled) TextMain else TextSecondary.copy(alpha = 0.5f),
+                fontWeight = FontWeight.Bold,
+                color = if (enabled) qColors.textPrimary else qColors.textSecondary.copy(alpha = 0.5f),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
             )
@@ -162,12 +359,17 @@ private fun QuantityButton(
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val bg = if (enabled) PrimaryGreen.copy(alpha = 0.12f) else DividerColor.copy(alpha = 0.6f)
-    val tint = if (enabled) PrimaryDark else TextSecondary.copy(alpha = 0.4f)
-    val border = if (enabled) {
-        BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.25f))
+    val qColors = QahwaTheme.colors
+    val bg = if (enabled) {
+        qColors.primaryAccent.copy(alpha = if (qColors.isDark) 0.18f else 0.12f)
     } else {
-        BorderStroke(1.dp, DividerColor)
+        qColors.divider.copy(alpha = 0.45f)
+    }
+    val tint = if (enabled) qColors.primaryAccent else qColors.textSecondary.copy(alpha = 0.4f)
+    val border = if (enabled) {
+        BorderStroke(1.dp, qColors.primaryAccent.copy(alpha = 0.32f))
+    } else {
+        BorderStroke(1.dp, qColors.divider)
     }
 
     Box(
@@ -203,16 +405,19 @@ fun QahwaPrimaryButton(
     enabled: Boolean = true,
     leadingIcon: ImageVector? = null,
 ) {
+    val containerColor = MaterialTheme.colorScheme.primary
+    val contentColor = MaterialTheme.colorScheme.onPrimary
+
     Button(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.height(52.dp),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = PrimaryGreen,
-            contentColor = Color.White,
-            disabledContainerColor = PrimaryGreen.copy(alpha = 0.38f),
-            disabledContentColor = Color.White.copy(alpha = 0.38f),
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = containerColor.copy(alpha = 0.38f),
+            disabledContentColor = contentColor.copy(alpha = 0.38f),
         ),
         contentPadding = PaddingValues(horizontal = 20.dp),
     ) {
@@ -241,18 +446,19 @@ fun QahwaSecondaryButton(
     enabled: Boolean = true,
     leadingIcon: ImageVector? = null,
 ) {
+    val qColors = QahwaTheme.colors
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.height(52.dp),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = PrimaryDark,
-            disabledContentColor = TextSecondary.copy(alpha = 0.38f),
+            contentColor = qColors.primaryAccent,
+            disabledContentColor = qColors.textSecondary.copy(alpha = 0.38f),
         ),
         border = BorderStroke(
             1.dp,
-            if (enabled) PrimaryGreen.copy(alpha = 0.6f) else DividerColor,
+            if (enabled) qColors.primaryAccent.copy(alpha = 0.6f) else qColors.divider,
         ),
         contentPadding = PaddingValues(horizontal = 20.dp),
     ) {
@@ -281,18 +487,19 @@ fun QahwaDestructiveButton(
     enabled: Boolean = true,
     leadingIcon: ImageVector? = null,
 ) {
+    val qColors = QahwaTheme.colors
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.height(52.dp),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = ErrorRed,
-            disabledContentColor = ErrorRed.copy(alpha = 0.38f),
+            contentColor = qColors.error,
+            disabledContentColor = qColors.error.copy(alpha = 0.38f),
         ),
         border = BorderStroke(
             1.dp,
-            if (enabled) ErrorRed.copy(alpha = 0.5f) else DividerColor,
+            if (enabled) qColors.error.copy(alpha = 0.55f) else qColors.divider,
         ),
         contentPadding = PaddingValues(horizontal = 20.dp),
     ) {
@@ -329,6 +536,7 @@ fun QahwaTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     trailingIcon: @Composable (() -> Unit)? = null,
 ) {
+    val qColors = QahwaTheme.colors
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value,
@@ -343,23 +551,25 @@ fun QahwaTextField(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                disabledContainerColor = BackgroundMain,
-                focusedBorderColor = PrimaryGreen,
-                unfocusedBorderColor = DividerColor,
-                focusedLabelColor = PrimaryDark,
-                unfocusedLabelColor = TextSecondary,
-                cursorColor = PrimaryGreen,
-                errorBorderColor = ErrorRed,
-                errorLabelColor = ErrorRed,
+                focusedContainerColor = qColors.cardSurface,
+                unfocusedContainerColor = qColors.cardSurface,
+                disabledContainerColor = qColors.elevatedSurface.copy(alpha = 0.5f),
+                focusedTextColor = qColors.textPrimary,
+                unfocusedTextColor = qColors.textPrimary,
+                focusedBorderColor = qColors.primaryAccent,
+                unfocusedBorderColor = qColors.divider,
+                focusedLabelColor = qColors.primaryAccent,
+                unfocusedLabelColor = qColors.textSecondary,
+                cursorColor = qColors.primaryAccent,
+                errorBorderColor = qColors.error,
+                errorLabelColor = qColors.error,
             ),
         )
         if (isError && !errorMessage.isNullOrBlank()) {
             Text(
                 text = errorMessage,
                 style = MaterialTheme.typography.bodySmall,
-                color = ErrorRed,
+                color = qColors.error,
                 modifier = Modifier.padding(start = 12.dp, top = 4.dp),
             )
         }
@@ -375,16 +585,17 @@ fun QahwaCard(
     selected: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val qColors = QahwaTheme.colors
     val borderStroke = if (selected) {
-        BorderStroke(1.5.dp, PrimaryGreen)
+        BorderStroke(1.5.dp, qColors.primaryAccent)
     } else {
-        BorderStroke(1.dp, DividerColor)
+        BorderStroke(1.dp, qColors.divider)
     }
 
     val containerColor = if (selected) {
-        PrimaryGreen.copy(alpha = 0.04f)
+        if (qColors.isDark) qColors.elevatedSurface else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
     } else {
-        BackgroundCard
+        qColors.cardSurface
     }
 
     if (onClick != null) {
@@ -411,10 +622,23 @@ fun QahwaCard(
 
 @Composable
 fun QahwaStatusBadge(status: OrderStatus) {
+    val qColors = QahwaTheme.colors
     val (bg, fg, labelRes) = when (status) {
-        OrderStatus.OPEN -> Triple(PrimaryGreen.copy(alpha = 0.12f), PrimaryDark, R.string.status_open)
-        OrderStatus.PAID -> Triple(SuccessGreen.copy(alpha = 0.12f), SuccessGreen, R.string.status_paid)
-        OrderStatus.CANCELLED -> Triple(ErrorRed.copy(alpha = 0.12f), ErrorRed, R.string.status_cancelled)
+        OrderStatus.OPEN -> Triple(
+            qColors.goldAccent.copy(alpha = 0.16f),
+            if (qColors.isDark) qColors.goldAccent else BrandCoffeeBrown,
+            R.string.status_open,
+        )
+        OrderStatus.PAID -> Triple(
+            qColors.success.copy(alpha = 0.16f),
+            qColors.success,
+            R.string.status_paid,
+        )
+        OrderStatus.CANCELLED -> Triple(
+            qColors.error.copy(alpha = 0.16f),
+            qColors.error,
+            R.string.status_cancelled,
+        )
     }
     Surface(
         shape = RoundedCornerShape(6.dp),
@@ -441,7 +665,7 @@ fun QahwaSectionHeader(
         text = title,
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.SemiBold,
-        color = TextSecondary,
+        color = QahwaTheme.colors.textSecondary,
         modifier = modifier,
     )
 }
@@ -450,17 +674,34 @@ fun QahwaSectionHeader(
 
 @Composable
 fun QahwaDivider(modifier: Modifier = Modifier) {
-    HorizontalDivider(modifier = modifier, color = DividerColor, thickness = 1.dp)
+    HorizontalDivider(modifier = modifier, color = QahwaTheme.colors.divider, thickness = 1.dp)
 }
 
-// ── Currency Text ─────────────────────────────────────────────────────────────
+// ── Currency Text (Centimes & Double Overloads) ──────────────────────────────
+
+@Composable
+fun QahwaCurrencyText(
+    centimes: Long,
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.titleMedium,
+    color: Color = QahwaTheme.colors.textPrimary,
+    fontWeight: FontWeight = FontWeight.Bold,
+) {
+    Text(
+        text = formatMad(centimes),
+        style = style.copy(fontFeatureSettings = "tnum"),
+        color = color,
+        fontWeight = fontWeight,
+        modifier = modifier,
+    )
+}
 
 @Composable
 fun QahwaCurrencyText(
     amount: Double,
     modifier: Modifier = Modifier,
     style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.titleMedium,
-    color: Color = TextMain,
+    color: Color = QahwaTheme.colors.textPrimary,
     fontWeight: FontWeight = FontWeight.Bold,
 ) {
     Text(
@@ -480,37 +721,37 @@ fun QahwaEmptyState(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
 ) {
+    val qColors = QahwaTheme.colors
     Column(
         modifier = modifier.padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(DividerColor.copy(alpha = 0.6f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (icon != null) {
+        if (icon != null) {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(qColors.elevatedSurface),
+                contentAlignment = Alignment.Center,
+            ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = TextSecondary,
+                    tint = qColors.goldAccent,
                     modifier = Modifier.size(28.dp),
                 )
-            } else {
-                Text(
-                    text = "—",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = TextSecondary,
-                )
             }
+        } else {
+            QahwaBrandEmblem(
+                size = 64.dp,
+                concentricRingStyle = qColors.isDark,
+            )
         }
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
+            color = qColors.textSecondary,
             textAlign = TextAlign.Center,
         )
     }
@@ -527,10 +768,12 @@ fun QahwaConfirmDialog(
     onDismiss: () -> Unit,
     isDestructive: Boolean = false,
 ) {
+    val qColors = QahwaTheme.colors
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = Color.White,
+            color = qColors.cardSurface,
+            border = BorderStroke(1.dp, qColors.divider),
             modifier = Modifier.widthIn(max = 420.dp),
         ) {
             Column(
@@ -541,12 +784,12 @@ fun QahwaConfirmDialog(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextMain,
+                    color = qColors.textPrimary,
                 )
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary,
+                    color = qColors.textSecondary,
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -558,7 +801,7 @@ fun QahwaConfirmDialog(
                             .weight(1f)
                             .height(48.dp),
                     ) {
-                        Text(stringResource(R.string.cancel), color = TextSecondary)
+                        Text(stringResource(R.string.cancel), color = qColors.textSecondary)
                     }
                     if (isDestructive) {
                         Button(
@@ -567,7 +810,7 @@ fun QahwaConfirmDialog(
                                 .weight(1f)
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
+                            colors = ButtonDefaults.buttonColors(containerColor = qColors.error),
                         ) {
                             Text(confirmText, color = Color.White, fontWeight = FontWeight.SemiBold)
                         }
@@ -578,9 +821,12 @@ fun QahwaConfirmDialog(
                                 .weight(1f)
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
                         ) {
-                            Text(confirmText, color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text(confirmText, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -596,25 +842,38 @@ fun QahwaStatCard(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = TextMain,
+    valueColor: Color = QahwaTheme.colors.textPrimary,
+    accentDotColor: Color = BrandAmberGold,
 ) {
+    val qColors = QahwaTheme.colors
     QahwaCard(modifier = modifier) {
         Column(
             modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(accentDotColor),
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = qColors.textSecondary,
+                )
+            }
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium.copy(
+                style = MaterialTheme.typography.headlineSmall.copy(
                     fontFeatureSettings = "tnum",
                 ),
                 fontWeight = FontWeight.Bold,
                 color = valueColor,
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = TextSecondary,
             )
         }
     }
@@ -626,7 +885,7 @@ fun QahwaStatCard(
 fun QahwaPageHeader(
     title: String,
     modifier: Modifier = Modifier,
-    action: @Composable (() -> Unit)? = null,
+    action: @Composable (() -> Unit)? = { QahwaTopBarActions() },
 ) {
     Row(
         modifier = modifier
@@ -635,12 +894,21 @@ fun QahwaPageHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = TextMain,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            QahwaBrandEmblem(
+                size = 34.dp,
+                concentricRingStyle = QahwaTheme.colors.isDark,
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = QahwaTheme.colors.textPrimary,
+            )
+        }
         action?.invoke()
     }
 }
@@ -650,14 +918,15 @@ fun QahwaPageHeader(
 @Composable
 fun QahwaLowStockWarning(count: Int, modifier: Modifier = Modifier) {
     if (count <= 0) return
+    val qColors = QahwaTheme.colors
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = WarningContainer,
-        border = BorderStroke(1.dp, WarningTerracotta.copy(alpha = 0.35f)),
+        shape = RoundedCornerShape(14.dp),
+        color = qColors.warningContainer,
+        border = BorderStroke(1.dp, qColors.warning.copy(alpha = 0.4f)),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -665,19 +934,19 @@ fun QahwaLowStockWarning(count: Int, modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(WarningTerracotta),
+                    .background(qColors.warning),
             )
             Column {
                 Text(
                     text = stringResource(R.string.low_stock_alerts),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = WarningTerracotta,
+                    color = qColors.warning,
                 )
                 Text(
-                    text = stringResource(R.string.low_stock_count, count),
+                    text = pluralStringResource(R.plurals.low_stock_count, count, count),
                     style = MaterialTheme.typography.bodySmall,
-                    color = WarningTerracotta.copy(alpha = 0.85f),
+                    color = qColors.textPrimary.copy(alpha = 0.85f),
                 )
             }
         }

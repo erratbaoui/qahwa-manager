@@ -6,17 +6,26 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.ui.common.AppLocaleManager
+import com.example.qahwamanager.ui.common.AppThemeManager
+import com.example.qahwamanager.ui.common.ThemeMode
+import com.example.qahwamanager.ui.splash.SplashScreen
 import com.example.qahwamanager.ui.theme.QahwaManagerTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
@@ -38,23 +47,44 @@ class MainActivity : AppCompatActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         AppLocaleManager.init(this)
+        AppThemeManager.init(this)
 
         enableEdgeToEdge()
         setContent {
             val currentLangCode by AppLocaleManager.currentLanguage.collectAsStateWithLifecycle()
+            val themeMode by AppThemeManager.themeMode.collectAsStateWithLifecycle()
+            val systemDark = isSystemInDarkTheme()
+            val isDark = when (themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> systemDark
+            }
+
             val layoutDirection = if (currentLangCode.startsWith("ar", ignoreCase = true)) {
                 LayoutDirection.Rtl
             } else {
                 LayoutDirection.Ltr
             }
 
+            var splashCompleted by rememberSaveable { mutableStateOf(false) }
+
             CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
-                QahwaManagerTheme {
+                QahwaManagerTheme(darkTheme = isDark) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background,
                     ) {
-                        MainNavigation()
+                        Crossfade(
+                            targetState = splashCompleted,
+                            animationSpec = tween(350),
+                            label = "splashCrossfade",
+                        ) { completed ->
+                            if (!completed) {
+                                SplashScreen(onSplashFinished = { splashCompleted = true })
+                            } else {
+                                MainNavigation()
+                            }
+                        }
                     }
                 }
             }

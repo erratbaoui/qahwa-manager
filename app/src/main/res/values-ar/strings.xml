@@ -1,5 +1,12 @@
 <resources>
     <string name="app_name">مدير القهوة | Qahwa</string>
+    <string name="brand_tagline">مقهاك، بإدارة متقنة</string>
+    <string name="brewing_dashboard">جاري تحضير لوحة التحكم…</string>
+    <string name="toggle_theme">تبديل المظهر</string>
+    <string name="light_mode">فاتح</string>
+    <string name="dark_mode">داكن</string>
+    <string name="greeting">مرحبًا بك!</string>
+    <string name="all_categories">الكل</string>
     <string name="home">الرئيسية</string>
     <string name="menu">القائمة</string>
     <string name="orders">الطلبات</string>
@@ -59,10 +66,10 @@
     <string name="status_open">مفتوح</string>
     <string name="status_paid">مدفوع</string>
     <string name="status_cancelled">ملغى</string>
-    <string name="category_coffee">☕ قهوة</string>
-    <string name="category_tea">🍵 شاي</string>
-    <string name="category_food">🥐 طعام</string>
-    <string name="category_juice">🥤 عصير</string>
+    <string name="category_coffee">قهوة</string>
+    <string name="category_tea">شاي</string>
+    <string name="category_food">مأكولات</string>
+    <string name="category_juice">عصائر</string>
     <string name="unavailable">غير متاح</string>
     <string name="name_en">الاسم (EN)</string>
     <string name="name_fr">الاسم (FR)</string>
@@ -70,6 +77,12 @@
     <string name="description">الوصف</string>
     <string name="quantity_label">الكمية:</string>
     <string name="min_stock">الحد الأدنى: %1$s %2$s</string>
+    <string name="confirm_cancel_title">إلغاء الطلب؟</string>
+    <string name="confirm_cancel_message">لا يمكن التراجع عن هذا الإجراء.</string>
+    <string name="confirm_payment_title">تأكيد الدفع؟</string>
+    <string name="confirm_payment_message">تأكيد دفع هذا الطلب.</string>
+    <string name="confirm_delete_title">حذف العنصر؟</string>
+    <string name="confirm_delete_message">سيتم حذف هذا العنصر نهائياً.</string>
     <plurals name="orders_count">
         <item quantity="zero">%d طلب</item>
         <item quantity="one">طلب واحد</item>
@@ -87,4 +100,3 @@
         <item quantity="other">%d صنف منخفض المخزون</item>
     </plurals>
 </resources>
-

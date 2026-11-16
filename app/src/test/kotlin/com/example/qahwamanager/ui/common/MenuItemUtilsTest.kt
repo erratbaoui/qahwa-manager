@@ -13,7 +13,7 @@ class MenuItemUtilsTest {
         nameAr = "إسبريسو",
         nameFr = "Café Expresso",
         category = "coffee",
-        price = 15.0,
+        priceCentimes = 1500,
     )
 
     @Test
@@ -39,5 +39,13 @@ class MenuItemUtilsTest {
         val itemNoAr = sampleItem.copy(nameAr = "")
         val result = itemNoAr.getLocalizedName(Locale.forLanguageTag("ar"))
         assertEquals("Espresso", result)
+    }
+
+    @Test
+    fun themeMode_fromKey_resolvesModesCorrectly() {
+        assertEquals(ThemeMode.LIGHT, ThemeMode.fromKey("light"))
+        assertEquals(ThemeMode.DARK, ThemeMode.fromKey("dark"))
+        assertEquals(ThemeMode.SYSTEM, ThemeMode.fromKey("system"))
+        assertEquals(ThemeMode.SYSTEM, ThemeMode.fromKey(null))
     }
 }

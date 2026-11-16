@@ -1,5 +1,12 @@
 <resources>
-    <string name="app_name">Gestionnaire Qahwa | قهوة</string>
+    <string name="app_name">Qahwa manager</string>
+    <string name="brand_tagline">VOTRE CAFÉ, PARFAITEMENT GÉRÉ</string>
+    <string name="brewing_dashboard">Préparation de votre tableau de bord…</string>
+    <string name="toggle_theme">Changer de thème</string>
+    <string name="light_mode">Clair</string>
+    <string name="dark_mode">Sombre</string>
+    <string name="greeting">Merhba !</string>
+    <string name="all_categories">Tout</string>
     <string name="home">Accueil</string>
     <string name="menu">Menu</string>
     <string name="orders">Commandes</string>
@@ -59,10 +66,10 @@
     <string name="status_open">En cours</string>
     <string name="status_paid">Payée</string>
     <string name="status_cancelled">Annulée</string>
-    <string name="category_coffee">☕ Café</string>
-    <string name="category_tea">🍵 Thé</string>
-    <string name="category_food">🥐 Nourriture</string>
-    <string name="category_juice">🥤 Jus</string>
+    <string name="category_coffee">Café</string>
+    <string name="category_tea">Thé</string>
+    <string name="category_food">Cuisine</string>
+    <string name="category_juice">Jus</string>
     <string name="unavailable">Indisponible</string>
     <string name="name_en">Nom (EN)</string>
     <string name="name_fr">Nom (FR)</string>
@@ -70,6 +77,12 @@
     <string name="description">Description</string>
     <string name="quantity_label">Quantité :</string>
     <string name="min_stock">Min : %1$s %2$s</string>
+    <string name="confirm_cancel_title">Annuler la commande ?</string>
+    <string name="confirm_cancel_message">Cette action est irréversible.</string>
+    <string name="confirm_payment_title">Confirmer le paiement ?</string>
+    <string name="confirm_payment_message">Confirmer le paiement de cette commande.</string>
+    <string name="confirm_delete_title">Supprimer l\'article ?</string>
+    <string name="confirm_delete_message">Cet article sera définitivement supprimé.</string>
     <plurals name="orders_count">
         <item quantity="one">%d commande</item>
         <item quantity="many">%d commandes</item>
@@ -81,4 +94,3 @@
         <item quantity="other">%d articles en stock faible</item>
     </plurals>
 </resources>
-
