@@ -24,7 +24,7 @@
 2. **The wrong keystore is uploaded** (e.g. a test key). The fingerprint check fails the run before the release step.
 3. **R8 strips something used by reflection** (Room, Hilt, kotlinx.serialization Nav keys). The release APK must start, navigate every tab, place and pay an order, and survive a process restart (saved nav state is deserialized).
 4. **The versionCode doesn't increase.** Android refuses downgrades, so each CI release must have a higher versionCode than the one before.
-5. **A tag push and a branch push** both still produce a correctly named release.
+5. **A tag push and a push to `main`** both still produce a correctly named release. A run dispatched from a branch builds and verifies but **publishes nothing**.
 
 ---
 
@@ -118,8 +118,9 @@ Order of steps:
 4. **Decode the keystore** to `$RUNNER_TEMP/release.jks` with `base64 -d`.
 5. `./gradlew test assembleRelease -PversionCode=<version_code> -PversionName=<tag>`, with the four `QAHWA_*` env vars (`QAHWA_KEYSTORE_FILE=$RUNNER_TEMP/release.jks`).
 6. **Verify the certificate.** Run `apksigner verify --print-certs` (from the newest folder in `$ANDROID_HOME/build-tools`) on `app/build/outputs/apk/release/app-release.apk` and take the `Signer #1 certificate SHA-256 digest`. Fail the run unless it equals `vars.QAHWA_RELEASE_CERT_SHA256`, comparing lowercased with colons stripped.
-7. Copy the APK to `QahwaManager-<tag>.apk`, then upload the artifact and create the release (unchanged).
-8. `rm -f $RUNNER_TEMP/release.jks` with `if: always()`.
+7. Copy the APK to `QahwaManager-<tag>.apk` and upload the workflow artifact (unchanged). This always runs, so a run on a branch can be downloaded and checked.
+8. **Create the GitHub Release** (unchanged), but only with `if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')`. A run dispatched from a branch must never publish a public release or tag.
+9. `rm -f $RUNNER_TEMP/release.jks` with `if: always()`.
 
 - [ ] **Step 2: Lint the workflow locally**
 
@@ -140,31 +141,41 @@ git push -u origin ci/release-signing
 
 - [ ] **Step 5 (user): Create the permanent key and back it up**
 
-Ask the user to run these themselves:
+Ask the user to run these **in their own terminal, not through `!`**. Both commands prompt for passwords interactively, and a password typed on a command line would end up in this transcript and in shell history:
 
 ```bash
-! keytool -genkeypair -v -keystore ~/qahwa-release.jks -alias qahwa -keyalg RSA -keysize 4096 -validity 36500
-! keytool -list -v -keystore ~/qahwa-release.jks -alias qahwa | grep SHA256
+keytool -genkeypair -v -keystore ~/qahwa-release.jks -alias qahwa -keyalg RSA -keysize 4096 -validity 36500
+keytool -list -v -keystore ~/qahwa-release.jks -alias qahwa | grep SHA256
 ```
 
-Tell them: copy `~/qahwa-release.jks` and its passwords somewhere safe off this laptop, such as a password manager. If either is lost, no future version can update an installed app.
+Tell them:
+- keytool makes a PKCS12 keystore, which has **one password**. The key password is the same as the store password.
+- Copy `~/qahwa-release.jks` and that password somewhere safe off this laptop, such as a password manager. If either is lost, no future version can update an installed app.
+- Paste back **only the SHA-256 fingerprint** (it's public).
 
 - [ ] **Step 6 (user): Set the secrets and the variable**
 
+The user runs these in their own terminal. `gh secret set` without `--body` prompts for the value:
+
 ```bash
-! base64 -w0 ~/qahwa-release.jks | gh secret set QAHWA_KEYSTORE_BASE64
-! gh secret set QAHWA_KEYSTORE_PASSWORD
-! gh secret set QAHWA_KEY_ALIAS --body qahwa
-! gh secret set QAHWA_KEY_PASSWORD
-! gh variable set QAHWA_RELEASE_CERT_SHA256 --body <the SHA256 from Step 5, colons removed, lowercase>
+base64 -w0 ~/qahwa-release.jks | gh secret set QAHWA_KEYSTORE_BASE64
+gh secret set QAHWA_KEYSTORE_PASSWORD     # the keystore password
+gh secret set QAHWA_KEY_PASSWORD          # the same password again (PKCS12)
+```
+
+The agent may set the non-secret values itself:
+
+```bash
+gh secret set QAHWA_KEY_ALIAS --body qahwa
+gh variable set QAHWA_RELEASE_CERT_SHA256 --body <fingerprint from Step 5, colons removed, lowercase>
 ```
 
 Verify: `gh secret list` shows the four names, and `gh variable list` shows the fingerprint.
 
 - [ ] **Step 7: Prove the workflow on the branch before merging**
 
-Run: `gh workflow run release.yml --ref ci/release-signing`, then `gh run watch`.
-Expected: green. The run publishes a release tagged `v1.0.<run>-<sha>` from the branch. Download the APK and check that `apksigner verify --print-certs` shows the permanent fingerprint. Delete that test release and its tag with `gh release delete <tag> --cleanup-tag --yes`, because it came from a branch.
+Run: `gh workflow run release.yml --ref ci/release-signing`, then `gh run watch <id>`.
+Expected: green. The fingerprint check passed in CI, and no release or tag was created (check with `gh release list`). Download the artifact with `gh run download <id>` into the scratchpad and check that `apksigner verify --print-certs` shows the permanent fingerprint.
 
 - [ ] **Step 8: Open the PR**
 
