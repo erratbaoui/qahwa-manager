@@ -26,8 +26,9 @@ A modern, minimalist Android Point-of-Sale (POS) and café management applicatio
 **Qahwa manager** is an offline-first, fast, and touch-friendly POS and operations app tailored for Moroccan cafés (*Qahwa*, *Atay*, pastries, and fresh juices). It combines a calm Scandinavian-inspired layout with warm Moroccan café aesthetics, exact integer-centime currency handling in **Moroccan Dirhams (MAD / درهم)**, and instant switching between **Light & Dark themes** and **Arabic (RTL), French, and English**.
 
 ### 📥 Download & Install
-Grab the latest ready-to-install APK directly from [**GitHub Releases (`v1.0.0`)**](https://github.com/erratbaoui/qahwa-manager/releases/tag/v1.0.0):
-- [**`QahwaManager-v1.0.0.apk`**](https://github.com/erratbaoui/qahwa-manager/releases/download/v1.0.0/QahwaManager-v1.0.0.apk)
+Grab the latest ready-to-install APK (`QahwaManager-<version>.apk`) from [**GitHub Releases (latest)**](https://github.com/erratbaoui/qahwa-manager/releases/latest). Every release is signed with the same key, so a new version installs over the old one and keeps your data.
+
+> **Android says the app "conflicts with an existing package" or won't update?** Early builds (including `v1.0.0`) were signed with temporary keys. Uninstall the old app once, then install the latest release. This deletes the data on that device. Updates after that install normally.
 
 ---
 
