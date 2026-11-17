@@ -14,13 +14,28 @@ android {
     applicationId = "com.qahwa.manager"
     minSdk = 24
     targetSdk = 37
-    versionCode = 1
-    versionName = "1.0"
+    // CI passes -PversionCode=<run number> and -PversionName=<tag>, so every release can
+    // install over the one before it.
+    versionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
+    versionName = (findProperty("versionName") as String?) ?: "1.0"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+  }
+
+  // The permanent release key. CI decodes it from a GitHub secret; nobody else has it.
+  // Without QAHWA_KEYSTORE_FILE the release build is left unsigned.
+  val keystoreFile = providers.environmentVariable("QAHWA_KEYSTORE_FILE").orNull
+  if (keystoreFile != null) {
+    signingConfigs.create("release") {
+      storeFile = file(keystoreFile)
+      storePassword = providers.environmentVariable("QAHWA_KEYSTORE_PASSWORD").get()
+      keyAlias = providers.environmentVariable("QAHWA_KEY_ALIAS").get()
+      keyPassword = providers.environmentVariable("QAHWA_KEY_PASSWORD").get()
+    }
   }
 
   buildTypes {
     release {
+      signingConfig = signingConfigs.findByName("release")
       isMinifyEnabled = true
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
