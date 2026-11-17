@@ -326,7 +326,7 @@
 
 - [ ] **Step 2: Run** `./gradlew :app:testDebugUnitTest`. Expected: the new tests fail.
 
-- [ ] **Step 3: Implement it. Fix every other compile site** that passed the old constructor or called `updateOrderStatus` (Hilt injects the new parameters automatically).
+- [ ] **Step 3: Implement it. Fix every other compile site** that passed the old constructor or called `updateOrderStatus` (Hilt injects the new parameters automatically). That includes `HomeViewModelTest` and the other unit tests that build `OrderRepository`. It also includes the **instrumented** `OrderDaoTest`: its tests of `updateStatusIfOpen` move to `markPaidIfOpen` / `cancelIfOpen`, with the same "closed orders are left alone" assertions, plus checks that `paidShiftId`/`paidAt` and `cancelledAt`/`cancelledShiftId` are stored. Finally, remove `updateStatusIfOpen` from `FakeOrderDao`.
 
 - [ ] **Step 4: Run the unit tests and the instrumented `OrderDaoTest`.** Expected: PASS.
 
