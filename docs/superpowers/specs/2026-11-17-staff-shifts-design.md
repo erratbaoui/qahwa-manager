@@ -28,6 +28,25 @@ Everything else below is a proposal from the design conversation, approved by th
 whole ("yes, write the design"). Calls made only while writing this document are marked
 *(builder's call)* or *(my call)*.
 
+## Before this work: one permanent signing key (confirmed by the user, do first)
+
+The release workflow (`.github/workflows/release.yml`) runs `assembleDebug` on a fresh CI
+machine, so every release is signed with a new throwaway debug key. v1.0.0 and v1.0.1-53fbea2
+have different certificates (SHA-256 `1ad7bedf…` and `e80e0f11…`). Android refuses to install a
+version over one signed with a different key, so every update so far has meant an uninstall,
+which wipes the café's data. No café can be sold an app that can't update.
+
+- The user creates one release keystore and keeps it safe, backed up off the laptop. If it's
+  lost, no future update can install over an existing install.
+- The keystore and its passwords go into GitHub secrets. The workflow builds a **signed release
+  APK** from them.
+- The release build has R8 minification switched on (`isMinifyEnabled = true`), and CI has never
+  built it. The build must be checked on an emulator, because Room, Hilt and kotlinx.serialization
+  can break under shrinking.
+- This is a separate small change on its own branch and PR, merged before the shifts work. It
+  touches the `main` release workflow, so the user reviews it before merge.
+- Test devices with a 1.0 build need one last uninstall to switch to the permanent key.
+
 ## Goals
 
 - Every order belongs to a shift, and every shift belongs to one named waiter.
@@ -110,7 +129,10 @@ hatch for the case where a table really can't be collected (see "Ending a shift"
 - **Wrong PIN:** after 5 wrong tries in a row, the PIN pad locks for 1 minute, doubling on each
   further failure (*my call*; exact numbers are the builder's call). The lockout survives the app
   being killed. **Every failed owner-PIN attempt is counted on the active shift** and shown in
-  that shift's report. A waiter guessing the owner's PIN is itself a theft signal.
+  that shift's report. A waiter guessing the owner's PIN is itself a theft signal. Failed
+  attempts with no shift running still count toward the lockout.
+- **Hash algorithm:** `PBKDF2WithHmacSHA1` with a high iteration count, because the SHA-256
+  variant needs API 26 and minSdk is 24 *(my call)*.
 - **Forgot PIN:** "Forgot PIN?" on the PIN pad → enter recovery code → set a new PIN → a new
   recovery code is shown.
 - **Change PIN:** in the owner area.
@@ -153,13 +175,26 @@ being killed or the tablet restarting.
 - **Ending a shift** (waiter, no PIN). The *End shift* screen lists every open order first, with
   *Mark paid* on each, because the waiter collects from all of them. When none are left, *End
   shift* ends it. The next waiter can start right away; settling can happen later.
-  - *Escape hatch (proposed default, to confirm with the user):* if a table can't be collected (a
-    customer left without paying, say) and the owner isn't there to cancel it, the waiter can still
-    end the shift after a confirmation. Those orders stay open and appear on the settlement as
-    **"left open"** for the owner to deal with. They don't count toward the waiter's expected cash.
-    The owner then cancels them (the café's loss) or leaves them open for whoever collects later.
-    If the owner wants to hold the waiter responsible, the difference shows up in the counted
-    amount they agree on.
+  - *Escape hatch (confirmed by the user):* if a table can't be collected (a customer left
+    without paying, say) and the owner isn't there to cancel it, the waiter can still end the
+    shift after a confirmation. Those orders stay open and appear on the settlement as **"left
+    open"** for the owner to deal with. They don't count toward the waiter's expected cash. The
+    owner then cancels them (the café's loss) or leaves them open for whoever collects later. If
+    the owner wants to hold the waiter responsible, that goes into the counted amount they agree
+    on. The user accepted the known loophole: a waiter can pocket a table's cash and call it a
+    walkout. Every such table is named on the report, so the owner sees it.
+  - **The left-open list is recorded at the moment the shift ends** (which orders, and their
+    totals at that time). That way a settled report never changes when one of those orders is
+    paid or cancelled later. This needs its own storage, for example a small
+    `shift_left_open(shiftId, orderId, totalCentimes)` table. The exact shape is the builder's
+    call, but it must be part of the 2→3 migration.
+- **A shift nobody ended** *(my call)*. If the previous waiter went home without ending their
+  shift, the next waiter sees "Karim's shift is still open" with a *Take over* button (no PIN).
+  Taking over ends Karim's shift without collecting, so his still-open tables are recorded as left
+  open on his report. The shift is marked **"ended by takeover"**, with the time, so the owner
+  sees it wasn't Karim who ended it. The new waiter's shift then starts. Anything they collect
+  from those tables counts toward their own expected cash, because they're the one holding the
+  money. This keeps the café from ever being blocked.
 
 ### Which shift a sale counts toward
 
@@ -169,9 +204,14 @@ being killed or the tablet restarting.
   shift.** Whoever collects the money owes it. This also handles orders left open across a shift
   change and orders that were open during the 1.0 upgrade (no opened-in shift, but they get a
   paid-in shift when collected).
+- **The owner never takes a customer's money during a waiter's shift** (confirmed by the user).
+  So every payment marked during a shift counts toward that shift's waiter, even when it's marked
+  in owner mode. No "collected by" field is needed.
 - Cancelling is unchanged in substance: only OPEN orders can be cancelled (as today), and every
-  cancel now needs owner mode. A cancelled order records `cancelledAt` and shows on the shift's
-  report.
+  cancel now needs owner mode. A cancelled order records `cancelledAt`. **It shows on the report
+  of the shift it was opened in** *(my call)*. That way a walkout left open by Karim and cancelled
+  by the owner the next day still lands on Karim's report. Orders from before the upgrade have no
+  opened-in shift, so theirs show on the shift that was active when they were cancelled.
 
 ### Settling
 
@@ -201,10 +241,14 @@ Wrong owner-PIN attempts     0
 Owner tab → **Shifts** → "History": settled shifts newest first, each showing date, waiter,
 expected, counted and difference. You can filter by waiter. Each waiter's filtered view shows
 their running total of differences. Tapping a shift opens its full report: the settlement figures,
-the list of orders collected, cancellations, orders left open and failed owner-PIN attempts.
+the list of orders collected, cancellations, orders left open, failed owner-PIN attempts, and
+whether the shift was "ended by takeover".
 
 ### Upgrading from 1.0
 
+- **No café runs 1.0 with real data** (confirmed by the user). Only test devices are affected. The
+  migration is still written and tested properly, because Room requires it and the next projects
+  will need the same discipline.
 - Migration 2→3 adds the `staff` and `shifts` tables and the new nullable columns on `orders`. It
   doesn't touch existing values.
 - Old orders have no shift. Sales still counts them as today. Shift reports simply don't include
@@ -214,8 +258,11 @@ the list of orders collected, cancellations, orders left open and failed owner-P
 ### Data model sketch (*builder may adjust names*)
 
 - `staff`: id, name, isOwner, isActive, createdAt
-- `shifts`: id, staffId → staff, status (ACTIVE / ENDED / SETTLED), startedAt, endedAt?, settledAt?,
-  expectedCentimes?, countedCentimes?, failedOwnerPinAttempts (default 0)
+- `shifts`: id, staffId → staff, status (ACTIVE / ENDED / SETTLED), startedAt, endedAt?,
+  endedByTakeover (default false), settledAt?, expectedCentimes?, countedCentimes?,
+  failedOwnerPinAttempts (default 0)
+- `shift_left_open`: shiftId → shifts, orderId → orders, totalCentimes, recorded when the
+  shift ends
 - `orders` + openedShiftId?, paidShiftId?, paidAt?, cancelledAt?
 - Owner credentials and lockout state: hashes + salts + failure count + locked-until time
   (*storage is the builder's call*).
