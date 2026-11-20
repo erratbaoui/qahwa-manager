@@ -8,6 +8,7 @@ import androidx.compose.ui.res.stringResource
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.OrderStatus
+import com.example.qahwamanager.data.model.StaffRole
 import com.example.qahwamanager.data.model.isTakeaway
 import java.text.SimpleDateFormat
 
@@ -23,6 +24,16 @@ fun statusLabel(status: OrderStatus): String = stringResource(
         OrderStatus.OPEN -> R.string.status_open
         OrderStatus.PAID -> R.string.status_paid
         OrderStatus.CANCELLED -> R.string.status_cancelled
+    }
+)
+
+@Composable
+fun roleLabel(role: StaffRole): String = stringResource(
+    when (role) {
+        StaffRole.OWNER -> R.string.role_owner
+        StaffRole.WAITER -> R.string.role_waiter
+        StaffRole.BARMAN -> R.string.role_barman
+        StaffRole.SECURITY -> R.string.role_security
     }
 )
 

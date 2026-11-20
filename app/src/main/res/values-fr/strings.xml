@@ -156,7 +156,15 @@
     <string name="ended_by_takeover">Terminé par prise de relais</string>
     <string name="settled_on">Réglé le %1$s</string>
     <string name="staff">Personnel</string>
-    <string name="add_waiter">Ajouter un serveur</string>
+    <string name="add_waiter">Ajouter un membre</string>
+    <string name="add_staff">Ajouter un membre</string>
+    <string name="edit_staff">Modifier le membre</string>
+    <string name="edit_staff_action">Modifier</string>
+    <string name="staff_role">Rôle</string>
+    <string name="role_owner">Propriétaire</string>
+    <string name="role_waiter">Serveur</string>
+    <string name="role_barman">Barman</string>
+    <string name="role_security">Sécurité</string>
     <string name="waiter_name">Nom</string>
     <string name="rename">Renommer</string>
     <string name="deactivate">Désactiver</string>

@@ -34,6 +34,7 @@ import com.example.qahwamanager.ui.common.QahwaCurrencyText
 import com.example.qahwamanager.ui.common.QahwaPrimaryButton
 import com.example.qahwamanager.ui.common.QahwaSecondaryButton
 import com.example.qahwamanager.ui.common.rememberDateFormat
+import com.example.qahwamanager.ui.common.roleLabel
 import com.example.qahwamanager.ui.theme.QahwaTheme
 import java.util.Date
 
@@ -152,7 +153,7 @@ private fun StaffPicker(staff: List<Staff>, enabled: Boolean, onPick: (Staff) ->
     ) {
         staff.forEach { person ->
             QahwaSecondaryButton(
-                text = person.name,
+                text = "${person.name} · ${roleLabel(person.role)}",
                 onClick = { onPick(person) },
                 enabled = enabled,
                 leadingIcon = Icons.Default.PlayArrow,

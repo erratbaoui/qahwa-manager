@@ -168,7 +168,15 @@
     <string name="ended_by_takeover">أُنهيت بتولّي الوردية</string>
     <string name="settled_on">سُوّيت في %1$s</string>
     <string name="staff">الموظفون</string>
-    <string name="add_waiter">إضافة نادل</string>
+    <string name="add_waiter">إضافة موظف</string>
+    <string name="add_staff">إضافة موظف</string>
+    <string name="edit_staff">تعديل موظف</string>
+    <string name="edit_staff_action">تعديل</string>
+    <string name="staff_role">الدور</string>
+    <string name="role_owner">صاحب المقهى</string>
+    <string name="role_waiter">نادل</string>
+    <string name="role_barman">بارمان</string>
+    <string name="role_security">أمن</string>
     <string name="waiter_name">الاسم</string>
     <string name="rename">إعادة التسمية</string>
     <string name="deactivate">إلغاء التفعيل</string>

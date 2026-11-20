@@ -1,6 +1,7 @@
 package com.example.qahwamanager.ui.owner
 
 import com.example.qahwamanager.data.model.Staff
+import com.example.qahwamanager.data.model.StaffRole
 import com.example.qahwamanager.data.repository.StaffRepository
 import com.example.qahwamanager.security.OwnerSession
 import com.example.qahwamanager.testing.FakeStaffDao
@@ -108,5 +109,27 @@ class StaffViewModelTest {
         assertEquals("Karim B.", stored.name)
         assertEquals(false, stored.isActive)
         assertEquals(listOf("Amina", "Karim B."), vm.staff.value.map { it.name })
+    }
+
+    @Test
+    fun addAndUpdateRole_ownerMode_persistsRoles() = runTest {
+        val vm = build()
+        session.unlock()
+
+        vm.add("Hassan", StaffRole.BARMAN)
+        vm.add("Omar", StaffRole.SECURITY)
+        advanceUntilIdle()
+
+        val hassan = vm.staff.value.first { it.name == "Hassan" }
+        val omar = vm.staff.value.first { it.name == "Omar" }
+        assertEquals(StaffRole.BARMAN, hassan.role)
+        assertEquals(StaffRole.SECURITY, omar.role)
+
+        vm.update(omar.id, "Omar S.", StaffRole.OWNER)
+        advanceUntilIdle()
+
+        val updatedOmar = staffDao.getById(omar.id)!!
+        assertEquals("Omar S.", updatedOmar.name)
+        assertEquals(StaffRole.OWNER, updatedOmar.role)
     }
 }

@@ -3,6 +3,7 @@ package com.example.qahwamanager.ui.owner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.qahwamanager.data.model.Staff
+import com.example.qahwamanager.data.model.StaffRole
 import com.example.qahwamanager.data.repository.StaffRepository
 import com.example.qahwamanager.security.OwnerSession
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +17,7 @@ import javax.inject.Inject
 
 enum class StaffError { BLANK_NAME, OWNER_ALWAYS_ACTIVE }
 
-/** Owner-only staff management: add, rename, deactivate/reactivate. Nobody is deleted. */
+/** Owner-only staff management: add, edit name/role, deactivate/reactivate. Nobody is deleted. */
 @HiltViewModel
 class StaffViewModel @Inject constructor(
     private val staffRepository: StaffRepository,
@@ -29,9 +30,15 @@ class StaffViewModel @Inject constructor(
     private val _error = MutableStateFlow<StaffError?>(null)
     val error: StateFlow<StaffError?> = _error.asStateFlow()
 
-    fun add(name: String) = ownerOnly { staffRepository.addWaiter(name) }
+    fun add(name: String, role: StaffRole = StaffRole.WAITER) = ownerOnly {
+        staffRepository.addStaff(name, role)
+    }
 
     fun rename(id: Long, name: String) = ownerOnly { staffRepository.rename(id, name) }
+
+    fun update(id: Long, name: String, role: StaffRole) = ownerOnly {
+        staffRepository.updateStaff(id, name, role)
+    }
 
     fun setActive(id: Long, active: Boolean) = ownerOnly { staffRepository.setActive(id, active) }
 

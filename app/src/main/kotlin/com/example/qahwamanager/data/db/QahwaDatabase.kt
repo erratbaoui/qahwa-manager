@@ -20,7 +20,7 @@ import com.example.qahwamanager.data.model.Staff
         MenuItem::class, Order::class, OrderItem::class, InventoryItem::class,
         Staff::class, Shift::class, ShiftLeftOpen::class, OwnerCredentials::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -40,7 +40,7 @@ abstract class QahwaDatabase : RoomDatabase() {
                 QahwaDatabase::class.java,
                 "qahwa_database"
             )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

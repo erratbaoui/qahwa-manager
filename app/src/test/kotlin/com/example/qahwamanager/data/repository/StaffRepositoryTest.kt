@@ -1,6 +1,7 @@
 package com.example.qahwamanager.data.repository
 
 import com.example.qahwamanager.data.model.Staff
+import com.example.qahwamanager.data.model.StaffRole
 import com.example.qahwamanager.testing.FakeStaffDao
 import com.example.qahwamanager.testing.testClock
 import kotlinx.coroutines.flow.first
@@ -58,5 +59,27 @@ class StaffRepositoryTest {
 
         repo.rename(karim, " Karim B. ")
         assertEquals("Karim B.", staffDao.getById(karim)!!.name)
+    }
+
+    @Test
+    fun addStaff_andUpdateStaff_persistsAllRolesAndProtectsPrimaryOwnerRole() = runTest {
+        val repo = StaffRepository(staffDao, testClock(1_000))
+        val owner = staffDao.insert(Staff(name = "Amina", role = StaffRole.OWNER, isOwner = true, createdAt = 0))
+        val barman = repo.addStaff("Hassan", StaffRole.BARMAN)
+        val security = repo.addStaff("Omar", StaffRole.SECURITY)
+        val coOwner = repo.addStaff("Nadia", StaffRole.OWNER)
+
+        assertEquals(StaffRole.BARMAN, staffDao.getById(barman)!!.role)
+        assertEquals(StaffRole.SECURITY, staffDao.getById(security)!!.role)
+        assertEquals(StaffRole.OWNER, staffDao.getById(coOwner)!!.role)
+
+        repo.updateStaff(barman, "Hassan M.", StaffRole.WAITER)
+        assertEquals("Hassan M.", staffDao.getById(barman)!!.name)
+        assertEquals(StaffRole.WAITER, staffDao.getById(barman)!!.role)
+
+        // Primary owner keeps OWNER role even if another role is passed
+        repo.updateStaff(owner, "Amina K.", StaffRole.WAITER)
+        assertEquals("Amina K.", staffDao.getById(owner)!!.name)
+        assertEquals(StaffRole.OWNER, staffDao.getById(owner)!!.role)
     }
 }

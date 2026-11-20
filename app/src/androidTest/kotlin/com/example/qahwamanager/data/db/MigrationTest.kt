@@ -104,6 +104,25 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate3To4_addsStaffRoleFromIsOwner() {
+        helper.createDatabase(DB_NAME, 3).apply {
+            execSQL("INSERT INTO staff (id, name, isOwner, isActive, createdAt) VALUES (1, 'Amina', 1, 1, 1000)")
+            execSQL("INSERT INTO staff (id, name, isOwner, isActive, createdAt) VALUES (2, 'Karim', 0, 1, 2000)")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(DB_NAME, 4, true, MIGRATION_3_4)
+
+        db.query("SELECT id, name, role, isOwner FROM staff ORDER BY id").use { c ->
+            assertEquals(2, c.count)
+            c.moveToNext()
+            assertEquals(listOf<Any>(1L, "Amina", "OWNER", 1L), listOf<Any>(c.getLong(0), c.getString(1), c.getString(2), c.getLong(3)))
+            c.moveToNext()
+            assertEquals(listOf<Any>(2L, "Karim", "WAITER", 0L), listOf<Any>(c.getLong(0), c.getString(1), c.getString(2), c.getLong(3)))
+        }
+    }
+
     private companion object {
         const val DB_NAME = "migration-test"
     }

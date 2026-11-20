@@ -82,3 +82,14 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_orders_paidShiftId` ON `orders` (`paidShiftId`)")
     }
 }
+
+/**
+ * v3 -> v4: adds a `role` column to `staff` (OWNER, WAITER, BARMAN, SECURITY).
+ * Existing rows default to WAITER, with `isOwner = 1` rows set to OWNER.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `staff` ADD COLUMN `role` TEXT NOT NULL DEFAULT 'WAITER'")
+        db.execSQL("UPDATE `staff` SET `role` = 'OWNER' WHERE `isOwner` = 1")
+    }
+}

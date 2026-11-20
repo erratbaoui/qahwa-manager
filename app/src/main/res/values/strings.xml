@@ -152,7 +152,15 @@
     <string name="ended_by_takeover">Ended by takeover</string>
     <string name="settled_on">Settled %1$s</string>
     <string name="staff">Staff</string>
-    <string name="add_waiter">Add waiter</string>
+    <string name="add_waiter">Add staff</string>
+    <string name="add_staff">Add staff</string>
+    <string name="edit_staff">Edit staff</string>
+    <string name="edit_staff_action">Edit</string>
+    <string name="staff_role">Role</string>
+    <string name="role_owner">Owner</string>
+    <string name="role_waiter">Waiter</string>
+    <string name="role_barman">Barman</string>
+    <string name="role_security">Security</string>
     <string name="waiter_name">Name</string>
     <string name="rename">Rename</string>
     <string name="deactivate">Deactivate</string>
