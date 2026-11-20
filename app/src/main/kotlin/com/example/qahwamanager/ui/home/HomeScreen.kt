@@ -43,6 +43,8 @@ import com.example.qahwamanager.ui.common.QahwaTopBarActions
 import com.example.qahwamanager.ui.common.formatMad
 import com.example.qahwamanager.ui.common.formatQuantity
 import com.example.qahwamanager.ui.common.rememberDateFormat
+import com.example.qahwamanager.ui.shift.ShiftCard
+import com.example.qahwamanager.ui.shift.ShiftViewModel
 import com.example.qahwamanager.ui.theme.BrandAmberGold
 import com.example.qahwamanager.ui.theme.BrandCoffeeBrown
 import com.example.qahwamanager.ui.theme.BrandCream
@@ -53,9 +55,13 @@ import java.util.Date
 @Composable
 fun HomeScreen(
     onNewOrder: () -> Unit,
-    viewModel: HomeViewModel = hiltViewModel()
+    onEndShift: () -> Unit,
+    viewModel: HomeViewModel = hiltViewModel(),
+    shiftViewModel: ShiftViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isOwnerMode by shiftViewModel.isOwnerMode.collectAsStateWithLifecycle()
+    val activeShift by shiftViewModel.activeShift.collectAsStateWithLifecycle()
     val today = rememberDateFormat("EEEEdMMMMyyyy").format(Date())
     val qColors = QahwaTheme.colors
 
@@ -161,18 +167,23 @@ fun HomeScreen(
                 }
             }
 
-            // ── Summary Statistics ────────────────────────────────────────────
+            // ── Current shift ─────────────────────────────────────────────────
+            ShiftCard(onEndShift = onEndShift, viewModel = shiftViewModel)
+
+            // ── Summary Statistics (café revenue is the owner's business) ─────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                QahwaStatCard(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.today_revenue),
-                    value = formatMad(uiState.todayRevenueCentimes),
-                    valueColor = qColors.primaryAccent,
-                    accentDotColor = BrandAmberGold,
-                )
+                if (isOwnerMode) {
+                    QahwaStatCard(
+                        modifier = Modifier.weight(1f),
+                        label = stringResource(R.string.today_revenue),
+                        value = formatMad(uiState.todayRevenueCentimes),
+                        valueColor = qColors.primaryAccent,
+                        accentDotColor = BrandAmberGold,
+                    )
+                }
                 QahwaStatCard(
                     modifier = Modifier.weight(1f),
                     label = stringResource(R.string.open_orders),
@@ -193,6 +204,7 @@ fun HomeScreen(
             QahwaPrimaryButton(
                 text = stringResource(R.string.new_order),
                 onClick = onNewOrder,
+                enabled = activeShift != null,
                 leadingIcon = Icons.Default.Add,
                 modifier = Modifier.fillMaxWidth(),
             )

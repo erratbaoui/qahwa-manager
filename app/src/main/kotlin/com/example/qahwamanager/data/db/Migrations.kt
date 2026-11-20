@@ -54,3 +54,31 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_order_items_orderId` ON `order_items` (`orderId`)")
     }
 }
+
+/**
+ * v2 -> v3: staff, shifts and owner credentials. Purely additive: four new tables, and five
+ * nullable shift columns on `orders` (added with ALTER TABLE, so they carry no foreign keys).
+ * Existing rows are untouched.
+ */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `staff` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `isOwner` INTEGER NOT NULL, `isActive` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)")
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS `shifts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `staffId` INTEGER NOT NULL, `status` TEXT NOT NULL, `startedAt` INTEGER NOT NULL, `endedAt` INTEGER, `endedByTakeover` INTEGER NOT NULL, `settledAt` INTEGER, `expectedCentimes` INTEGER, `countedCentimes` INTEGER, `failedOwnerPinAttempts` INTEGER NOT NULL, FOREIGN KEY(`staffId`) REFERENCES `staff`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_shifts_staffId` ON `shifts` (`staffId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_shifts_status` ON `shifts` (`status`)")
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS `shift_left_open` (`shiftId` INTEGER NOT NULL, `orderId` INTEGER NOT NULL, `totalCentimes` INTEGER NOT NULL, PRIMARY KEY(`shiftId`, `orderId`), FOREIGN KEY(`shiftId`) REFERENCES `shifts`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`orderId`) REFERENCES `orders`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_shift_left_open_orderId` ON `shift_left_open` (`orderId`)")
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS `owner_credentials` (`id` INTEGER NOT NULL, `pinHash` TEXT NOT NULL, `pinSalt` TEXT NOT NULL, `recoveryHash` TEXT NOT NULL, `recoverySalt` TEXT NOT NULL, `failedAttemptsInRow` INTEGER NOT NULL, `lockedUntil` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+
+        db.execSQL("ALTER TABLE `orders` ADD COLUMN `openedShiftId` INTEGER")
+        db.execSQL("ALTER TABLE `orders` ADD COLUMN `paidShiftId` INTEGER")
+        db.execSQL("ALTER TABLE `orders` ADD COLUMN `paidAt` INTEGER")
+        db.execSQL("ALTER TABLE `orders` ADD COLUMN `cancelledAt` INTEGER")
+        db.execSQL("ALTER TABLE `orders` ADD COLUMN `cancelledShiftId` INTEGER")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_orders_openedShiftId` ON `orders` (`openedShiftId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_orders_paidShiftId` ON `orders` (`paidShiftId`)")
+    }
+}

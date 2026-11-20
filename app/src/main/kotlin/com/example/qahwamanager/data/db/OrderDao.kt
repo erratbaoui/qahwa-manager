@@ -41,9 +41,27 @@ abstract class OrderDao {
         return orderId
     }
 
-    /** Moves an OPEN order to [status]; closed orders are left alone. Returns rows changed. */
-    @Query("UPDATE orders SET status = :status WHERE id = :id AND status = 'OPEN'")
-    abstract suspend fun updateStatusIfOpen(id: Long, status: OrderStatus): Int
+    /** Marks an OPEN order paid in [shiftId] at [now]; closed orders are left alone. Returns rows changed. */
+    @Query("UPDATE orders SET status = 'PAID', paidShiftId = :shiftId, paidAt = :now WHERE id = :id AND status = 'OPEN'")
+    abstract suspend fun markPaidIfOpen(id: Long, shiftId: Long, now: Long): Int
+
+    /** Cancels an OPEN order at [now], noting the shift that was active (if any). Returns rows changed. */
+    @Query("UPDATE orders SET status = 'CANCELLED', cancelledAt = :now, cancelledShiftId = :shiftId WHERE id = :id AND status = 'OPEN'")
+    abstract suspend fun cancelIfOpen(id: Long, shiftId: Long?, now: Long): Int
+
+    @Query("SELECT * FROM orders WHERE paidShiftId = :shiftId AND status = 'PAID' ORDER BY paidAt DESC, id DESC")
+    abstract fun observePaidInShift(shiftId: Long): Flow<List<Order>>
+
+    /**
+     * Cancelled orders for a shift's report: the shift they were opened in, or, for orders from
+     * before shifts existed, the shift that was active when they were cancelled.
+     */
+    @Query("SELECT * FROM orders WHERE status = 'CANCELLED' AND COALESCE(openedShiftId, cancelledShiftId) = :shiftId ORDER BY cancelledAt DESC, id DESC")
+    abstract fun observeCancelledForShift(shiftId: Long): Flow<List<Order>>
+
+    /** The orders a shift left open (their current state; the frozen totals live in shift_left_open). */
+    @Query("SELECT orders.* FROM orders JOIN shift_left_open ON shift_left_open.orderId = orders.id WHERE shift_left_open.shiftId = :shiftId ORDER BY orders.id")
+    abstract fun observeLeftOpenOrders(shiftId: Long): Flow<List<Order>>
 
     @Query("SELECT * FROM orders WHERE id = :id")
     abstract fun observeById(id: Long): Flow<Order?>

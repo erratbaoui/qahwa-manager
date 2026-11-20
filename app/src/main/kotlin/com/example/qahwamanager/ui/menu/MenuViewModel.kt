@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.repository.MenuRepository
+import com.example.qahwamanager.security.OwnerSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,8 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class MenuViewModel @Inject constructor(
-    private val menuRepository: MenuRepository
+    private val menuRepository: MenuRepository,
+    private val ownerSession: OwnerSession
 ) : ViewModel() {
 
     private val _selectedCategory = MutableStateFlow("coffee")
@@ -39,20 +41,22 @@ class MenuViewModel @Inject constructor(
         _selectedCategory.value = category
     }
 
-    fun addItem(item: MenuItem) = viewModelScope.launch {
-        menuRepository.addItem(item)
-    }
+    // Changing the menu and prices is the owner's job; the UI asks for the PIN first, and the
+    // view model refuses anyway if owner mode is off.
+    fun addItem(item: MenuItem) = ownerOnly { menuRepository.addItem(item) }
 
-    fun updateItem(item: MenuItem) = viewModelScope.launch {
-        menuRepository.updateItem(item)
-    }
+    fun updateItem(item: MenuItem) = ownerOnly { menuRepository.updateItem(item) }
 
-    fun deleteItem(item: MenuItem) = viewModelScope.launch {
-        menuRepository.deleteItem(item)
-    }
+    fun deleteItem(item: MenuItem) = ownerOnly { menuRepository.deleteItem(item) }
 
+    /** "We ran out": any waiter can flip availability. */
     fun toggleAvailability(item: MenuItem) = viewModelScope.launch {
         menuRepository.updateItem(item.copy(isAvailable = !item.isAvailable))
+    }
+
+    private fun ownerOnly(block: suspend () -> Unit) {
+        if (!ownerSession.isOwnerMode.value) return
+        viewModelScope.launch { block() }
     }
 }
 

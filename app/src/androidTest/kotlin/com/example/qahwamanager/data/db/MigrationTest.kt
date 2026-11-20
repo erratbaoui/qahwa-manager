@@ -4,6 +4,7 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,6 +51,56 @@ class MigrationTest {
             c.moveToNext()
             assertEquals(listOf<Any>(101L, 10L, "Gone", "", "", 1L, 29L),
                 listOf<Any>(c.getLong(0), c.getLong(1), c.getString(2), c.getString(3), c.getString(4), c.getLong(5), c.getLong(6)))
+        }
+    }
+
+    @Test
+    fun migrate2To3_keepsExistingDataAndAddsShiftTables() {
+        helper.createDatabase(DB_NAME, 2).apply {
+            execSQL("INSERT INTO menu_items (id, name, nameAr, nameFr, category, priceCentimes, description, isAvailable) VALUES (1, 'Mint tea', 'أتاي', 'Thé', 'tea', 850, '', 1)")
+            execSQL("INSERT INTO inventory_items (id, name, quantity, unit, lowStockThreshold) VALUES (1, 'Mint', 2.5, 'kg', 0.5)")
+            execSQL("INSERT INTO orders (id, tableNumber, status, createdAt, totalCentimes) VALUES (10, '4', 'PAID', 1000, 1729)")
+            execSQL("INSERT INTO orders (id, tableNumber, status, createdAt, totalCentimes) VALUES (11, '7', 'OPEN', 2000, 500)")
+            execSQL("INSERT INTO order_items (id, orderId, menuItemId, menuItemName, menuItemNameAr, menuItemNameFr, quantity, unitPriceCentimes) VALUES (100, 10, 1, 'Mint tea', 'أتاي', 'Thé', 2, 850)")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(DB_NAME, 3, true, MIGRATION_2_3)
+
+        db.query("SELECT id, name, nameAr, nameFr, category, priceCentimes, description, isAvailable FROM menu_items").use { c ->
+            assertEquals(1, c.count)
+            c.moveToFirst()
+            assertEquals(listOf<Any>(1L, "Mint tea", "أتاي", "Thé", "tea", 850L, "", 1L),
+                listOf<Any>(c.getLong(0), c.getString(1), c.getString(2), c.getString(3), c.getString(4), c.getLong(5), c.getString(6), c.getLong(7)))
+        }
+        db.query("SELECT id, name, quantity, unit, lowStockThreshold FROM inventory_items").use { c ->
+            assertEquals(1, c.count)
+            c.moveToFirst()
+            assertEquals(listOf<Any>(1L, "Mint", 2.5, "kg", 0.5),
+                listOf<Any>(c.getLong(0), c.getString(1), c.getDouble(2), c.getString(3), c.getDouble(4)))
+        }
+        db.query("SELECT id, tableNumber, status, createdAt, totalCentimes, openedShiftId, paidShiftId, paidAt, cancelledAt, cancelledShiftId FROM orders ORDER BY id").use { c ->
+            assertEquals(2, c.count)
+            c.moveToNext()
+            assertEquals(listOf<Any>(10L, "4", "PAID", 1000L, 1729L),
+                listOf<Any>(c.getLong(0), c.getString(1), c.getString(2), c.getLong(3), c.getLong(4)))
+            for (col in 5..9) assertTrue("column $col of order 10 should be NULL", c.isNull(col))
+            c.moveToNext()
+            assertEquals(listOf<Any>(11L, "7", "OPEN", 2000L, 500L),
+                listOf<Any>(c.getLong(0), c.getString(1), c.getString(2), c.getLong(3), c.getLong(4)))
+            for (col in 5..9) assertTrue("column $col of order 11 should be NULL", c.isNull(col))
+        }
+        db.query("SELECT id, orderId, menuItemId, menuItemName, menuItemNameAr, menuItemNameFr, quantity, unitPriceCentimes FROM order_items").use { c ->
+            assertEquals(1, c.count)
+            c.moveToFirst()
+            assertEquals(listOf<Any>(100L, 10L, 1L, "Mint tea", "أتاي", "Thé", 2L, 850L),
+                listOf<Any>(c.getLong(0), c.getLong(1), c.getLong(2), c.getString(3), c.getString(4), c.getString(5), c.getLong(6), c.getLong(7)))
+        }
+        for (table in listOf("staff", "shifts", "shift_left_open", "owner_credentials")) {
+            db.query("SELECT COUNT(*) FROM $table").use { c ->
+                c.moveToFirst()
+                assertEquals("$table should start empty", 0L, c.getLong(0))
+            }
         }
     }
 

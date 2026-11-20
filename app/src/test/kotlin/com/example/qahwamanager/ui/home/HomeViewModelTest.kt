@@ -40,9 +40,10 @@ class HomeViewModelTest {
     fun todayRevenue_rollsOverAtMidnight() = runTest {
         val orderDao = FakeOrderDao()
         orderDao.seed(Order(id = 1, tableNumber = "1", status = OrderStatus.PAID, createdAt = nov16 + 36_000_000L, totalCentimes = 1000))
+        val clock = testClock(startMillis = nov17 - 60_000L)
         val viewModel = HomeViewModel(
-            SalesRepository(orderDao, testClock(startMillis = nov17 - 60_000L)),
-            OrderRepository(orderDao, FakeOrderItemDao(orderDao)),
+            SalesRepository(orderDao, clock),
+            OrderRepository(orderDao, FakeOrderItemDao(orderDao), clock),
             InventoryRepository(FakeInventoryDao()),
         )
         backgroundScope.launch { viewModel.uiState.collect {} }

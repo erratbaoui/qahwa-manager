@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.OrderItem
-import com.example.qahwamanager.data.model.OrderStatus
+import com.example.qahwamanager.data.model.ShiftWithStaff
 import com.example.qahwamanager.data.repository.MenuRepository
 import com.example.qahwamanager.data.repository.OrderRepository
+import com.example.qahwamanager.data.repository.ShiftRepository
+import com.example.qahwamanager.security.OwnerSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,8 +26,14 @@ data class CartItem(val menuItem: MenuItem, val quantity: Int)
 @HiltViewModel
 class OrdersViewModel @Inject constructor(
     private val orderRepository: OrderRepository,
-    private val menuRepository: MenuRepository
+    private val menuRepository: MenuRepository,
+    private val shiftRepository: ShiftRepository,
+    private val ownerSession: OwnerSession
 ) : ViewModel() {
+
+    /** The running shift; null means orders can't be placed or paid until someone starts one. */
+    val activeShift: StateFlow<ShiftWithStaff?> = shiftRepository.observeActive()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val openOrders: StateFlow<List<Order>> = orderRepository.getOpenOrders()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -81,22 +89,27 @@ class OrdersViewModel @Inject constructor(
             )
         }
         save {
-            val orderId = orderRepository.createOrder(tableNumber, orderItems)
+            val shiftId = shiftRepository.activeShiftId() ?: return@save
+            val orderId = orderRepository.createOrder(tableNumber, orderItems, shiftId)
             clearCart()
             onSuccess(orderId)
         }
     }
 
-    /** Marks the order paid, then calls [onDone] once the change is stored. */
+    /** Marks the order paid in the active shift, then calls [onDone]. Does nothing without a shift. */
     fun markAsPaid(orderId: Long, onDone: () -> Unit = {}) = save {
-        orderRepository.updateOrderStatus(orderId, OrderStatus.PAID)
+        val shiftId = shiftRepository.activeShiftId() ?: return@save
+        orderRepository.markPaid(orderId, shiftId)
         onDone()
     }
 
-    /** Cancels the order, then calls [onDone] once the change is stored. */
-    fun cancelOrder(orderId: Long, onDone: () -> Unit = {}) = save {
-        orderRepository.updateOrderStatus(orderId, OrderStatus.CANCELLED)
-        onDone()
+    /** Cancels the order, then calls [onDone]. Owner only: the UI asks for the PIN first. */
+    fun cancelOrder(orderId: Long, onDone: () -> Unit = {}) {
+        if (!ownerSession.isOwnerMode.value) return
+        save {
+            orderRepository.cancel(orderId, shiftRepository.activeShiftId())
+            onDone()
+        }
     }
 
     fun observeOrder(orderId: Long): Flow<Order?> = orderRepository.observeOrder(orderId)

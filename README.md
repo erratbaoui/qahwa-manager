@@ -60,9 +60,28 @@ Grab the latest ready-to-install APK (`QahwaManager-<version>.apk`) from [**GitH
 - **Smart Stepper Controls:** Increment/decrement by `1` for discrete pieces (`pcs`) or `0.5` for weight/volume units (`kg`, `L`).
 - **Low-Stock Highlighting:** Visual warning badges and threshold indicators when `quantity <= lowStockThreshold`.
 
-### 5. 📊 Sales & Analytics (`SalesScreen`)
+### 5. 👥 Staff, Shifts & Cash Settlement (`ShiftCard`, `EndShiftScreen`, `ShiftsScreen`, `ShiftReportScreen`, `StaffScreen`)
+- **One waiter per shift:** Every order belongs to the shift it was placed in and the shift that collected the money. The waiter taps their name to start a shift (no PIN), sees the cash collected so far on Home, and ends the shift from a screen that lists every open table with *Mark paid*.
+- **Never blocked:** If the previous waiter went home without ending their shift, the next one taps *Take over*. The old shift is flagged "ended by takeover" and its open tables are recorded as left open.
+- **Settlement:** The owner sees expected cash (orders paid during the shift), types the counted cash (`610,50` or `610.50`), and the difference (short/over/exact) is stored for good, with cancellations, tables left open and wrong-PIN attempts on the same report.
+- **History per waiter:** Settled shifts, filterable by waiter, with the running total of differences.
+- **Staff:** Add, rename, deactivate and reactivate waiters. Nobody is ever deleted, so history stays intact.
+
+### 6. 🔐 Owner Mode
+- **First launch** sets up the owner: a name, a 4-digit PIN, and a one-time **recovery code** to write down.
+- **Owner-only actions** ask for the PIN when tapped: cancelling an order, editing the menu and prices, editing stock, viewing café revenue and sales, managing staff and settling shifts. Waiters can still toggle a menu item available/unavailable.
+- **Owner mode** stays on for 2 minutes of inactivity, ends when the app goes to the background or when *Lock* is tapped, and is never persisted across restarts.
+- **Wrong PIN:** 5 free tries, then a 1-minute lock that doubles each time (up to an hour) and survives the app being killed. Every failed attempt is counted on the active shift's report.
+- **Forgot PIN:** the recovery code sets a new PIN and issues a new code.
+
+### 7. 📊 Sales & Analytics (`SalesScreen`, owner only)
 - **Time-Window Filters:** Filter paid orders by **Today**, **This Week**, or **All Time**.
 - **Revenue Ledger:** Displays total revenue in MAD, total completed order count, and a chronological ledger of paid orders.
+
+### Known limits
+- Orders a waiter never types in can't be caught; a stock-vs-sales check is a later feature.
+- Anyone holding the tablet can clear the app's data from Android settings, wiping the history. Backup is the next project.
+- The tablet's clock is trusted for shift times and the PIN lockout.
 
 ---
 
@@ -99,7 +118,8 @@ Inspired by the brand identity, `QahwaManagerTheme` provides two dedicated palet
 - **UI Framework:** Jetpack Compose + Material 3 + custom `QahwaComponents` design system
 - **Navigation:** AndroidX Navigation 3 (`NavDisplay`, `rememberNavBackStack`, per-entry `ViewModelStore` scoping)
 - **Dependency Injection:** Dagger Hilt (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`)
-- **Persistence:** Room SQLite Database (`QahwaDatabase`) with migrations, pre-populated with Moroccan café menu & inventory items, and exact integer centimes (`priceCentimes`, `totalCentimes`) to prevent floating-point rounding drift
+- **Persistence:** Room SQLite Database (`QahwaDatabase`, schema v3) with tested migrations, pre-populated with Moroccan café menu & inventory items, and exact integer centimes (`priceCentimes`, `totalCentimes`) to prevent floating-point rounding drift
+- **Owner PIN:** salted PBKDF2 hashes only (`PinHasher`), in-memory `OwnerSession`, and an `OwnerGate` that asks for the PIN at the moment an owner-only action fires
 - **Concurrency & State:** Kotlin Coroutines + `StateFlow` + `collectAsStateWithLifecycle()`
 
 ```text

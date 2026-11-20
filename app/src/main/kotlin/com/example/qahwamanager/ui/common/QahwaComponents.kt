@@ -45,6 +45,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.qahwamanager.ui.auth.resetsOwnerIdleTimer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -774,7 +775,7 @@ fun QahwaConfirmDialog(
             shape = RoundedCornerShape(20.dp),
             color = qColors.cardSurface,
             border = BorderStroke(1.dp, qColors.divider),
-            modifier = Modifier.widthIn(max = 420.dp),
+            modifier = Modifier.resetsOwnerIdleTimer().widthIn(max = 420.dp),
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),

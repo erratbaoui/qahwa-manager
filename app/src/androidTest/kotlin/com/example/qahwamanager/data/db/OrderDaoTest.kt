@@ -58,14 +58,48 @@ class OrderDaoTest {
     }
 
     @Test
-    fun updateStatusIfOpen_doesNotChangeAClosedOrder() = runTest {
+    fun cancelIfOpen_doesNotChangeAClosedOrder() = runTest {
         val orderId = dao.insertOrderWithItems(Order(tableNumber = "3", totalCentimes = 800), listOf(item()))
 
-        assertEquals(1, dao.updateStatusIfOpen(orderId, OrderStatus.CANCELLED))
-        assertEquals(0, dao.updateStatusIfOpen(orderId, OrderStatus.PAID))
+        assertEquals(1, dao.cancelIfOpen(orderId, shiftId = 4, now = 900))
+        assertEquals(0, dao.markPaidIfOpen(orderId, shiftId = 4, now = 950))
 
-        assertEquals(OrderStatus.CANCELLED, dao.observeById(orderId).first()?.status)
+        val order = dao.observeById(orderId).first()!!
+        assertEquals(OrderStatus.CANCELLED, order.status)
+        assertEquals(900L, order.cancelledAt)
+        assertEquals(4L, order.cancelledShiftId)
+        assertEquals(null, order.paidShiftId)
         assertEquals(0L, dao.getRevenueSince(0).first())
+    }
+
+    @Test
+    fun markPaidIfOpen_stampsShiftAndTime_andLeavesClosedOrdersAlone() = runTest {
+        val orderId = dao.insertOrderWithItems(Order(tableNumber = "3", totalCentimes = 800), listOf(item()))
+
+        assertEquals(1, dao.markPaidIfOpen(orderId, shiftId = 4, now = 900))
+        assertEquals(0, dao.cancelIfOpen(orderId, shiftId = 4, now = 950))
+
+        val order = dao.observeById(orderId).first()!!
+        assertEquals(OrderStatus.PAID, order.status)
+        assertEquals(4L, order.paidShiftId)
+        assertEquals(900L, order.paidAt)
+        assertEquals(null, order.cancelledAt)
+        assertEquals(listOf(orderId), dao.observePaidInShift(4).first().map { it.id })
+        assertEquals(800L, dao.getRevenueSince(0).first())
+    }
+
+    @Test
+    fun cancelledForShift_fallsBackToCancelledShiftId() = runTest {
+        val legacy = dao.insertOrder(Order(tableNumber = "1", status = OrderStatus.OPEN, createdAt = 100, totalCentimes = 300))
+        val opened = dao.insertOrder(Order(tableNumber = "2", status = OrderStatus.OPEN, createdAt = 200, totalCentimes = 400, openedShiftId = 2))
+        val other = dao.insertOrder(Order(tableNumber = "3", status = OrderStatus.OPEN, createdAt = 300, totalCentimes = 500, openedShiftId = 3))
+
+        assertEquals(1, dao.cancelIfOpen(legacy, shiftId = 3, now = 900))
+        assertEquals(1, dao.cancelIfOpen(opened, shiftId = 3, now = 901))
+        assertEquals(1, dao.cancelIfOpen(other, shiftId = 3, now = 902))
+
+        assertEquals(listOf(legacy, other), dao.observeCancelledForShift(3).first().map { it.id }.sorted())
+        assertEquals(listOf(opened), dao.observeCancelledForShift(2).first().map { it.id })
     }
 
     @Test

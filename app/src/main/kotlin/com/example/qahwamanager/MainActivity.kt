@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.view.MotionEvent
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -26,18 +28,31 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.qahwamanager.notifications.LowStockScheduler
+import com.example.qahwamanager.security.OwnerSession
 import com.example.qahwamanager.ui.common.AppLocaleManager
 import com.example.qahwamanager.ui.common.AppThemeManager
 import com.example.qahwamanager.ui.common.ThemeMode
+import com.example.qahwamanager.ui.auth.OwnerSetupScreen
+import com.example.qahwamanager.ui.root.RootScreen
+import com.example.qahwamanager.ui.root.RootViewModel
 import com.example.qahwamanager.ui.splash.SplashScreen
 import com.example.qahwamanager.ui.theme.QahwaManagerTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.util.Locale
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
+    @Inject
+    lateinit var ownerSession: OwnerSession
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -63,6 +78,10 @@ class MainActivity : AppCompatActivity() {
         AppLocaleManager.init(this)
         AppThemeManager.init(this)
         requestNotificationPermissionAndSchedule()
+        // Owner mode ends on its own after two idle minutes; any touch anywhere resets the timer.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) { ownerSession.enforceIdleTimeout() }
+        }
 
         enableEdgeToEdge()
         setContent {
@@ -82,6 +101,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             var splashCompleted by rememberSaveable { mutableStateOf(false) }
+            val rootViewModel: RootViewModel = hiltViewModel()
+            val rootScreen by rootViewModel.screen.collectAsStateWithLifecycle()
 
             CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 QahwaManagerTheme(darkTheme = isDark) {
@@ -97,13 +118,28 @@ class MainActivity : AppCompatActivity() {
                             if (!completed) {
                                 SplashScreen(onSplashFinished = { splashCompleted = true })
                             } else {
-                                MainNavigation()
+                                when (rootScreen) {
+                                    RootScreen.LOADING -> Box(Modifier.fillMaxSize())
+                                    RootScreen.SETUP -> OwnerSetupScreen(rootViewModel)
+                                    RootScreen.APP -> MainNavigation(ownerSession)
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        ownerSession.touch()
+        return super.dispatchTouchEvent(ev)
+    }
+
+    /** Leaving the app locks owner mode; a rotation doesn't. */
+    override fun onStop() {
+        if (!isChangingConfigurations) ownerSession.lock()
+        super.onStop()
     }
 
     private fun requestNotificationPermissionAndSchedule() {

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -69,6 +70,7 @@ import com.example.qahwamanager.ui.common.QahwaTopBarActions
 import com.example.qahwamanager.ui.common.currentLanguage
 import com.example.qahwamanager.ui.common.formatMad
 import com.example.qahwamanager.ui.common.formatQuantity
+import com.example.qahwamanager.ui.shift.ShiftCard
 import com.example.qahwamanager.ui.theme.QahwaTheme
 import com.example.qahwamanager.util.localizedName
 
@@ -93,6 +95,7 @@ fun NewOrderScreen(
     val menuItems by viewModel.availableMenuItems.collectAsStateWithLifecycle()
     val cart by viewModel.cart.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val activeShift by viewModel.activeShift.collectAsStateWithLifecycle()
     val language = currentLanguage()
     val qColors = QahwaTheme.colors
     val focusManager = LocalFocusManager.current
@@ -148,6 +151,19 @@ fun NewOrderScreen(
             }
         },
     ) { innerPadding ->
+        if (activeShift == null) {
+            // Nobody is on shift: orders can't be taken until someone starts one.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(20.dp),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                ShiftCard(onEndShift = {}, modifier = Modifier.widthIn(max = 600.dp))
+            }
+            return@Scaffold
+        }
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
