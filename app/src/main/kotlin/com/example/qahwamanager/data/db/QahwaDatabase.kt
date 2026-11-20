@@ -10,10 +10,17 @@ import com.example.qahwamanager.data.model.InventoryItem
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.OrderItem
+import com.example.qahwamanager.data.model.OwnerCredentials
+import com.example.qahwamanager.data.model.Shift
+import com.example.qahwamanager.data.model.ShiftLeftOpen
+import com.example.qahwamanager.data.model.Staff
 
 @Database(
-    entities = [MenuItem::class, Order::class, OrderItem::class, InventoryItem::class],
-    version = 2,
+    entities = [
+        MenuItem::class, Order::class, OrderItem::class, InventoryItem::class,
+        Staff::class, Shift::class, ShiftLeftOpen::class, OwnerCredentials::class
+    ],
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -30,7 +37,7 @@ abstract class QahwaDatabase : RoomDatabase() {
                 QahwaDatabase::class.java,
                 "qahwa_database"
             )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
