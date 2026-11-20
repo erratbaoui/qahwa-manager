@@ -41,8 +41,9 @@ class ShiftRepository @Inject constructor(
     /** Starts a shift for [staffId]. Throws [com.example.qahwamanager.data.db.ShiftAlreadyActiveException] if one is running. */
     suspend fun start(staffId: Long): Long = shiftDao.startShift(staffId, clock.nowMillis())
 
-    /** Ends the active shift, recording its open orders as left open. Returns its id, or null if none was active. */
-    suspend fun endActive(): Long? = shiftDao.endActiveShift(clock.nowMillis(), takeover = false)
+    /** Ends the active shift, optionally recording the cash handed over ([countedCentimes]). Returns its id, or null if none was active. */
+    suspend fun endActive(countedCentimes: Long? = null): Long? =
+        shiftDao.endActiveShift(clock.nowMillis(), takeover = false, countedCentimes = countedCentimes)
 
     /** Ends the running shift as a takeover and starts one for [newStaffId]. */
     suspend fun takeOver(newStaffId: Long): Long = shiftDao.takeOver(newStaffId, clock.nowMillis())
@@ -54,6 +55,25 @@ class ShiftRepository @Inject constructor(
     fun observeToSettle(): Flow<List<ShiftWithStaff>> = shiftDao.observeToSettle()
 
     fun observeHistory(staffId: Long?): Flow<List<ShiftWithStaff>> = shiftDao.observeSettled(staffId)
+
+    fun observeClosedShifts(): Flow<List<ShiftWithStaff>> = shiftDao.observeClosedShifts()
+
+    /** Records historical earnings for a waiter on a past date/shift slot. */
+    suspend fun recordPastShift(
+        staffId: Long,
+        startedAt: Long,
+        endedAt: Long,
+        amountCentimes: Long,
+    ): Long {
+        require(amountCentimes >= 0L) { "Amount cannot be negative" }
+        return shiftDao.recordPastShift(
+            staffId = staffId,
+            startedAt = startedAt,
+            endedAt = endedAt,
+            amountCentimes = amountCentimes,
+            settledAt = clock.nowMillis(),
+        )
+    }
 
     fun observeReport(shiftId: Long): Flow<ShiftReport?> = combine(
         combine(shiftDao.observeById(shiftId), shiftDao.observeExpectedCentimes(shiftId)) { shift, expected -> shift to expected },

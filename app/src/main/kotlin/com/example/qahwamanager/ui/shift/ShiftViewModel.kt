@@ -61,9 +61,9 @@ class ShiftViewModel @Inject constructor(
 
     fun takeOver(staffId: Long) = save { shiftRepository.takeOver(staffId) }
 
-    /** Ends the running shift (open orders are recorded as left open), then calls [onDone]. */
-    fun endShift(onDone: () -> Unit) = save {
-        shiftRepository.endActive()
+    /** Ends the running shift (saving optional [countedCentimes] handed over), then calls [onDone]. */
+    fun endShift(countedCentimes: Long? = null, onDone: () -> Unit) = save {
+        shiftRepository.endActive(countedCentimes)
         onDone()
     }
 

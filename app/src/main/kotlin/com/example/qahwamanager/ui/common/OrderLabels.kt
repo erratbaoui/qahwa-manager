@@ -34,6 +34,7 @@ fun roleLabel(role: StaffRole): String = stringResource(
         StaffRole.WAITER -> R.string.role_waiter
         StaffRole.BARMAN -> R.string.role_barman
         StaffRole.SECURITY -> R.string.role_security
+        StaffRole.CLEANING -> R.string.role_cleaning
     }
 )
 

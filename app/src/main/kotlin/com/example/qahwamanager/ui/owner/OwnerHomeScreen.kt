@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Password
@@ -43,9 +44,10 @@ import com.example.qahwamanager.ui.common.QahwaCard
 import com.example.qahwamanager.ui.common.QahwaPageHeader
 import com.example.qahwamanager.ui.theme.QahwaTheme
 
-/** The Owner tab: Sales, Shifts (with how many wait to be settled), Staff, Change PIN. */
+/** The Owner tab: Dashboard, Sales, Shifts (with how many wait to be settled), Staff, Change PIN. */
 @Composable
 fun OwnerHomeScreen(
+    onDashboard: () -> Unit,
     onSales: () -> Unit,
     onShifts: () -> Unit,
     onStaff: () -> Unit,
@@ -77,6 +79,7 @@ fun OwnerHomeScreen(
                     modifier = Modifier.padding(horizontal = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
+                    OwnerRow(icon = Icons.Default.BarChart, title = stringResource(R.string.owner_dashboard), onClick = onDashboard)
                     OwnerRow(icon = Icons.AutoMirrored.Filled.TrendingUp, title = stringResource(R.string.sales), onClick = onSales)
                     OwnerRow(icon = Icons.Default.Schedule, title = stringResource(R.string.shifts), badge = toSettle.size, onClick = onShifts)
                     OwnerRow(icon = Icons.Default.Group, title = stringResource(R.string.staff), onClick = onStaff)

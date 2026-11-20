@@ -24,19 +24,23 @@ abstract class ShiftDao {
     @Query("SELECT * FROM shifts WHERE status = 'ACTIVE' LIMIT 1")
     abstract suspend fun getActive(): Shift?
 
-    @Query("SELECT shifts.*, staff.name AS staffName FROM shifts JOIN staff ON staff.id = shifts.staffId WHERE shifts.status = 'ACTIVE' LIMIT 1")
+    @Query("SELECT shifts.*, staff.name AS staffName, staff.role AS staffRole FROM shifts JOIN staff ON staff.id = shifts.staffId WHERE shifts.status = 'ACTIVE' LIMIT 1")
     abstract fun observeActive(): Flow<ShiftWithStaff?>
 
-    @Query("SELECT shifts.*, staff.name AS staffName FROM shifts JOIN staff ON staff.id = shifts.staffId WHERE shifts.id = :id")
+    @Query("SELECT shifts.*, staff.name AS staffName, staff.role AS staffRole FROM shifts JOIN staff ON staff.id = shifts.staffId WHERE shifts.id = :id")
     abstract fun observeById(id: Long): Flow<ShiftWithStaff?>
 
     /** Ended shifts waiting for the owner, oldest first. */
-    @Query("SELECT shifts.*, staff.name AS staffName FROM shifts JOIN staff ON staff.id = shifts.staffId WHERE shifts.status = 'ENDED' ORDER BY shifts.endedAt ASC")
+    @Query("SELECT shifts.*, staff.name AS staffName, staff.role AS staffRole FROM shifts JOIN staff ON staff.id = shifts.staffId WHERE shifts.status = 'ENDED' ORDER BY shifts.endedAt ASC")
     abstract fun observeToSettle(): Flow<List<ShiftWithStaff>>
 
     /** Settled shifts, newest first; [staffId] null means everyone. */
-    @Query("SELECT shifts.*, staff.name AS staffName FROM shifts JOIN staff ON staff.id = shifts.staffId WHERE shifts.status = 'SETTLED' AND (:staffId IS NULL OR shifts.staffId = :staffId) ORDER BY shifts.settledAt DESC")
+    @Query("SELECT shifts.*, staff.name AS staffName, staff.role AS staffRole FROM shifts JOIN staff ON staff.id = shifts.staffId WHERE shifts.status = 'SETTLED' AND (:staffId IS NULL OR shifts.staffId = :staffId) ORDER BY shifts.settledAt DESC")
     abstract fun observeSettled(staffId: Long?): Flow<List<ShiftWithStaff>>
+
+    /** All ended or settled shifts, newest first, for owner analytics. */
+    @Query("SELECT shifts.*, staff.name AS staffName, staff.role AS staffRole FROM shifts JOIN staff ON staff.id = shifts.staffId WHERE shifts.status IN ('ENDED', 'SETTLED') ORDER BY shifts.startedAt DESC")
+    abstract fun observeClosedShifts(): Flow<List<ShiftWithStaff>>
 
     /** Expected cash: everything marked paid during the shift. Whoever collects the money owes it. */
     @Query("SELECT COALESCE(SUM(totalCentimes), 0) FROM orders WHERE paidShiftId = :shiftId AND status = 'PAID'")
@@ -61,8 +65,8 @@ abstract class ShiftDao {
     @Query("INSERT INTO shift_left_open (shiftId, orderId, totalCentimes) SELECT :shiftId, id, totalCentimes FROM orders WHERE status = 'OPEN'")
     protected abstract suspend fun snapshotOpenOrders(shiftId: Long)
 
-    @Query("UPDATE shifts SET status = 'ENDED', endedAt = :now, endedByTakeover = :takeover WHERE id = :id AND status = 'ACTIVE'")
-    protected abstract suspend fun markEnded(id: Long, now: Long, takeover: Boolean): Int
+    @Query("UPDATE shifts SET status = 'ENDED', endedAt = :now, endedByTakeover = :takeover, countedCentimes = :countedCentimes WHERE id = :id AND status = 'ACTIVE'")
+    protected abstract suspend fun markEnded(id: Long, now: Long, takeover: Boolean, countedCentimes: Long? = null): Int
 
     @Query("UPDATE shifts SET status = 'SETTLED', expectedCentimes = :expected, countedCentimes = :counted, settledAt = :now WHERE id = :id AND status = 'ENDED'")
     protected abstract suspend fun markSettled(id: Long, expected: Long, counted: Long, now: Long): Int
@@ -79,10 +83,10 @@ abstract class ShiftDao {
      * right now, then the shift is marked ENDED. Returns the shift id, or null with no active shift.
      */
     @Transaction
-    open suspend fun endActiveShift(now: Long, takeover: Boolean): Long? {
+    open suspend fun endActiveShift(now: Long, takeover: Boolean, countedCentimes: Long? = null): Long? {
         val active = getActive() ?: return null
         snapshotOpenOrders(active.id)
-        markEnded(active.id, now, takeover)
+        markEnded(active.id, now, takeover, countedCentimes)
         return active.id
     }
 
@@ -102,4 +106,23 @@ abstract class ShiftDao {
         val expected = expectedCentimes(shiftId)
         return markSettled(shiftId, expected, countedCentimes, now) == 1
     }
+
+    /** Records a backdated, already-settled shift for historical earnings entry. */
+    open suspend fun recordPastShift(
+        staffId: Long,
+        startedAt: Long,
+        endedAt: Long,
+        amountCentimes: Long,
+        settledAt: Long,
+    ): Long = insertShift(
+        Shift(
+            staffId = staffId,
+            status = ShiftStatus.SETTLED,
+            startedAt = startedAt,
+            endedAt = endedAt,
+            settledAt = settledAt,
+            expectedCentimes = amountCentimes,
+            countedCentimes = amountCentimes,
+        )
+    )
 }

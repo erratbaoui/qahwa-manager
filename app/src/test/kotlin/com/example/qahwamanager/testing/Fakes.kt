@@ -161,7 +161,10 @@ class FakeShiftDao(private val orderDao: FakeOrderDao, private val staffDao: Fak
         orderDao.leftOpenRows = leftOpen
     }
 
-    private fun Shift.withStaff() = ShiftWithStaff(this, staffDao.staff.value.find { it.id == staffId }?.name ?: "")
+    private fun Shift.withStaff(): ShiftWithStaff {
+        val person = staffDao.staff.value.find { it.id == staffId }
+        return ShiftWithStaff(this, person?.name ?: "", person?.role ?: com.example.qahwamanager.data.model.StaffRole.WAITER)
+    }
     private fun withStaff(list: List<Shift>): Flow<List<ShiftWithStaff>> =
         combine(shifts, staffDao.staff) { _, _ -> list.map { it.withStaff() } }
 
@@ -182,6 +185,12 @@ class FakeShiftDao(private val orderDao: FakeOrderDao, private val staffDao: Fak
         combine(shifts, staffDao.staff) { list, _ ->
             list.filter { it.status == ShiftStatus.SETTLED && (staffId == null || it.staffId == staffId) }
                 .sortedByDescending { it.settledAt }.map { it.withStaff() }
+        }
+
+    override fun observeClosedShifts(): Flow<List<ShiftWithStaff>> =
+        combine(shifts, staffDao.staff) { list, _ ->
+            list.filter { it.status == ShiftStatus.ENDED || it.status == ShiftStatus.SETTLED }
+                .sortedByDescending { it.startedAt }.map { it.withStaff() }
         }
 
     override fun observeExpectedCentimes(shiftId: Long): Flow<Long> =
@@ -220,10 +229,14 @@ class FakeShiftDao(private val orderDao: FakeOrderDao, private val staffDao: Fak
         insertLeftOpen(rows)
     }
 
-    override suspend fun markEnded(id: Long, now: Long, takeover: Boolean): Int {
+    override suspend fun markEnded(id: Long, now: Long, takeover: Boolean, countedCentimes: Long?): Int {
         val target = shifts.value.find { it.id == id && it.status == ShiftStatus.ACTIVE } ?: return 0
         shifts.update { list ->
-            list.map { if (it.id == target.id) it.copy(status = ShiftStatus.ENDED, endedAt = now, endedByTakeover = takeover) else it }
+            list.map {
+                if (it.id == target.id) {
+                    it.copy(status = ShiftStatus.ENDED, endedAt = now, endedByTakeover = takeover, countedCentimes = countedCentimes)
+                } else it
+            }
         }
         return 1
     }
@@ -244,10 +257,10 @@ class FakeShiftDao(private val orderDao: FakeOrderDao, private val staffDao: Fak
         insertShift(Shift(staffId = staffId, status = ShiftStatus.ACTIVE, startedAt = now))
     }
 
-    override suspend fun endActiveShift(now: Long, takeover: Boolean): Long? = transaction.withLock {
+    override suspend fun endActiveShift(now: Long, takeover: Boolean, countedCentimes: Long?): Long? = transaction.withLock {
         val active = getActive() ?: return@withLock null
         snapshotOpenOrders(active.id)
-        markEnded(active.id, now, takeover)
+        markEnded(active.id, now, takeover, countedCentimes)
         active.id
     }
 

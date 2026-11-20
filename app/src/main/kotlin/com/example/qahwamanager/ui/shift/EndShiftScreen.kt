@@ -8,10 +8,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -22,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,26 +36,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.Order
+import com.example.qahwamanager.data.model.StaffRole
 import com.example.qahwamanager.ui.common.QahwaCard
 import com.example.qahwamanager.ui.common.QahwaConfirmDialog
 import com.example.qahwamanager.ui.common.QahwaCurrencyText
 import com.example.qahwamanager.ui.common.QahwaEmptyState
 import com.example.qahwamanager.ui.common.QahwaPrimaryButton
 import com.example.qahwamanager.ui.common.QahwaSecondaryButton
+import com.example.qahwamanager.ui.common.QahwaTextField
 import com.example.qahwamanager.ui.common.QahwaTopBarActions
 import com.example.qahwamanager.ui.common.formatMad
+import com.example.qahwamanager.ui.common.roleLabel
 import com.example.qahwamanager.ui.common.tableLabel
 import com.example.qahwamanager.ui.theme.QahwaTheme
+import com.example.qahwamanager.util.parseMadToCentimes
 
 /**
- * End of shift: the waiter collects from every open table (each gets *Mark paid*), then ends the
- * shift. Ending with tables still open asks for confirmation; those tables are recorded as left
- * open for the owner.
+ * End of shift: optionally collect from open tables, then tap *End shift* to enter the total
+ * cash collected (e.g., from counted paper tickets in the bowl) and close the shift.
  */
 @Composable
 fun EndShiftScreen(
@@ -63,21 +73,36 @@ fun EndShiftScreen(
     val collected by viewModel.collectedCentimes.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val qColors = QahwaTheme.colors
-    var confirmLeaveOpen by remember { mutableStateOf(false) }
+    val isWaiter = shift?.staffRole == StaffRole.WAITER
+    var showHandoverDialog by remember { mutableStateOf(false) }
+    var showConfirmLeaveOpen by remember { mutableStateOf(false) }
 
-    if (confirmLeaveOpen) {
+    if (showHandoverDialog && isWaiter) {
+        EndShiftAmountDialog(
+            staffName = shift?.staffName ?: "",
+            openOrders = openOrders,
+            onDismiss = { showHandoverDialog = false },
+            onConfirm = { amountCentimes ->
+                showHandoverDialog = false
+                viewModel.endShift(countedCentimes = amountCentimes, onDone = onBack)
+            },
+        )
+    }
+    if (showConfirmLeaveOpen) {
         QahwaConfirmDialog(
             title = stringResource(R.string.end_shift),
             message = pluralStringResource(
-                R.plurals.leave_open_confirm, openOrders.size, openOrders.size, formatMad(openOrders.sumOf { it.totalCentimes }),
+                R.plurals.leave_open_confirm,
+                openOrders.size,
+                openOrders.size,
+                formatMad(openOrders.sumOf { it.totalCentimes }),
             ),
             confirmText = stringResource(R.string.end_shift),
             onConfirm = {
-                confirmLeaveOpen = false
-                viewModel.endShift(onBack)
+                showConfirmLeaveOpen = false
+                viewModel.endShift(countedCentimes = null, onDone = onBack)
             },
-            onDismiss = { confirmLeaveOpen = false },
-            isDestructive = true,
+            onDismiss = { showConfirmLeaveOpen = false },
         )
     }
 
@@ -111,7 +136,8 @@ fun EndShiftScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .imePadding(),
         ) {
             Column(
                 modifier = Modifier
@@ -133,9 +159,19 @@ fun EndShiftScreen(
                         ) {
                             Column {
                                 Text(current.staffName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = qColors.textPrimary)
-                                Text(stringResource(R.string.collected_so_far), style = MaterialTheme.typography.bodySmall, color = qColors.textSecondary)
+                                Text(
+                                    text = if (isWaiter) {
+                                        stringResource(R.string.collected_so_far)
+                                    } else {
+                                        roleLabel(current.staffRole)
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = qColors.textSecondary,
+                                )
                             }
-                            QahwaCurrencyText(centimes = collected, color = qColors.primaryAccent)
+                            if (isWaiter) {
+                                QahwaCurrencyText(centimes = collected, color = qColors.primaryAccent)
+                            }
                         }
                     }
                 }
@@ -165,13 +201,101 @@ fun EndShiftScreen(
                 Box(modifier = Modifier.fillMaxWidth().widthIn(max = 840.dp)) {
                     QahwaPrimaryButton(
                         text = stringResource(R.string.end_shift),
-                        onClick = { if (openOrders.isEmpty()) viewModel.endShift(onBack) else confirmLeaveOpen = true },
+                        onClick = {
+                            when {
+                                isWaiter -> showHandoverDialog = true
+                                openOrders.isNotEmpty() -> showConfirmLeaveOpen = true
+                                else -> viewModel.endShift(countedCentimes = null, onDone = onBack)
+                            }
+                        },
                         enabled = !isSaving && shift != null,
                         leadingIcon = Icons.Default.Stop,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 12.dp),
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EndShiftAmountDialog(
+    staffName: String,
+    openOrders: List<Order>,
+    onDismiss: () -> Unit,
+    onConfirm: (Long) -> Unit,
+) {
+    var input by remember { mutableStateOf("") }
+    val parsedCentimes = parseMadToCentimes(input)
+    val showError = input.isNotBlank() && parsedCentimes == null
+    val qColors = QahwaTheme.colors
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = qColors.cardSurface,
+            border = BorderStroke(1.dp, qColors.divider),
+            modifier = Modifier.widthIn(max = 420.dp),
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.enter_amount_collected_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = qColors.textPrimary,
+                )
+                Text(
+                    text = stringResource(R.string.enter_amount_collected_hint, staffName),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = qColors.textSecondary,
+                )
+                if (openOrders.isNotEmpty()) {
+                    Text(
+                        text = pluralStringResource(
+                            R.plurals.leave_open_confirm,
+                            openOrders.size,
+                            openOrders.size,
+                            formatMad(openOrders.sumOf { it.totalCentimes }),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = qColors.warning,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                QahwaTextField(
+                    value = input,
+                    onValueChange = { input = it },
+                    label = stringResource(R.string.amount_collected_mad),
+                    isError = showError,
+                    errorMessage = if (showError) stringResource(R.string.invalid_number) else null,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.cancel), color = qColors.textSecondary)
+                    }
+                    TextButton(
+                        onClick = { parsedCentimes?.let(onConfirm) },
+                        enabled = parsedCentimes != null,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.end_shift),
+                            color = if (parsedCentimes != null) qColors.primaryAccent else qColors.textSecondary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
         }

@@ -144,4 +144,21 @@ class ShiftViewModelTest {
         assertTrue(oldShift.endedByTakeover)
         assertEquals("Youssef", vm.activeShift.value?.staffName)
     }
+
+    @Test
+    fun endShift_withCountedCentimes_persistsHandedOverCash() = runTest {
+        val vm = viewModel()
+        vm.start(karim)
+        advanceUntilIdle()
+        val shiftId = vm.activeShift.value!!.shift.id
+        var done = 0
+
+        vm.endShift(countedCentimes = 45_500L) { done++ }
+        advanceUntilIdle()
+
+        assertEquals(1, done)
+        val ended = shiftDao.shifts.value.single { it.id == shiftId }
+        assertEquals(ShiftStatus.ENDED, ended.status)
+        assertEquals(45_500L, ended.countedCentimes)
+    }
 }

@@ -38,8 +38,20 @@ class ShiftReportViewModel @Inject constructor(
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
+    private var prefilled = false
+
     fun setCountedInput(text: String) {
+        prefilled = true
         _countedInput.value = text
+    }
+
+    /** Pre-fills the counted cash field once with the amount entered when the shift ended. */
+    fun prefillIfEmpty(centimes: Long?) {
+        if (prefilled || centimes == null || _countedInput.value.isNotEmpty()) return
+        prefilled = true
+        val whole = centimes / 100
+        val rem = centimes % 100
+        _countedInput.value = if (rem == 0L) whole.toString() else "$whole.${rem.toString().padStart(2, '0')}"
     }
 
     /** Settles with the typed amount. Does nothing without a valid amount, outside owner mode, or while saving. */

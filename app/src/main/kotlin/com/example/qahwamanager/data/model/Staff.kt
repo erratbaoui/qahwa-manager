@@ -10,6 +10,7 @@ enum class StaffRole {
     WAITER,
     BARMAN,
     SECURITY,
+    CLEANING,
 }
 
 /**

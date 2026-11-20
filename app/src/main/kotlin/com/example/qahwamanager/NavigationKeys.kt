@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object Inventory : NavKey
 @Serializable data object EndShift : NavKey
 @Serializable data object Owner : NavKey
+@Serializable data object OwnerDashboard : NavKey
 @Serializable data object Shifts : NavKey
 @Serializable data class ShiftReport(val shiftId: Long) : NavKey
 @Serializable data object StaffList : NavKey

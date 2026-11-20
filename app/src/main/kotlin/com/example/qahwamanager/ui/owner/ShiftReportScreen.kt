@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -61,6 +62,9 @@ fun ShiftReportScreen(
     val time = rememberDateFormat("Hm")
 
     val current = report
+    LaunchedEffect(current?.shift?.shift?.countedCentimes) {
+        viewModel.prefillIfEmpty(current?.shift?.shift?.countedCentimes)
+    }
     OwnerScaffold(
         title = current?.let { stringResource(R.string.settle_title, it.shift.staffName) } ?: stringResource(R.string.shifts),
         onBack = onBack,
