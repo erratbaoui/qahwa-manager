@@ -90,10 +90,15 @@ jobs:
         run: |
           APK=app/build/outputs/apk/release/app-release.apk
           BUILD_TOOLS=$(ls -d "${ANDROID_HOME}"/build-tools/* | sort -V | tail -n 1)
-          ACTUAL=$("${BUILD_TOOLS}/apksigner" verify --print-certs "${APK}" \
-            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':' | tr 'A-F' 'a-f')
+          CERTS=$("${BUILD_TOOLS}/apksigner" verify --print-certs "${APK}")
+          # Build-tools 36 prints "Signer #1 certificate SHA-256 digest: ..."; 37 prints
+          # "V2 Signer: certificate SHA-256 digest: ...". Match the common tail, and require every
+          # signer to be the permanent key.
+          ACTUAL=$(printf '%s\n' "${CERTS}" | sed -n 's/.*certificate SHA-256 digest: //p' \
+            | tr -d ':' | tr 'A-F' 'a-f' | sort -u)
           EXPECTED=$(printf '%s' "${QAHWA_RELEASE_CERT_SHA256}" | tr -d ': ' | tr 'A-F' 'a-f')
           if [ -z "${ACTUAL}" ] || [ "${ACTUAL}" != "${EXPECTED}" ]; then
+            printf '%s\n' "${CERTS}"
             echo "::error::APK is signed with ${ACTUAL:-no certificate}, expected ${EXPECTED}"
             exit 1
           fi
