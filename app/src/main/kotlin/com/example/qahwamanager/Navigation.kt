@@ -23,6 +23,9 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,12 +34,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.example.qahwamanager.security.OwnerSession
+import com.example.qahwamanager.ui.auth.LocalOwnerGate
+import com.example.qahwamanager.ui.auth.OwnerGate
+import com.example.qahwamanager.ui.auth.OwnerModeBanner
+import com.example.qahwamanager.ui.auth.OwnerPinDialog
 import com.example.qahwamanager.ui.home.HomeScreen
 import com.example.qahwamanager.ui.inventory.InventoryScreen
 import com.example.qahwamanager.ui.menu.MenuScreen
@@ -47,10 +56,19 @@ import com.example.qahwamanager.ui.sales.SalesScreen
 import com.example.qahwamanager.ui.theme.QahwaTheme
 
 @Composable
-fun MainNavigation() {
+fun MainNavigation(ownerSession: OwnerSession) {
     val backStack = rememberNavBackStack(Home)
     val currentTab = backStack.firstOrNull() ?: Home
     val qColors = QahwaTheme.colors
+    val gate = remember(ownerSession) { OwnerGate(ownerSession) }
+    val isOwnerMode by ownerSession.isOwnerMode.collectAsStateWithLifecycle()
+
+    // Any owner-only action tapped while locked parks itself on the gate; the PIN pad runs it.
+    if (gate.pending != null) {
+        OwnerPinDialog(onVerified = gate::onVerified, onDismiss = gate::onDismissed)
+    }
+
+    CompositionLocalProvider(LocalOwnerGate provides gate) {
 
     val tabs = listOf(
         Triple(Home as NavKey, R.string.home, Icons.Default.Home),
@@ -62,6 +80,7 @@ fun MainNavigation() {
 
     Scaffold(
         containerColor = qColors.background,
+        topBar = { if (isOwnerMode) OwnerModeBanner(onLock = ownerSession::lock) },
         bottomBar = {
             Column {
                 HorizontalDivider(color = qColors.divider, thickness = 1.dp)
@@ -161,5 +180,6 @@ fun MainNavigation() {
                 entry<Inventory> { InventoryScreen() }
             },
         )
+    }
     }
 }

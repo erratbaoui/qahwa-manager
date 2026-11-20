@@ -11,6 +11,7 @@ import com.example.qahwamanager.testing.testClock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -30,7 +31,8 @@ class OwnerAuthRepositoryTest {
     private val ownerDao = FakeOwnerDao(staffDao)
     private val start = 1_700_000_000_000L
 
-    private fun TestScope.repo() = OwnerAuthRepository(ownerDao, shiftDao, testClock(start))
+    private fun TestScope.repo() =
+        OwnerAuthRepository(ownerDao, shiftDao, testClock(start), UnconfinedTestDispatcher(testScheduler))
 
     /** The clock the repository sees: the fakes charge virtual time for every write. */
     private fun TestScope.now() = start + testScheduler.currentTime

@@ -5,12 +5,13 @@ import com.example.qahwamanager.data.db.ShiftDao
 import com.example.qahwamanager.data.model.OwnerCredentials
 import com.example.qahwamanager.data.model.Staff
 import com.example.qahwamanager.data.time.Clock
+import com.example.qahwamanager.di.HashingDispatcher
 import com.example.qahwamanager.security.PinCheck
 import com.example.qahwamanager.security.PinHasher
 import com.example.qahwamanager.security.PinLockout
 import com.example.qahwamanager.security.RecoveryCode
 import com.example.qahwamanager.security.isValidPin
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -25,7 +26,8 @@ import javax.inject.Singleton
 class OwnerAuthRepository @Inject constructor(
     private val ownerDao: OwnerDao,
     private val shiftDao: ShiftDao,
-    private val clock: Clock
+    private val clock: Clock,
+    @HashingDispatcher private val hashingDispatcher: CoroutineDispatcher
 ) {
     fun observeOwnerExists(): Flow<Boolean> = ownerDao.observeExists()
 
@@ -37,7 +39,7 @@ class OwnerAuthRepository @Inject constructor(
         check(ownerDao.getCredentials() == null) { "Owner already set up" }
 
         val code = RecoveryCode.generate()
-        val credentials = withContext(Dispatchers.Default) {
+        val credentials = withContext(hashingDispatcher) {
             val pinSalt = PinHasher.newSalt()
             val recoverySalt = PinHasher.newSalt()
             OwnerCredentials(
@@ -78,7 +80,7 @@ class OwnerAuthRepository @Inject constructor(
             return null
         }
         val newCode = RecoveryCode.generate()
-        val updated = withContext(Dispatchers.Default) {
+        val updated = withContext(hashingDispatcher) {
             val pinSalt = PinHasher.newSalt()
             val recoverySalt = PinHasher.newSalt()
             credentials.copy(
@@ -100,12 +102,23 @@ class OwnerAuthRepository @Inject constructor(
         val result = checkPin(currentPin)
         if (result != PinCheck.Ok) return result
         val credentials = requireCredentials()
-        val updated = withContext(Dispatchers.Default) {
+        val updated = withContext(hashingDispatcher) {
             val pinSalt = PinHasher.newSalt()
             credentials.copy(pinHash = PinHasher.hash(newPin, pinSalt), pinSalt = pinSalt)
         }
         ownerDao.upsertCredentials(updated)
         return PinCheck.Ok
+    }
+
+    /**
+     * Where the owner stands without checking anything: [PinCheck.LockedOut] during a lockout,
+     * [PinCheck.Wrong] with the tries left after earlier failures, otherwise [PinCheck.Ok].
+     */
+    suspend fun attemptStatus(): PinCheck {
+        val credentials = requireCredentials()
+        lockedOut(credentials)?.let { return it }
+        val failures = credentials.failedAttemptsInRow
+        return if (failures == 0) PinCheck.Ok else PinCheck.Wrong(PinLockout.FREE_ATTEMPTS - failures)
     }
 
     private suspend fun requireCredentials(): OwnerCredentials =
@@ -115,7 +128,7 @@ class OwnerAuthRepository @Inject constructor(
         if (credentials.lockedUntil > clock.nowMillis()) PinCheck.LockedOut(credentials.lockedUntil) else null
 
     private suspend fun matches(secret: String, salt: String, hash: String): Boolean =
-        withContext(Dispatchers.Default) { PinHasher.matches(secret, salt, hash) }
+        withContext(hashingDispatcher) { PinHasher.matches(secret, salt, hash) }
 
     private suspend fun recordFailure(credentials: OwnerCredentials): PinCheck {
         val failures = credentials.failedAttemptsInRow + 1

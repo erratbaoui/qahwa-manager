@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,6 +28,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -36,6 +38,9 @@ import com.example.qahwamanager.security.OwnerSession
 import com.example.qahwamanager.ui.common.AppLocaleManager
 import com.example.qahwamanager.ui.common.AppThemeManager
 import com.example.qahwamanager.ui.common.ThemeMode
+import com.example.qahwamanager.ui.auth.OwnerSetupScreen
+import com.example.qahwamanager.ui.root.RootScreen
+import com.example.qahwamanager.ui.root.RootViewModel
 import com.example.qahwamanager.ui.splash.SplashScreen
 import com.example.qahwamanager.ui.theme.QahwaManagerTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -96,6 +101,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             var splashCompleted by rememberSaveable { mutableStateOf(false) }
+            val rootViewModel: RootViewModel = hiltViewModel()
+            val rootScreen by rootViewModel.screen.collectAsStateWithLifecycle()
 
             CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 QahwaManagerTheme(darkTheme = isDark) {
@@ -111,7 +118,11 @@ class MainActivity : AppCompatActivity() {
                             if (!completed) {
                                 SplashScreen(onSplashFinished = { splashCompleted = true })
                             } else {
-                                MainNavigation()
+                                when (rootScreen) {
+                                    RootScreen.LOADING -> Box(Modifier.fillMaxSize())
+                                    RootScreen.SETUP -> OwnerSetupScreen(rootViewModel)
+                                    RootScreen.APP -> MainNavigation(ownerSession)
+                                }
                             }
                         }
                     }

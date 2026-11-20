@@ -16,6 +16,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Singleton
 
 // Repositories are provided through their @Inject constructors.
@@ -51,4 +53,8 @@ object AppModule {
 
     @Provides
     fun provideClock(): Clock = SystemClock
+
+    @Provides
+    @HashingDispatcher
+    fun provideHashingDispatcher(): CoroutineDispatcher = Dispatchers.Default
 }
