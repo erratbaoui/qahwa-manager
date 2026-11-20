@@ -124,6 +124,31 @@
         <item quantity="many">رمز خاطئ، %d محاولة متبقية</item>
         <item quantity="other">رمز خاطئ، %d محاولة متبقية</item>
     </plurals>
+    <string name="start_shift">بدء الوردية</string>
+    <string name="who_is_working">من يعمل الآن؟</string>
+    <string name="shift_since">%1$s · منذ %2$s</string>
+    <string name="collected_so_far">المحصّل حتى الآن</string>
+    <string name="end_shift">إنهاء الوردية</string>
+    <string name="take_over">لست %1$s؟ تولَّ الوردية</string>
+    <string name="take_over_title">تولّي الوردية؟</string>
+    <string name="collect_open_tables">حصّل من هذه الطاولات أولًا</string>
+    <string name="no_active_shift">ابدأ وردية لأخذ الطلبات</string>
+    <plurals name="take_over_confirm">
+        <item quantity="zero">ستنتهي وردية %1$s الآن. لا توجد طاولات مفتوحة.</item>
+        <item quantity="one">ستنتهي وردية %1$s الآن. ستُسجَّل طاولة مفتوحة واحدة كمتروكة مفتوحة.</item>
+        <item quantity="two">ستنتهي وردية %1$s الآن. ستُسجَّل طاولتان مفتوحتان كمتروكتين مفتوحتين.</item>
+        <item quantity="few">ستنتهي وردية %1$s الآن. ستُسجَّل %2$d طاولات مفتوحة كمتروكة مفتوحة.</item>
+        <item quantity="many">ستنتهي وردية %1$s الآن. ستُسجَّل %2$d طاولة مفتوحة كمتروكة مفتوحة.</item>
+        <item quantity="other">ستنتهي وردية %1$s الآن. ستُسجَّل %2$d طاولة مفتوحة كمتروكة مفتوحة.</item>
+    </plurals>
+    <plurals name="leave_open_confirm">
+        <item quantity="zero">لا توجد طاولات مفتوحة.</item>
+        <item quantity="one">ستبقى طاولة واحدة (%2$s) مفتوحة لصاحب المقهى.</item>
+        <item quantity="two">ستبقى طاولتان (%2$s) مفتوحتين لصاحب المقهى.</item>
+        <item quantity="few">ستبقى %1$d طاولات (%2$s) مفتوحة لصاحب المقهى.</item>
+        <item quantity="many">ستبقى %1$d طاولة (%2$s) مفتوحة لصاحب المقهى.</item>
+        <item quantity="other">ستبقى %1$d طاولة (%2$s) مفتوحة لصاحب المقهى.</item>
+    </plurals>
     <plurals name="orders_count">
         <item quantity="zero">%d طلب</item>
         <item quantity="one">طلب واحد</item>

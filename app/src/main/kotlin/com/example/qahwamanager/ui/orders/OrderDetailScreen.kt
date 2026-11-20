@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.OrderItem
 import com.example.qahwamanager.data.model.OrderStatus
+import com.example.qahwamanager.ui.auth.LocalOwnerGate
 import com.example.qahwamanager.ui.common.QahwaCard
 import com.example.qahwamanager.ui.common.QahwaConfirmDialog
 import com.example.qahwamanager.ui.common.QahwaCurrencyText
@@ -65,6 +66,8 @@ fun OrderDetailScreen(
     val orderItems by remember(orderId) { viewModel.observeOrderItems(orderId) }
         .collectAsStateWithLifecycle(initialValue = emptyList())
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val activeShift by viewModel.activeShift.collectAsStateWithLifecycle()
+    val gate = LocalOwnerGate.current
     val language = currentLanguage()
     val qColors = QahwaTheme.colors
 
@@ -91,7 +94,7 @@ fun OrderDetailScreen(
             confirmText = stringResource(R.string.cancel_order),
             onConfirm = {
                 showCancelDialog = false
-                viewModel.cancelOrder(orderId, onDone = onBack)
+                gate.require { viewModel.cancelOrder(orderId, onDone = onBack) }
             },
             onDismiss = { showCancelDialog = false },
             isDestructive = true,
@@ -226,10 +229,17 @@ fun OrderDetailScreen(
                                 .padding(horizontal = 20.dp, vertical = 12.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
+                            if (activeShift == null) {
+                                Text(
+                                    text = stringResource(R.string.no_active_shift),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = qColors.textSecondary,
+                                )
+                            }
                             QahwaPrimaryButton(
                                 text = stringResource(R.string.mark_as_paid),
                                 onClick = { showPayDialog = true },
-                                enabled = !isSaving,
+                                enabled = !isSaving && activeShift != null,
                                 modifier = Modifier.fillMaxWidth(),
                                 leadingIcon = Icons.Default.Check,
                             )

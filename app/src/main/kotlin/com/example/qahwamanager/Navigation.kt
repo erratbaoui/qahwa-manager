@@ -53,6 +53,7 @@ import com.example.qahwamanager.ui.orders.NewOrderScreen
 import com.example.qahwamanager.ui.orders.OrderDetailScreen
 import com.example.qahwamanager.ui.orders.OrdersListScreen
 import com.example.qahwamanager.ui.sales.SalesScreen
+import com.example.qahwamanager.ui.shift.EndShiftScreen
 import com.example.qahwamanager.ui.theme.QahwaTheme
 
 @Composable
@@ -153,7 +154,13 @@ fun MainNavigation(ownerSession: OwnerSession) {
                 .consumeWindowInsets(innerPadding),
             entryProvider = entryProvider {
                 entry<Home> {
-                    HomeScreen(onNewOrder = { backStack.add(NewOrder) })
+                    HomeScreen(
+                        onNewOrder = { backStack.add(NewOrder) },
+                        onEndShift = { backStack.add(EndShift) },
+                    )
+                }
+                entry<EndShift> {
+                    EndShiftScreen(onBack = { backStack.removeLastOrNull() })
                 }
                 entry<Menu> {
                     MenuScreen()

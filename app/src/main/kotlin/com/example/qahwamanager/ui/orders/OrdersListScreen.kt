@@ -39,6 +39,7 @@ import com.example.qahwamanager.ui.common.QahwaPageHeader
 import com.example.qahwamanager.ui.common.QahwaStatusBadge
 import com.example.qahwamanager.ui.common.rememberDateFormat
 import com.example.qahwamanager.ui.common.tableLabel
+import com.example.qahwamanager.ui.shift.ShiftCard
 import com.example.qahwamanager.ui.theme.QahwaTheme
 import java.util.Date
 
@@ -49,12 +50,13 @@ fun OrdersListScreen(
     viewModel: OrdersViewModel = hiltViewModel()
 ) {
     val orders by viewModel.openOrders.collectAsStateWithLifecycle()
+    val activeShift by viewModel.activeShift.collectAsStateWithLifecycle()
     val qColors = QahwaTheme.colors
 
     Scaffold(
         containerColor = qColors.background,
         floatingActionButton = {
-            FloatingActionButton(
+            if (activeShift != null) FloatingActionButton(
                 onClick = onNewOrder,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -79,6 +81,16 @@ fun OrdersListScreen(
                     .align(Alignment.CenterHorizontally),
             ) {
                 QahwaPageHeader(title = stringResource(R.string.orders))
+            }
+
+            if (activeShift == null) {
+                ShiftCard(
+                    onEndShift = {},
+                    modifier = Modifier
+                        .widthIn(max = 840.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                )
             }
 
             if (orders.isEmpty()) {

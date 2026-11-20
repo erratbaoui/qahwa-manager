@@ -116,6 +116,23 @@
         <item quantity="one">Wrong code, %d try left</item>
         <item quantity="other">Wrong code, %d tries left</item>
     </plurals>
+    <string name="start_shift">Start shift</string>
+    <string name="who_is_working">Who\'s working?</string>
+    <string name="shift_since">%1$s · since %2$s</string>
+    <string name="collected_so_far">Collected so far</string>
+    <string name="end_shift">End shift</string>
+    <string name="take_over">Not %1$s? Take over</string>
+    <string name="take_over_title">Take over the shift?</string>
+    <string name="collect_open_tables">Collect from these tables first</string>
+    <string name="no_active_shift">Start a shift to take orders</string>
+    <plurals name="take_over_confirm">
+        <item quantity="one">%1$s\'s shift will end now. %2$d open table will be listed as left open.</item>
+        <item quantity="other">%1$s\'s shift will end now. %2$d open tables will be listed as left open.</item>
+    </plurals>
+    <plurals name="leave_open_confirm">
+        <item quantity="one">%1$d table (%2$s) will be left open for the owner.</item>
+        <item quantity="other">%1$d tables (%2$s) will be left open for the owner.</item>
+    </plurals>
     <plurals name="orders_count">
         <item quantity="one">%d order</item>
         <item quantity="other">%d orders</item>

@@ -118,6 +118,25 @@
         <item quantity="many">Code incorrect, %d essais restants</item>
         <item quantity="other">Code incorrect, %d essais restants</item>
     </plurals>
+    <string name="start_shift">Commencer le service</string>
+    <string name="who_is_working">Qui travaille ?</string>
+    <string name="shift_since">%1$s · depuis %2$s</string>
+    <string name="collected_so_far">Encaissé jusqu\'ici</string>
+    <string name="end_shift">Terminer le service</string>
+    <string name="take_over">Pas %1$s ? Prendre le relais</string>
+    <string name="take_over_title">Prendre le relais ?</string>
+    <string name="collect_open_tables">Encaissez d\'abord ces tables</string>
+    <string name="no_active_shift">Commencez un service pour prendre des commandes</string>
+    <plurals name="take_over_confirm">
+        <item quantity="one">Le service de %1$s se termine maintenant. %2$d table ouverte sera notée comme laissée ouverte.</item>
+        <item quantity="many">Le service de %1$s se termine maintenant. %2$d tables ouvertes seront notées comme laissées ouvertes.</item>
+        <item quantity="other">Le service de %1$s se termine maintenant. %2$d tables ouvertes seront notées comme laissées ouvertes.</item>
+    </plurals>
+    <plurals name="leave_open_confirm">
+        <item quantity="one">%1$d table (%2$s) restera ouverte pour le propriétaire.</item>
+        <item quantity="many">%1$d tables (%2$s) resteront ouvertes pour le propriétaire.</item>
+        <item quantity="other">%1$d tables (%2$s) resteront ouvertes pour le propriétaire.</item>
+    </plurals>
     <plurals name="orders_count">
         <item quantity="one">%d commande</item>
         <item quantity="many">%d commandes</item>
