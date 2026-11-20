@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.view.MotionEvent
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,18 +27,27 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.qahwamanager.notifications.LowStockScheduler
+import com.example.qahwamanager.security.OwnerSession
 import com.example.qahwamanager.ui.common.AppLocaleManager
 import com.example.qahwamanager.ui.common.AppThemeManager
 import com.example.qahwamanager.ui.common.ThemeMode
 import com.example.qahwamanager.ui.splash.SplashScreen
 import com.example.qahwamanager.ui.theme.QahwaManagerTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.util.Locale
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
+    @Inject
+    lateinit var ownerSession: OwnerSession
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -63,6 +73,10 @@ class MainActivity : AppCompatActivity() {
         AppLocaleManager.init(this)
         AppThemeManager.init(this)
         requestNotificationPermissionAndSchedule()
+        // Owner mode ends on its own after two idle minutes; any touch anywhere resets the timer.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) { ownerSession.enforceIdleTimeout() }
+        }
 
         enableEdgeToEdge()
         setContent {
@@ -104,6 +118,17 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        ownerSession.touch()
+        return super.dispatchTouchEvent(ev)
+    }
+
+    /** Leaving the app locks owner mode; a rotation doesn't. */
+    override fun onStop() {
+        if (!isChangingConfigurations) ownerSession.lock()
+        super.onStop()
     }
 
     private fun requestNotificationPermissionAndSchedule() {
