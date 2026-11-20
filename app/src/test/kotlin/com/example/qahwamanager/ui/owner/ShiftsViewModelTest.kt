@@ -49,7 +49,8 @@ class ShiftsViewModelTest {
         val b = shiftDao.startShift(youssef, now = 3000)
         orderDao.seed(Order(id = 2, tableNumber = "1", status = OrderStatus.PAID, createdAt = 3500, totalCentimes = 10_000, paidShiftId = b, paidAt = 3500))
         shiftDao.endActiveShift(now = 4000, takeover = false)
-        shiftDao.startShift(karim, now = 5000)
+        val c = shiftDao.startShift(karim, now = 5000)
+        orderDao.seed(Order(id = 3, tableNumber = "1", status = OrderStatus.PAID, createdAt = 5500, totalCentimes = 777, paidShiftId = c, paidAt = 5500))
         shiftDao.endActiveShift(now = 6000, takeover = false)
         shiftDao.settle(a, countedCentimes = 61_000, now = 7000)
         shiftDao.settle(b, countedCentimes = 10_500, now = 8000)
@@ -59,8 +60,21 @@ class ShiftsViewModelTest {
         backgroundScope.launch { vm.history.collect {} }
         backgroundScope.launch { vm.staff.collect {} }
         backgroundScope.launch { vm.totalDifferenceCentimes.collect {} }
+        backgroundScope.launch { vm.toSettleExpectedCentimes.collect {} }
         runCurrent()
         return vm
+    }
+
+    @Test
+    fun toSettle_showsLiveExpectedPerShift() = runTest {
+        val vm = seedAndBuild()
+        val unsettled = vm.toSettle.value.single()
+
+        assertEquals(777L, vm.toSettleExpectedCentimes.value[unsettled.shift.id])
+
+        orderDao.seed(Order(id = 4, tableNumber = "2", status = OrderStatus.PAID, createdAt = 5600, totalCentimes = 223, paidShiftId = unsettled.shift.id, paidAt = 5600))
+        runCurrent()
+        assertEquals(1000L, vm.toSettleExpectedCentimes.value[unsettled.shift.id])
     }
 
     @Test

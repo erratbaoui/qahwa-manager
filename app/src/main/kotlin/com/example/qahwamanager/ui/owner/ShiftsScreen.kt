@@ -52,6 +52,7 @@ fun ShiftsScreen(
     val staff by viewModel.staff.collectAsStateWithLifecycle()
     val selectedStaffId by viewModel.selectedStaffId.collectAsStateWithLifecycle()
     val totalDifference by viewModel.totalDifferenceCentimes.collectAsStateWithLifecycle()
+    val toSettleExpected by viewModel.toSettleExpectedCentimes.collectAsStateWithLifecycle()
     val qColors = QahwaTheme.colors
     var showHistory by remember { mutableStateOf(false) }
 
@@ -107,7 +108,12 @@ fun ShiftsScreen(
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 ) {
                     items(shown, key = { it.shift.id }) { shift ->
-                        ShiftRow(shift = shift, settled = showHistory, onClick = { onShift(shift.shift.id) })
+                        ShiftRow(
+                            shift = shift,
+                            settled = showHistory,
+                            liveExpectedCentimes = toSettleExpected[shift.shift.id],
+                            onClick = { onShift(shift.shift.id) },
+                        )
                     }
                 }
             }
@@ -131,7 +137,7 @@ private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ShiftRow(shift: ShiftWithStaff, settled: Boolean, onClick: () -> Unit) {
+private fun ShiftRow(shift: ShiftWithStaff, settled: Boolean, liveExpectedCentimes: Long?, onClick: () -> Unit) {
     val qColors = QahwaTheme.colors
     val day = rememberDateFormat("EEEdMMM")
     val time = rememberDateFormat("Hm")
@@ -169,8 +175,8 @@ private fun ShiftRow(shift: ShiftWithStaff, settled: Boolean, onClick: () -> Uni
                     )
                     DifferenceText(s.differenceCentimes ?: 0)
                 }
-            } else {
-                QahwaCurrencyText(centimes = s.expectedCentimes ?: 0, color = qColors.textSecondary)
+            } else if (liveExpectedCentimes != null) {
+                QahwaCurrencyText(centimes = liveExpectedCentimes, color = qColors.textSecondary)
             }
         }
     }

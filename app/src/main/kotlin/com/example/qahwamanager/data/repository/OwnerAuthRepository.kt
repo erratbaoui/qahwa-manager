@@ -118,7 +118,20 @@ class OwnerAuthRepository @Inject constructor(
         val credentials = requireCredentials()
         lockedOut(credentials)?.let { return it }
         val failures = credentials.failedAttemptsInRow
-        return if (failures == 0) PinCheck.Ok else PinCheck.Wrong(PinLockout.FREE_ATTEMPTS - failures)
+        // After a lockout expires the count is past the free tries: zero left, the next miss locks again.
+        return if (failures == 0) PinCheck.Ok else PinCheck.Wrong(maxOf(0, PinLockout.FREE_ATTEMPTS - failures))
+    }
+
+    /** Spends the current recovery code and returns a fresh one. The PIN is unchanged. Owner only: the caller checks owner mode. */
+    suspend fun issueNewRecoveryCode(): String {
+        val credentials = requireCredentials()
+        val newCode = RecoveryCode.generate()
+        val updated = withContext(hashingDispatcher) {
+            val recoverySalt = PinHasher.newSalt()
+            credentials.copy(recoveryHash = PinHasher.hash(newCode, recoverySalt), recoverySalt = recoverySalt)
+        }
+        ownerDao.upsertCredentials(updated)
+        return newCode
     }
 
     private suspend fun requireCredentials(): OwnerCredentials =

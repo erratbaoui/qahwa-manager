@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
@@ -48,6 +49,7 @@ fun OwnerHomeScreen(
     onSales: () -> Unit,
     onShifts: () -> Unit,
     onStaff: () -> Unit,
+    onNewRecoveryCode: () -> Unit,
     viewModel: ShiftsViewModel = hiltViewModel(),
 ) {
     val toSettle by viewModel.toSettle.collectAsStateWithLifecycle()
@@ -79,6 +81,7 @@ fun OwnerHomeScreen(
                     OwnerRow(icon = Icons.Default.Schedule, title = stringResource(R.string.shifts), badge = toSettle.size, onClick = onShifts)
                     OwnerRow(icon = Icons.Default.Group, title = stringResource(R.string.staff), onClick = onStaff)
                     OwnerRow(icon = Icons.Default.Password, title = stringResource(R.string.change_pin), onClick = { changingPin = true })
+                    OwnerRow(icon = Icons.Default.Key, title = stringResource(R.string.new_recovery_code), onClick = onNewRecoveryCode)
                 }
             }
         }

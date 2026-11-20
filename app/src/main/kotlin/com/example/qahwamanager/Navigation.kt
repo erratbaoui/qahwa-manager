@@ -43,10 +43,14 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.example.qahwamanager.security.OwnerSession
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.qahwamanager.ui.auth.LocalOwnerGate
+import com.example.qahwamanager.ui.auth.LocalOwnerTouch
 import com.example.qahwamanager.ui.auth.OwnerGate
 import com.example.qahwamanager.ui.auth.OwnerModeBanner
 import com.example.qahwamanager.ui.auth.OwnerPinDialog
+import com.example.qahwamanager.ui.auth.OwnerPinViewModel
+import com.example.qahwamanager.ui.auth.RecoveryCodeDialog
 import com.example.qahwamanager.ui.home.HomeScreen
 import com.example.qahwamanager.ui.inventory.InventoryScreen
 import com.example.qahwamanager.ui.menu.MenuScreen
@@ -68,21 +72,40 @@ fun MainNavigation(ownerSession: OwnerSession) {
     val qColors = QahwaTheme.colors
     val gate = remember(ownerSession) { OwnerGate(ownerSession) }
     val isOwnerMode by ownerSession.isOwnerMode.collectAsStateWithLifecycle()
+    // Activity-scoped, so a recovery code being shown survives rotation.
+    val pinViewModel: OwnerPinViewModel = hiltViewModel()
+    val pinState by pinViewModel.state.collectAsStateWithLifecycle()
+    val goHome: () -> Unit = {
+        backStack.clear()
+        backStack.add(Home)
+    }
 
     // Any owner-only action tapped while locked parks itself on the gate; the PIN pad runs it.
     if (gate.pending != null) {
-        OwnerPinDialog(onVerified = gate::onVerified, onDismiss = gate::onDismissed)
+        OwnerPinDialog(
+            onVerified = gate::onVerified,
+            onDismiss = {
+                gate.onDismissed()
+                // Giving up on the PIN while the owner area is still on screen leaves it.
+                if (!ownerSession.isOwnerMode.value && backStack.firstOrNull() == Owner) goHome()
+            },
+            viewModel = pinViewModel,
+        )
+    }
+    pinState.newRecoveryCode?.let { code ->
+        RecoveryCodeDialog(code = code, onDone = pinViewModel::acknowledgeRecoveryCode)
     }
 
-    // Locking (Lock button, idle timeout, background) while in the owner area goes back Home.
+    // Owner mode ending on its own (idle timeout, app sent to the background) while the owner area
+    // is open keeps the screen and its form (a half-typed counted amount) under the PIN pad; the
+    // owner either re-enters the PIN and carries on, or dismisses and goes Home.
     LaunchedEffect(isOwnerMode) {
-        if (!isOwnerMode && backStack.firstOrNull() == Owner) {
-            backStack.clear()
-            backStack.add(Home)
+        if (!isOwnerMode && backStack.firstOrNull() == Owner && gate.pending == null) {
+            gate.require {}
         }
     }
 
-    CompositionLocalProvider(LocalOwnerGate provides gate) {
+    CompositionLocalProvider(LocalOwnerGate provides gate, LocalOwnerTouch provides ownerSession::touch) {
 
     val tabs = listOf(
         Triple(Home as NavKey, R.string.home, Icons.Default.Home),
@@ -94,7 +117,13 @@ fun MainNavigation(ownerSession: OwnerSession) {
 
     Scaffold(
         containerColor = qColors.background,
-        topBar = { if (isOwnerMode) OwnerModeBanner(onLock = ownerSession::lock) },
+        topBar = {
+            if (isOwnerMode) OwnerModeBanner(onLock = {
+                // An explicit Lock means "I'm done": leave the owner area before locking.
+                if (backStack.firstOrNull() == Owner) goHome()
+                ownerSession.lock()
+            })
+        },
         bottomBar = {
             Column {
                 HorizontalDivider(color = qColors.divider, thickness = 1.dp)
@@ -206,6 +235,7 @@ fun MainNavigation(ownerSession: OwnerSession) {
                         onSales = { backStack.add(Sales) },
                         onShifts = { backStack.add(Shifts) },
                         onStaff = { backStack.add(StaffList) },
+                        onNewRecoveryCode = { gate.require { pinViewModel.issueNewRecoveryCode() } },
                     )
                 }
                 entry<Shifts> {

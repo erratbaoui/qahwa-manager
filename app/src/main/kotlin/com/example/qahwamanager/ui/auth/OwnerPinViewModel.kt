@@ -24,7 +24,9 @@ enum class PinInputError { INVALID_PIN, PIN_MISMATCH }
 data class PinUiState(
     val error: PinCheck? = null,
     val busy: Boolean = false,
-    val inputError: PinInputError? = null
+    val inputError: PinInputError? = null,
+    /** A freshly issued recovery code (formatted), shown until the owner acknowledges it. */
+    val newRecoveryCode: String? = null
 )
 
 @HiltViewModel
@@ -65,10 +67,24 @@ class OwnerPinViewModel @Inject constructor(
                 _state.update { it.copy(error = ownerAuthRepository.attemptStatus()) }
             } else {
                 ownerSession.unlock()
-                _state.update { it.copy(error = null) }
-                onNewCode(RecoveryCode.format(fresh))
+                val formatted = RecoveryCode.format(fresh)
+                _state.update { it.copy(error = null, newRecoveryCode = formatted) }
+                onNewCode(formatted)
             }
         }
+    }
+
+    /** Owner-area action: spend the current recovery code and show a new one. Does nothing outside owner mode. */
+    fun issueNewRecoveryCode() {
+        if (!ownerSession.isOwnerMode.value) return
+        check {
+            val fresh = ownerAuthRepository.issueNewRecoveryCode()
+            _state.update { it.copy(newRecoveryCode = RecoveryCode.format(fresh)) }
+        }
+    }
+
+    fun acknowledgeRecoveryCode() {
+        _state.update { it.copy(newRecoveryCode = null) }
     }
 
     /** Changes the PIN; the recovery code stays the same. */

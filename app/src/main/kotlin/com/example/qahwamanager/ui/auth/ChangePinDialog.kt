@@ -56,7 +56,7 @@ fun ChangePinDialog(
             shape = RoundedCornerShape(24.dp),
             color = qColors.background,
             border = BorderStroke(1.dp, qColors.divider),
-            modifier = Modifier.widthIn(max = 400.dp),
+            modifier = Modifier.resetsOwnerIdleTimer().widthIn(max = 400.dp),
         ) {
             Column(
                 modifier = Modifier

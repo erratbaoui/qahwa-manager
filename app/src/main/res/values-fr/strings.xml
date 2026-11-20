@@ -165,6 +165,9 @@
     <string name="running_difference">Écart total</string>
     <string name="nothing_to_settle">Aucun service en attente de règlement</string>
     <string name="no_history">Aucun service réglé pour l\'instant</string>
+    <string name="new_recovery_code">Nouveau code de récupération</string>
+    <string name="next_wrong_pin_locks">Code PIN incorrect. Encore une erreur et le clavier se verrouille</string>
+    <string name="next_wrong_code_locks">Code incorrect. Encore une erreur et le clavier se verrouille</string>
     <plurals name="orders_count">
         <item quantity="one">%d commande</item>
         <item quantity="many">%d commandes</item>

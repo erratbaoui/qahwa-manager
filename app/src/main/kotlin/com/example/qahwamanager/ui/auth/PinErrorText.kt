@@ -33,6 +33,8 @@ fun PinErrorText(
     val text: String? = when {
         state.inputError == PinInputError.INVALID_PIN -> stringResource(R.string.pin_must_be_4_digits)
         state.inputError == PinInputError.PIN_MISMATCH -> stringResource(R.string.pins_dont_match)
+        error is PinCheck.Wrong && error.attemptsBeforeLock <= 0 ->
+            stringResource(if (forRecoveryCode) R.string.next_wrong_code_locks else R.string.next_wrong_pin_locks)
         error is PinCheck.Wrong -> {
             val plural = if (forRecoveryCode) R.plurals.wrong_code_tries_left else R.plurals.wrong_pin_tries_left
             pluralStringResource(plural, error.attemptsBeforeLock, error.attemptsBeforeLock)

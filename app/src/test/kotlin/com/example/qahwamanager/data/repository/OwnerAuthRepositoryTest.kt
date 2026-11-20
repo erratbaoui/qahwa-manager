@@ -193,6 +193,43 @@ class OwnerAuthRepositoryTest {
     }
 
     @Test
+    fun attemptStatus_reportsLockout_thenTriesLeft_neverNegative() = runTest {
+        val repo = repo()
+        repo.setUpOwner("Amina", "1234")
+        assertEquals(PinCheck.Ok, repo.attemptStatus())
+
+        repo.failTimes(2)
+        assertEquals(PinCheck.Wrong(attemptsBeforeLock = 3), repo.attemptStatus())
+
+        val locked = repo.failTimes(3).last()
+        assertEquals(locked, repo.attemptStatus())
+
+        advanceTimeBy(60_000)
+        assertEquals(PinCheck.Wrong(attemptsBeforeLock = 0), repo.attemptStatus())
+
+        repo.checkPin("0000") // 6th failure: locks again, twice as long
+        advanceTimeBy(120_000)
+        assertEquals(PinCheck.Wrong(attemptsBeforeLock = 0), repo.attemptStatus())
+
+        assertEquals(PinCheck.Ok, repo.checkPin("1234"))
+        assertEquals(PinCheck.Ok, repo.attemptStatus())
+    }
+
+    @Test
+    fun issueNewRecoveryCode_spendsTheOldOne_keepsThePin() = runTest {
+        val repo = repo()
+        val oldCode = repo.setUpOwner("Amina", "1234")
+
+        val newCode = repo.issueNewRecoveryCode()
+
+        assertNotEquals(oldCode, newCode)
+        assertEquals(8, newCode.length)
+        assertEquals(PinCheck.Ok, repo.checkPin("1234"))
+        assertNull(repo.resetPinWithRecoveryCode(oldCode, "9876"))
+        assertNotNull(repo.resetPinWithRecoveryCode(newCode, "9876"))
+    }
+
+    @Test
     fun changePin_rejectsInvalidNewPin() = runTest {
         val repo = repo()
         repo.setUpOwner("Amina", "1234")

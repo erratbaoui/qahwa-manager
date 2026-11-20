@@ -129,6 +129,46 @@ class OwnerPinViewModelTest {
     }
 
     @Test
+    fun resetWithCode_keepsNewCodeInStateUntilAcknowledged() = runTest {
+        val vm = viewModel()
+
+        vm.resetWithCode(recoveryCode, "9876", "9876") {}
+        advanceUntilIdle()
+
+        val shown = vm.state.value.newRecoveryCode
+        assertEquals(9, shown!!.length)
+
+        vm.acknowledgeRecoveryCode()
+        assertNull(vm.state.value.newRecoveryCode)
+    }
+
+    @Test
+    fun issueNewRecoveryCode_locked_doesNothing() = runTest {
+        val vm = viewModel()
+        val before = ownerDao.credentials.value
+
+        vm.issueNewRecoveryCode()
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.newRecoveryCode)
+        assertEquals(before, ownerDao.credentials.value)
+    }
+
+    @Test
+    fun issueNewRecoveryCode_ownerMode_rotatesAndShowsCode() = runTest {
+        val vm = viewModel()
+        session.unlock()
+
+        vm.issueNewRecoveryCode()
+        advanceUntilIdle()
+
+        val shown = vm.state.value.newRecoveryCode!!
+        assertEquals(9, shown.length)
+        assertNull(repo.resetPinWithRecoveryCode(recoveryCode, "9876"))
+        assertEquals(PinCheck.Ok, repo.checkPin("1234"))
+    }
+
+    @Test
     fun changePin_requiresMatchingNewPinAndCurrentPin() = runTest {
         val vm = viewModel()
         var done = 0

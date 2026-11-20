@@ -13,7 +13,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
@@ -28,6 +30,14 @@ class ShiftsViewModel @Inject constructor(
 
     val toSettle: StateFlow<List<ShiftWithStaff>> = shiftRepository.observeToSettle()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Live expected cash per unsettled shift (the stored value only exists once settled). */
+    val toSettleExpectedCentimes: StateFlow<Map<Long, Long>> = shiftRepository.observeToSettle()
+        .flatMapLatest { shifts ->
+            if (shifts.isEmpty()) flowOf(emptyMap())
+            else combine(shifts.map { s -> shiftRepository.observeCollectedCentimes(s.shift.id).map { s.shift.id to it } }) { it.toMap() }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     val staff: StateFlow<List<Staff>> = staffRepository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

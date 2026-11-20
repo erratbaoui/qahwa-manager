@@ -161,6 +161,9 @@
     <string name="running_difference">Total difference</string>
     <string name="nothing_to_settle">No shifts waiting to be settled</string>
     <string name="no_history">No settled shifts yet</string>
+    <string name="new_recovery_code">New recovery code</string>
+    <string name="next_wrong_pin_locks">Wrong PIN. One more wrong try locks the keypad</string>
+    <string name="next_wrong_code_locks">Wrong code. One more wrong try locks the keypad</string>
     <plurals name="orders_count">
         <item quantity="one">%d order</item>
         <item quantity="other">%d orders</item>

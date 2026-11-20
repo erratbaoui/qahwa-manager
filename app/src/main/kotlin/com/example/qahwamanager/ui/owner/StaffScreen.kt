@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.qahwamanager.ui.auth.resetsOwnerIdleTimer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -171,7 +172,7 @@ private fun NameDialog(title: String, initial: String, onDismiss: () -> Unit, on
             shape = RoundedCornerShape(20.dp),
             color = qColors.cardSurface,
             border = BorderStroke(1.dp, qColors.divider),
-            modifier = Modifier.widthIn(max = 420.dp),
+            modifier = Modifier.resetsOwnerIdleTimer().widthIn(max = 420.dp),
         ) {
             Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, color = qColors.textPrimary)

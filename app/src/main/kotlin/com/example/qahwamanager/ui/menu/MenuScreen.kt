@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.qahwamanager.ui.auth.resetsOwnerIdleTimer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -377,7 +378,7 @@ private fun AddMenuItemDialog(
             shape = RoundedCornerShape(20.dp),
             color = qColors.cardSurface,
             border = BorderStroke(1.dp, qColors.divider),
-            modifier = Modifier.widthIn(max = 440.dp),
+            modifier = Modifier.resetsOwnerIdleTimer().widthIn(max = 440.dp),
         ) {
             Column(
                 modifier = Modifier

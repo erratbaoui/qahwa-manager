@@ -51,19 +51,20 @@ fun OwnerPinDialog(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val qColors = QahwaTheme.colors
     var recovering by remember { mutableStateOf(false) }
-    var newCode by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) { viewModel.onOpened() }
 
     val locked = state.error is PinCheck.LockedOut
     val enabled = !locked && !state.busy
 
-    Dialog(onDismissRequest = { if (newCode == null) onDismiss() }) {
+    Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = qColors.background,
             border = BorderStroke(1.dp, qColors.divider),
-            modifier = Modifier.widthIn(max = 400.dp),
+            modifier = Modifier
+                .widthIn(max = 400.dp)
+                .resetsOwnerIdleTimer(),
         ) {
             Column(
                 modifier = Modifier
@@ -72,14 +73,14 @@ fun OwnerPinDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                val code = newCode
                 when {
-                    code != null -> RecoveryCodeCard(code = code, onDone = onVerified)
+                    // A successful reset unlocks owner mode; the new code is shown by RecoveryCodeDialog
+                    // from the view model's state, so a rotation can't lose it.
                     recovering -> RecoveryForm(
                         state = state,
                         enabled = enabled,
                         onSubmit = { recoveryCode, pin, confirm ->
-                            viewModel.resetWithCode(recoveryCode, pin, confirm) { newCode = it }
+                            viewModel.resetWithCode(recoveryCode, pin, confirm) { onVerified() }
                         },
                         onLockoutOver = viewModel::onOpened,
                         onBack = { recovering = false },

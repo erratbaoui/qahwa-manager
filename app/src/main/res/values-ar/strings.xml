@@ -177,6 +177,9 @@
     <string name="running_difference">إجمالي الفرق</string>
     <string name="nothing_to_settle">لا توجد ورديات بانتظار التسوية</string>
     <string name="no_history">لا توجد ورديات مسوّاة بعد</string>
+    <string name="new_recovery_code">رمز استرداد جديد</string>
+    <string name="next_wrong_pin_locks">رمز PIN خاطئ. محاولة خاطئة أخرى ستقفل لوحة الأرقام</string>
+    <string name="next_wrong_code_locks">رمز خاطئ. محاولة خاطئة أخرى ستقفل لوحة الأرقام</string>
     <plurals name="orders_count">
         <item quantity="zero">%d طلب</item>
         <item quantity="one">طلب واحد</item>
