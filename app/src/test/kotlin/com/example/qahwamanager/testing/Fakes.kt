@@ -118,6 +118,15 @@ class FakeOrderDao : OrderDao() {
                 .sortedWith(compareByDescending<Order> { it.cancelledAt ?: 0 }.thenByDescending { it.id })
         }
 
+    /** Set by [FakeShiftDao], which owns the shift_left_open rows. */
+    internal var leftOpenRows: MutableStateFlow<List<ShiftLeftOpen>> = MutableStateFlow(emptyList())
+
+    override fun observeLeftOpenOrders(shiftId: Long): Flow<List<Order>> =
+        combine(orders, leftOpenRows) { list, rows ->
+            val ids = rows.filter { it.shiftId == shiftId }.map { it.orderId }.toSet()
+            list.filter { it.id in ids }.sortedBy { it.id }
+        }
+
     override fun observeById(id: Long): Flow<Order?> = orders.map { list -> list.find { it.id == id } }
 }
 
@@ -147,6 +156,10 @@ class FakeShiftDao(private val orderDao: FakeOrderDao, private val staffDao: Fak
     val shifts = MutableStateFlow<List<Shift>>(emptyList())
     val leftOpen = MutableStateFlow<List<ShiftLeftOpen>>(emptyList())
     private val transaction = Mutex()
+
+    init {
+        orderDao.leftOpenRows = leftOpen
+    }
 
     private fun Shift.withStaff() = ShiftWithStaff(this, staffDao.staff.value.find { it.id == staffId }?.name ?: "")
     private fun withStaff(list: List<Shift>): Flow<List<ShiftWithStaff>> =

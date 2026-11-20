@@ -69,6 +69,7 @@ class ShiftDaoTest {
         assertEquals(shiftId, ended)
         val leftOpen = shiftDao.observeLeftOpen(shiftId).first()
         assertEquals(mapOf(open1 to 500L, open2 to 700L), leftOpen.associate { it.orderId to it.totalCentimes })
+        assertEquals(listOf(open1, open2), orderDao.observeLeftOpenOrders(shiftId).first().map { it.id }.sorted())
         val shift = shiftDao.observeById(shiftId).first()!!.shift
         assertEquals(ShiftStatus.ENDED, shift.status)
         assertEquals(5000L, shift.endedAt)

@@ -91,6 +91,7 @@ class ShiftRepositoryTest {
         assertEquals(800L, report.expectedCentimes)
         assertEquals(listOf(500L), report.leftOpen.map { it.totalCentimes })
         assertEquals(listOf(50L), report.leftOpen.map { it.orderId })
+        assertEquals(listOf("2"), report.leftOpenOrders.map { it.tableNumber })
         assertEquals(ShiftStatus.ENDED, report.shift.shift.status)
         assertNull(repo.activeShiftId())
     }

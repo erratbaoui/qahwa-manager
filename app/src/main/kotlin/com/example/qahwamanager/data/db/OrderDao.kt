@@ -59,6 +59,10 @@ abstract class OrderDao {
     @Query("SELECT * FROM orders WHERE status = 'CANCELLED' AND COALESCE(openedShiftId, cancelledShiftId) = :shiftId ORDER BY cancelledAt DESC, id DESC")
     abstract fun observeCancelledForShift(shiftId: Long): Flow<List<Order>>
 
+    /** The orders a shift left open (their current state; the frozen totals live in shift_left_open). */
+    @Query("SELECT orders.* FROM orders JOIN shift_left_open ON shift_left_open.orderId = orders.id WHERE shift_left_open.shiftId = :shiftId ORDER BY orders.id")
+    abstract fun observeLeftOpenOrders(shiftId: Long): Flow<List<Order>>
+
     @Query("SELECT * FROM orders WHERE id = :id")
     abstract fun observeById(id: Long): Flow<Order?>
 }

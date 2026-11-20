@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Restaurant
@@ -24,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -49,6 +50,10 @@ import com.example.qahwamanager.ui.auth.OwnerPinDialog
 import com.example.qahwamanager.ui.home.HomeScreen
 import com.example.qahwamanager.ui.inventory.InventoryScreen
 import com.example.qahwamanager.ui.menu.MenuScreen
+import com.example.qahwamanager.ui.owner.OwnerHomeScreen
+import com.example.qahwamanager.ui.owner.ShiftReportScreen
+import com.example.qahwamanager.ui.owner.ShiftsScreen
+import com.example.qahwamanager.ui.owner.StaffScreen
 import com.example.qahwamanager.ui.orders.NewOrderScreen
 import com.example.qahwamanager.ui.orders.OrderDetailScreen
 import com.example.qahwamanager.ui.orders.OrdersListScreen
@@ -69,6 +74,14 @@ fun MainNavigation(ownerSession: OwnerSession) {
         OwnerPinDialog(onVerified = gate::onVerified, onDismiss = gate::onDismissed)
     }
 
+    // Locking (Lock button, idle timeout, background) while in the owner area goes back Home.
+    LaunchedEffect(isOwnerMode) {
+        if (!isOwnerMode && backStack.firstOrNull() == Owner) {
+            backStack.clear()
+            backStack.add(Home)
+        }
+    }
+
     CompositionLocalProvider(LocalOwnerGate provides gate) {
 
     val tabs = listOf(
@@ -76,7 +89,7 @@ fun MainNavigation(ownerSession: OwnerSession) {
         Triple(Orders as NavKey, R.string.orders, Icons.Default.ShoppingCart),
         Triple(Menu as NavKey, R.string.menu, Icons.Default.Restaurant),
         Triple(Inventory as NavKey, R.string.inventory, Icons.Default.Inventory),
-        Triple(Sales as NavKey, R.string.sales, Icons.AutoMirrored.Filled.TrendingUp),
+        Triple(Owner as NavKey, R.string.owner, Icons.Default.AdminPanelSettings),
     )
 
     Scaffold(
@@ -95,8 +108,11 @@ fun MainNavigation(ownerSession: OwnerSession) {
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
-                                backStack.clear()
-                                backStack.add(destination)
+                                val open: () -> Unit = {
+                                    backStack.clear()
+                                    backStack.add(destination)
+                                }
+                                if (destination == Owner) gate.require(open) else open()
                             },
                             icon = {
                                 if (selected) {
@@ -185,6 +201,25 @@ fun MainNavigation(ownerSession: OwnerSession) {
                 }
                 entry<Sales> { SalesScreen() }
                 entry<Inventory> { InventoryScreen() }
+                entry<Owner> {
+                    OwnerHomeScreen(
+                        onSales = { backStack.add(Sales) },
+                        onShifts = { backStack.add(Shifts) },
+                        onStaff = { backStack.add(StaffList) },
+                    )
+                }
+                entry<Shifts> {
+                    ShiftsScreen(
+                        onShift = { shiftId -> backStack.add(ShiftReport(shiftId)) },
+                        onBack = { backStack.removeLastOrNull() },
+                    )
+                }
+                entry<ShiftReport> { key ->
+                    ShiftReportScreen(shiftId = key.shiftId, onBack = { backStack.removeLastOrNull() })
+                }
+                entry<StaffList> {
+                    StaffScreen(onBack = { backStack.removeLastOrNull() })
+                }
             },
         )
     }

@@ -21,7 +21,8 @@ data class ShiftReport(
     val expectedCentimes: Long,
     val paidOrders: List<Order>,
     val cancelledOrders: List<Order>,
-    val leftOpen: List<ShiftLeftOpen>
+    val leftOpen: List<ShiftLeftOpen>,
+    val leftOpenOrders: List<Order> = emptyList()
 )
 
 @Singleton
@@ -55,14 +56,14 @@ class ShiftRepository @Inject constructor(
     fun observeHistory(staffId: Long?): Flow<List<ShiftWithStaff>> = shiftDao.observeSettled(staffId)
 
     fun observeReport(shiftId: Long): Flow<ShiftReport?> = combine(
-        shiftDao.observeById(shiftId),
-        shiftDao.observeExpectedCentimes(shiftId),
+        combine(shiftDao.observeById(shiftId), shiftDao.observeExpectedCentimes(shiftId)) { shift, expected -> shift to expected },
         orderDao.observePaidInShift(shiftId),
         orderDao.observeCancelledForShift(shiftId),
         shiftDao.observeLeftOpen(shiftId),
-    ) { shift, liveExpected, paid, cancelled, leftOpen ->
+        orderDao.observeLeftOpenOrders(shiftId),
+    ) { (shift, liveExpected), paid, cancelled, leftOpen, leftOpenOrders ->
         shift ?: return@combine null
         val expected = if (shift.shift.status == ShiftStatus.SETTLED) shift.shift.expectedCentimes ?: liveExpected else liveExpected
-        ShiftReport(shift, expected, paid, cancelled, leftOpen)
+        ShiftReport(shift, expected, paid, cancelled, leftOpen, leftOpenOrders)
     }
 }
