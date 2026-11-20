@@ -65,7 +65,7 @@ abstract class ShiftDao {
     @Query("INSERT INTO shift_left_open (shiftId, orderId, totalCentimes) SELECT :shiftId, id, totalCentimes FROM orders WHERE status = 'OPEN'")
     protected abstract suspend fun snapshotOpenOrders(shiftId: Long)
 
-    @Query("UPDATE shifts SET status = 'ENDED', endedAt = :now, endedByTakeover = :takeover, countedCentimes = :countedCentimes WHERE id = :id AND status = 'ACTIVE'")
+    @Query("UPDATE shifts SET status = 'ENDED', endedAt = :now, endedByTakeover = :takeover, expectedCentimes = (SELECT COALESCE(SUM(totalCentimes), 0) FROM orders WHERE paidShiftId = :id AND status = 'PAID'), countedCentimes = :countedCentimes WHERE id = :id AND status = 'ACTIVE'")
     protected abstract suspend fun markEnded(id: Long, now: Long, takeover: Boolean, countedCentimes: Long? = null): Int
 
     @Query("UPDATE shifts SET status = 'SETTLED', expectedCentimes = :expected, countedCentimes = :counted, settledAt = :now WHERE id = :id AND status = 'ENDED'")

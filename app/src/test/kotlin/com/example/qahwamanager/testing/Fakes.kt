@@ -231,10 +231,17 @@ class FakeShiftDao(private val orderDao: FakeOrderDao, private val staffDao: Fak
 
     override suspend fun markEnded(id: Long, now: Long, takeover: Boolean, countedCentimes: Long?): Int {
         val target = shifts.value.find { it.id == id && it.status == ShiftStatus.ACTIVE } ?: return 0
+        val expectedCentimes = expectedCentimes(id)
         shifts.update { list ->
             list.map {
                 if (it.id == target.id) {
-                    it.copy(status = ShiftStatus.ENDED, endedAt = now, endedByTakeover = takeover, countedCentimes = countedCentimes)
+                    it.copy(
+                        status = ShiftStatus.ENDED,
+                        endedAt = now,
+                        endedByTakeover = takeover,
+                        expectedCentimes = expectedCentimes,
+                        countedCentimes = countedCentimes,
+                    )
                 } else it
             }
         }

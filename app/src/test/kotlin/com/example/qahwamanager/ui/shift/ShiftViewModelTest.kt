@@ -135,6 +135,15 @@ class ShiftViewModelTest {
         vm.start(karim)
         advanceUntilIdle()
         val old = vm.activeShift.value!!.shift.id
+        orderDao.seed(
+            Order(
+                id = 8,
+                tableNumber = "1",
+                status = OrderStatus.PAID,
+                totalCentimes = 12_500,
+                paidShiftId = old,
+            ),
+        )
 
         vm.takeOver(youssef)
         advanceUntilIdle()
@@ -142,6 +151,7 @@ class ShiftViewModelTest {
         val oldShift = shiftDao.shifts.value.single { it.id == old }
         assertEquals(ShiftStatus.ENDED, oldShift.status)
         assertTrue(oldShift.endedByTakeover)
+        assertEquals(12_500L, oldShift.expectedCentimes)
         assertEquals("Youssef", vm.activeShift.value?.staffName)
     }
 

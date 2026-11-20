@@ -74,6 +74,7 @@ class ShiftDaoTest {
         assertEquals(ShiftStatus.ENDED, shift.status)
         assertEquals(5000L, shift.endedAt)
         assertFalse(shift.endedByTakeover)
+        assertEquals(900L, shift.expectedCentimes)
         assertNull(shiftDao.getActive())
     }
 
