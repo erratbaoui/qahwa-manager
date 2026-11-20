@@ -41,10 +41,6 @@ abstract class OrderDao {
         return orderId
     }
 
-    /** Moves an OPEN order to [status]; closed orders are left alone. Returns rows changed. */
-    @Query("UPDATE orders SET status = :status WHERE id = :id AND status = 'OPEN'")
-    abstract suspend fun updateStatusIfOpen(id: Long, status: OrderStatus): Int
-
     /** Marks an OPEN order paid in [shiftId] at [now]; closed orders are left alone. Returns rows changed. */
     @Query("UPDATE orders SET status = 'PAID', paidShiftId = :shiftId, paidAt = :now WHERE id = :id AND status = 'OPEN'")
     abstract suspend fun markPaidIfOpen(id: Long, shiftId: Long, now: Long): Int

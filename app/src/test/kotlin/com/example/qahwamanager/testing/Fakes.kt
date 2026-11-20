@@ -83,13 +83,6 @@ class FakeOrderDao : OrderDao() {
         this.items.update { current -> current + items.map { it.copy(id = nextItemId++) } }
     }
 
-    override suspend fun updateStatusIfOpen(id: Long, status: OrderStatus): Int {
-        delay(IO_DELAY_MS)
-        val target = orders.value.find { it.id == id && it.status == OrderStatus.OPEN } ?: return 0
-        orders.update { list -> list.map { if (it.id == target.id) it.copy(status = status) else it } }
-        return 1
-    }
-
     override suspend fun markPaidIfOpen(id: Long, shiftId: Long, now: Long): Int {
         delay(IO_DELAY_MS)
         val target = orders.value.find { it.id == id && it.status == OrderStatus.OPEN } ?: return 0
