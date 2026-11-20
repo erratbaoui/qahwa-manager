@@ -69,6 +69,20 @@ class OrderDaoTest {
     }
 
     @Test
+    fun cancelledForShift_fallsBackToCancelledShiftId() = runTest {
+        val legacy = dao.insertOrder(Order(tableNumber = "1", status = OrderStatus.OPEN, createdAt = 100, totalCentimes = 300))
+        val opened = dao.insertOrder(Order(tableNumber = "2", status = OrderStatus.OPEN, createdAt = 200, totalCentimes = 400, openedShiftId = 2))
+        val other = dao.insertOrder(Order(tableNumber = "3", status = OrderStatus.OPEN, createdAt = 300, totalCentimes = 500, openedShiftId = 3))
+
+        assertEquals(1, dao.cancelIfOpen(legacy, shiftId = 3, now = 900))
+        assertEquals(1, dao.cancelIfOpen(opened, shiftId = 3, now = 901))
+        assertEquals(1, dao.cancelIfOpen(other, shiftId = 3, now = 902))
+
+        assertEquals(listOf(legacy, other), dao.observeCancelledForShift(3).first().map { it.id }.sorted())
+        assertEquals(listOf(opened), dao.observeCancelledForShift(2).first().map { it.id })
+    }
+
+    @Test
     fun getRevenueSince_sumsPaidOrdersFromStart() = runTest {
         dao.insertOrder(Order(tableNumber = "1", status = OrderStatus.PAID, createdAt = 500, totalCentimes = 999))
         dao.insertOrder(Order(tableNumber = "2", status = OrderStatus.PAID, createdAt = 1500, totalCentimes = 1250))

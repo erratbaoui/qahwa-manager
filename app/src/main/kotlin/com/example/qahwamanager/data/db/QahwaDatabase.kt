@@ -29,6 +29,9 @@ abstract class QahwaDatabase : RoomDatabase() {
     abstract fun orderDao(): OrderDao
     abstract fun orderItemDao(): OrderItemDao
     abstract fun inventoryDao(): InventoryDao
+    abstract fun staffDao(): StaffDao
+    abstract fun shiftDao(): ShiftDao
+    abstract fun ownerDao(): OwnerDao
 
     companion object {
         fun create(context: Context): QahwaDatabase {

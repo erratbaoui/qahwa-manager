@@ -4,18 +4,31 @@ import com.example.qahwamanager.data.db.InventoryDao
 import com.example.qahwamanager.data.db.MenuItemDao
 import com.example.qahwamanager.data.db.OrderDao
 import com.example.qahwamanager.data.db.OrderItemDao
+import com.example.qahwamanager.data.db.OwnerDao
+import com.example.qahwamanager.data.db.ShiftAlreadyActiveException
+import com.example.qahwamanager.data.db.ShiftDao
+import com.example.qahwamanager.data.db.StaffDao
 import com.example.qahwamanager.data.model.InventoryItem
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.OrderItem
 import com.example.qahwamanager.data.model.OrderStatus
+import com.example.qahwamanager.data.model.OwnerCredentials
+import com.example.qahwamanager.data.model.Shift
+import com.example.qahwamanager.data.model.ShiftLeftOpen
+import com.example.qahwamanager.data.model.ShiftStatus
+import com.example.qahwamanager.data.model.ShiftWithStaff
+import com.example.qahwamanager.data.model.Staff
 import com.example.qahwamanager.data.time.Clock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.TestScope
 import java.util.TimeZone
 
@@ -77,7 +90,191 @@ class FakeOrderDao : OrderDao() {
         return 1
     }
 
+    override suspend fun markPaidIfOpen(id: Long, shiftId: Long, now: Long): Int {
+        delay(IO_DELAY_MS)
+        val target = orders.value.find { it.id == id && it.status == OrderStatus.OPEN } ?: return 0
+        orders.update { list ->
+            list.map {
+                if (it.id == target.id) it.copy(status = OrderStatus.PAID, paidShiftId = shiftId, paidAt = now) else it
+            }
+        }
+        return 1
+    }
+
+    override suspend fun cancelIfOpen(id: Long, shiftId: Long?, now: Long): Int {
+        delay(IO_DELAY_MS)
+        val target = orders.value.find { it.id == id && it.status == OrderStatus.OPEN } ?: return 0
+        orders.update { list ->
+            list.map {
+                if (it.id == target.id) it.copy(status = OrderStatus.CANCELLED, cancelledAt = now, cancelledShiftId = shiftId) else it
+            }
+        }
+        return 1
+    }
+
+    override fun observePaidInShift(shiftId: Long): Flow<List<Order>> =
+        orders.map { list ->
+            list.filter { it.status == OrderStatus.PAID && it.paidShiftId == shiftId }
+                .sortedWith(compareByDescending<Order> { it.paidAt ?: 0 }.thenByDescending { it.id })
+        }
+
+    // Mirrors: status = 'CANCELLED' AND COALESCE(openedShiftId, cancelledShiftId) = :shiftId
+    override fun observeCancelledForShift(shiftId: Long): Flow<List<Order>> =
+        orders.map { list ->
+            list.filter { it.status == OrderStatus.CANCELLED && (it.openedShiftId ?: it.cancelledShiftId) == shiftId }
+                .sortedWith(compareByDescending<Order> { it.cancelledAt ?: 0 }.thenByDescending { it.id })
+        }
+
     override fun observeById(id: Long): Flow<Order?> = orders.map { list -> list.find { it.id == id } }
+}
+
+class FakeStaffDao : StaffDao {
+    val staff = MutableStateFlow<List<Staff>>(emptyList())
+
+    private fun List<Staff>.ordered() = sortedWith(compareByDescending<Staff> { it.isOwner }.thenBy { it.name })
+
+    override fun observeActive(): Flow<List<Staff>> = staff.map { list -> list.filter { it.isActive }.ordered() }
+    override fun observeAll(): Flow<List<Staff>> = staff.map { it.ordered() }
+    override suspend fun getById(id: Long): Staff? = staff.value.find { it.id == id }
+    override suspend fun insert(staff: Staff): Long {
+        val id = (this.staff.value.maxOfOrNull { it.id } ?: 0) + 1
+        this.staff.update { it + staff.copy(id = id) }
+        return id
+    }
+    override suspend fun update(staff: Staff) {
+        this.staff.update { list -> list.map { if (it.id == staff.id) staff else it } }
+    }
+}
+
+/**
+ * Mirrors [ShiftDao] including its `@Transaction` methods, which are serialized with a [Mutex] and
+ * pay [IO_DELAY_MS] so concurrent calls interleave the way they do against Room.
+ */
+class FakeShiftDao(private val orderDao: FakeOrderDao, private val staffDao: FakeStaffDao) : ShiftDao() {
+    val shifts = MutableStateFlow<List<Shift>>(emptyList())
+    val leftOpen = MutableStateFlow<List<ShiftLeftOpen>>(emptyList())
+    private val transaction = Mutex()
+
+    private fun Shift.withStaff() = ShiftWithStaff(this, staffDao.staff.value.find { it.id == staffId }?.name ?: "")
+    private fun withStaff(list: List<Shift>): Flow<List<ShiftWithStaff>> =
+        combine(shifts, staffDao.staff) { _, _ -> list.map { it.withStaff() } }
+
+    override suspend fun getActive(): Shift? = shifts.value.find { it.status == ShiftStatus.ACTIVE }
+
+    override fun observeActive(): Flow<ShiftWithStaff?> =
+        combine(shifts, staffDao.staff) { list, _ -> list.find { it.status == ShiftStatus.ACTIVE }?.withStaff() }
+
+    override fun observeById(id: Long): Flow<ShiftWithStaff?> =
+        combine(shifts, staffDao.staff) { list, _ -> list.find { it.id == id }?.withStaff() }
+
+    override fun observeToSettle(): Flow<List<ShiftWithStaff>> =
+        combine(shifts, staffDao.staff) { list, _ ->
+            list.filter { it.status == ShiftStatus.ENDED }.sortedBy { it.endedAt }.map { it.withStaff() }
+        }
+
+    override fun observeSettled(staffId: Long?): Flow<List<ShiftWithStaff>> =
+        combine(shifts, staffDao.staff) { list, _ ->
+            list.filter { it.status == ShiftStatus.SETTLED && (staffId == null || it.staffId == staffId) }
+                .sortedByDescending { it.settledAt }.map { it.withStaff() }
+        }
+
+    override fun observeExpectedCentimes(shiftId: Long): Flow<Long> =
+        orderDao.orders.map { list -> list.filter { it.paidShiftId == shiftId && it.status == OrderStatus.PAID }.sumOf { it.totalCentimes } }
+
+    override suspend fun expectedCentimes(shiftId: Long): Long =
+        orderDao.orders.value.filter { it.paidShiftId == shiftId && it.status == OrderStatus.PAID }.sumOf { it.totalCentimes }
+
+    override fun observeLeftOpen(shiftId: Long): Flow<List<ShiftLeftOpen>> =
+        leftOpen.map { list -> list.filter { it.shiftId == shiftId }.sortedBy { it.orderId } }
+
+    override suspend fun recordFailedOwnerPinOnActive(): Int {
+        delay(IO_DELAY_MS)
+        val active = getActive() ?: return 0
+        shifts.update { list ->
+            list.map { if (it.id == active.id) it.copy(failedOwnerPinAttempts = it.failedOwnerPinAttempts + 1) else it }
+        }
+        return 1
+    }
+
+    override suspend fun insertShift(shift: Shift): Long {
+        delay(IO_DELAY_MS)
+        val id = (shifts.value.maxOfOrNull { it.id } ?: 0) + 1
+        shifts.update { it + shift.copy(id = id) }
+        return id
+    }
+
+    override suspend fun insertLeftOpen(rows: List<ShiftLeftOpen>) {
+        leftOpen.update { it + rows }
+    }
+
+    override suspend fun snapshotOpenOrders(shiftId: Long) {
+        delay(IO_DELAY_MS)
+        val rows = orderDao.orders.value.filter { it.status == OrderStatus.OPEN }
+            .map { ShiftLeftOpen(shiftId = shiftId, orderId = it.id, totalCentimes = it.totalCentimes) }
+        insertLeftOpen(rows)
+    }
+
+    override suspend fun markEnded(id: Long, now: Long, takeover: Boolean): Int {
+        val target = shifts.value.find { it.id == id && it.status == ShiftStatus.ACTIVE } ?: return 0
+        shifts.update { list ->
+            list.map { if (it.id == target.id) it.copy(status = ShiftStatus.ENDED, endedAt = now, endedByTakeover = takeover) else it }
+        }
+        return 1
+    }
+
+    override suspend fun markSettled(id: Long, expected: Long, counted: Long, now: Long): Int {
+        delay(IO_DELAY_MS)
+        val target = shifts.value.find { it.id == id && it.status == ShiftStatus.ENDED } ?: return 0
+        shifts.update { list ->
+            list.map {
+                if (it.id == target.id) it.copy(status = ShiftStatus.SETTLED, expectedCentimes = expected, countedCentimes = counted, settledAt = now) else it
+            }
+        }
+        return 1
+    }
+
+    override suspend fun startShift(staffId: Long, now: Long): Long = transaction.withLock {
+        if (getActive() != null) throw ShiftAlreadyActiveException()
+        insertShift(Shift(staffId = staffId, status = ShiftStatus.ACTIVE, startedAt = now))
+    }
+
+    override suspend fun endActiveShift(now: Long, takeover: Boolean): Long? = transaction.withLock {
+        val active = getActive() ?: return@withLock null
+        snapshotOpenOrders(active.id)
+        markEnded(active.id, now, takeover)
+        active.id
+    }
+
+    override suspend fun takeOver(newStaffId: Long, now: Long): Long = transaction.withLock {
+        val active = getActive()
+        if (active != null) {
+            snapshotOpenOrders(active.id)
+            markEnded(active.id, now, takeover = true)
+        }
+        insertShift(Shift(staffId = newStaffId, status = ShiftStatus.ACTIVE, startedAt = now))
+    }
+
+    override suspend fun settle(shiftId: Long, countedCentimes: Long, now: Long): Boolean = transaction.withLock {
+        val expected = expectedCentimes(shiftId)
+        markSettled(shiftId, expected, countedCentimes, now) == 1
+    }
+}
+
+class FakeOwnerDao(private val staffDao: FakeStaffDao) : OwnerDao() {
+    val credentials = MutableStateFlow<OwnerCredentials?>(null)
+
+    override fun observeExists(): Flow<Boolean> = credentials.map { it != null }
+    override suspend fun getCredentials(): OwnerCredentials? = credentials.value
+    override suspend fun upsertCredentials(c: OwnerCredentials) {
+        delay(IO_DELAY_MS)
+        credentials.value = c.copy(id = 1)
+    }
+    override suspend fun insertStaff(staff: Staff): Long = staffDao.insert(staff)
+    override suspend fun createOwner(owner: Staff, credentials: OwnerCredentials): Long {
+        val id = insertStaff(owner)
+        upsertCredentials(credentials)
+        return id
+    }
 }
 
 class FakeOrderItemDao(private val orderDao: FakeOrderDao) : OrderItemDao {
