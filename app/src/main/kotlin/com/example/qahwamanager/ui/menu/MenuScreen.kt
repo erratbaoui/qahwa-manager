@@ -57,6 +57,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.MenuItem
+import com.example.qahwamanager.ui.auth.LocalOwnerGate
 import com.example.qahwamanager.ui.common.QahwaCard
 import com.example.qahwamanager.ui.common.QahwaConfirmDialog
 import com.example.qahwamanager.ui.common.QahwaCurrencyText
@@ -87,13 +88,16 @@ fun MenuScreen(
     val items by viewModel.menuItems.collectAsStateWithLifecycle()
     val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
 
+    val gate = LocalOwnerGate.current
+
     MenuScreenContent(
         items = items,
         selectedCategory = selectedCategory,
         onSelectCategory = viewModel::selectCategory,
         onToggleAvailability = viewModel::toggleAvailability,
-        onDeleteItem = viewModel::deleteItem,
-        onAddItem = viewModel::addItem,
+        // Owner-only: the PIN is asked when the final action fires, so an open form isn't lost.
+        onDeleteItem = { item -> gate.require { viewModel.deleteItem(item) } },
+        onAddItem = { item -> gate.require { viewModel.addItem(item) } },
     )
 }
 

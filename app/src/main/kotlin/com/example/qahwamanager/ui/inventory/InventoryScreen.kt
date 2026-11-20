@@ -55,6 +55,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.model.InventoryItem
+import com.example.qahwamanager.ui.auth.LocalOwnerGate
 import com.example.qahwamanager.ui.common.QahwaCard
 import com.example.qahwamanager.ui.common.QahwaConfirmDialog
 import com.example.qahwamanager.ui.common.QahwaDivider
@@ -74,6 +75,7 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
     var editItem by remember { mutableStateOf<InventoryItem?>(null) }
     var deleteTarget by remember { mutableStateOf<InventoryItem?>(null) }
     val qColors = QahwaTheme.colors
+    val gate = LocalOwnerGate.current
 
     deleteTarget?.let { target ->
         QahwaConfirmDialog(
@@ -81,8 +83,8 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
             message = stringResource(R.string.confirm_delete_message),
             confirmText = stringResource(R.string.delete),
             onConfirm = {
-                viewModel.deleteItem(target)
                 deleteTarget = null
+                gate.require { viewModel.deleteItem(target) }
             },
             onDismiss = { deleteTarget = null },
             isDestructive = true,
@@ -94,8 +96,8 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
             item = null,
             onDismiss = { showAddDialog = false },
             onConfirm = { item ->
-                viewModel.addItem(item)
                 showAddDialog = false
+                gate.require { viewModel.addItem(item) }
             },
         )
     }
@@ -105,8 +107,8 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
             item = item,
             onDismiss = { editItem = null },
             onConfirm = { updated ->
-                viewModel.updateItem(updated)
                 editItem = null
+                gate.require { viewModel.updateItem(updated) }
             },
         )
     }
@@ -166,8 +168,8 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
                             item = item,
                             onEdit = { editItem = item },
                             onDelete = { deleteTarget = item },
-                            onIncrement = { viewModel.adjustQuantity(item, step) },
-                            onDecrement = { viewModel.adjustQuantity(item, -step) },
+                            onIncrement = { gate.require { viewModel.adjustQuantity(item, step) } },
+                            onDecrement = { gate.require { viewModel.adjustQuantity(item, -step) } },
                         )
                     }
                 }
