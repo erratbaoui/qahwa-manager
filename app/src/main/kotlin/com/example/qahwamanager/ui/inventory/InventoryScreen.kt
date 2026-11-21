@@ -453,15 +453,18 @@ private fun InventoryItemDialog(
                         text = if (item == null) stringResource(R.string.add_item) else stringResource(R.string.save),
                         onClick = {
                             if (isValid) {
-                                onConfirm(
-                                    InventoryItem(
-                                        id = item?.id ?: 0,
-                                        name = name.trim(),
-                                        quantity = parsedQuantity,
-                                        unit = unit.trim(),
-                                        lowStockThreshold = parsedThreshold,
-                                    ),
+                                val updated = item?.copy(
+                                    name = name.trim(),
+                                    quantity = parsedQuantity,
+                                    unit = unit.trim(),
+                                    lowStockThreshold = parsedThreshold,
+                                ) ?: InventoryItem(
+                                    name = name.trim(),
+                                    quantity = parsedQuantity,
+                                    unit = unit.trim(),
+                                    lowStockThreshold = parsedThreshold,
                                 )
+                                onConfirm(updated)
                             }
                         },
                         enabled = isValid,

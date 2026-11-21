@@ -29,9 +29,26 @@ class PinHasherTest {
     @Test
     fun hash_isHex64Chars() {
         val hash = PinHasher.hash("1234", PinHasher.newSalt())
-        assertEquals(64, hash.length)
-        assertTrue(hash.all { it in '0'..'9' || it in 'a'..'f' })
+        assertTrue(hash.startsWith("v2:"))
+        val hexPart = hash.removePrefix("v2:")
+        assertEquals(64, hexPart.length)
+        assertTrue(hexPart.all { it in '0'..'9' || it in 'a'..'f' })
         assertEquals(32, PinHasher.newSalt().length)
+    }
+
+    @Test
+    fun matches_supportsLegacySha1Hash() {
+        val salt = "0123456789abcdef0123456789abcdef"
+        val spec = javax.crypto.spec.PBEKeySpec(
+            "1234".toCharArray(),
+            ByteArray(16) { i -> salt.substring(i * 2, i * 2 + 2).toInt(16).toByte() },
+            20_000,
+            256,
+        )
+        val legacyHash = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1")
+            .generateSecret(spec).encoded.joinToString("") { "%02x".format(it) }
+        assertTrue(PinHasher.matches("1234", salt, legacyHash))
+        assertFalse(PinHasher.matches("9999", salt, legacyHash))
     }
 
     @Test

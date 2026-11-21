@@ -35,7 +35,7 @@ class OwnerCloudViewModel @Inject constructor(
     val error: StateFlow<String?> = _error.asStateFlow()
 
     fun generateInviteCode() {
-        if (_isBusy.value) return
+        if (!ownerSession.isOwnerMode.value || _isBusy.value) return
         _isBusy.value = true
         _error.value = null
         viewModelScope.launch {
@@ -52,7 +52,7 @@ class OwnerCloudViewModel @Inject constructor(
     }
 
     fun signOut() {
-        if (_isBusy.value) return
+        if (!ownerSession.isOwnerMode.value || _isBusy.value) return
         _isBusy.value = true
         viewModelScope.launch {
             try {

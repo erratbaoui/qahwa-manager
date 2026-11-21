@@ -42,6 +42,13 @@ class MoneyTest {
     }
 
     @Test
+    fun rejectsOverflowingInputWithoutThrowing() {
+        assertNull(parseMadToCentimes("99999999999999999999"))
+        assertNull(parseMadToCentimes("10000001"))
+        assertEquals(1_000_000_000L, parseMadToCentimes("10000000"))
+    }
+
+    @Test
     fun convertsCentimesToExactDecimalAmount() {
         assertEquals(BigDecimal("12.50"), centimesToAmount(1250L))
         assertEquals(BigDecimal("0.05"), centimesToAmount(5L))

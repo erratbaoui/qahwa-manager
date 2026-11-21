@@ -8,6 +8,7 @@ import com.example.qahwamanager.data.model.StaffRole
 import com.example.qahwamanager.data.repository.ShiftRepository
 import com.example.qahwamanager.data.repository.StaffRepository
 import com.example.qahwamanager.data.time.Clock
+import com.example.qahwamanager.security.OwnerSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -231,6 +232,7 @@ class OwnerDashboardViewModel @Inject constructor(
     private val shiftRepository: ShiftRepository,
     staffRepository: StaffRepository,
     private val clock: Clock,
+    private val ownerSession: OwnerSession,
 ) : ViewModel() {
 
     private val _period = MutableStateFlow(DashboardPeriod.THIS_WEEK)
@@ -272,7 +274,7 @@ class OwnerDashboardViewModel @Inject constructor(
         amountCentimes: Long,
         onDone: () -> Unit = {},
     ) {
-        if (_isSaving.value) return
+        if (!ownerSession.isOwnerMode.value || _isSaving.value) return
         _isSaving.value = true
         viewModelScope.launch {
             try {

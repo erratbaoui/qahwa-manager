@@ -58,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
 import com.example.qahwamanager.data.cloud.SyncStatus
 import com.example.qahwamanager.ui.auth.ChangePinDialog
+import com.example.qahwamanager.ui.auth.LocalOwnerGate
 import com.example.qahwamanager.ui.auth.resetsOwnerIdleTimer
 import com.example.qahwamanager.ui.common.QahwaCard
 import com.example.qahwamanager.ui.common.QahwaConfirmDialog
@@ -82,6 +83,7 @@ fun OwnerHomeScreen(
     val invite by cloudViewModel.invite.collectAsStateWithLifecycle()
     val cloudError by cloudViewModel.error.collectAsStateWithLifecycle()
     val qColors = QahwaTheme.colors
+    val gate = LocalOwnerGate.current
     val context = LocalContext.current
 
     var changingPin by remember { mutableStateOf(false) }
@@ -97,7 +99,7 @@ fun OwnerHomeScreen(
             isDestructive = true,
             onConfirm = {
                 confirmSignOut = false
-                cloudViewModel.signOut()
+                gate.require { cloudViewModel.signOut() }
             },
             onDismiss = { confirmSignOut = false },
         )
@@ -193,7 +195,11 @@ fun OwnerHomeScreen(
                     OwnerRow(icon = Icons.AutoMirrored.Filled.TrendingUp, title = stringResource(R.string.sales), onClick = onSales)
                     OwnerRow(icon = Icons.Default.Schedule, title = stringResource(R.string.shifts), badge = toSettle.size, onClick = onShifts)
                     OwnerRow(icon = Icons.Default.Group, title = stringResource(R.string.staff), onClick = onStaff)
-                    OwnerRow(icon = Icons.Default.PersonAdd, title = stringResource(R.string.invite_co_owner), onClick = cloudViewModel::generateInviteCode)
+                    OwnerRow(
+                        icon = Icons.Default.PersonAdd,
+                        title = stringResource(R.string.invite_co_owner),
+                        onClick = { gate.require { cloudViewModel.generateInviteCode() } },
+                    )
                     OwnerRow(icon = Icons.Default.Password, title = stringResource(R.string.change_pin), onClick = { changingPin = true })
                     OwnerRow(icon = Icons.Default.Key, title = stringResource(R.string.new_recovery_code), onClick = onNewRecoveryCode)
                     OwnerRow(icon = Icons.AutoMirrored.Filled.Logout, title = stringResource(R.string.sign_out), onClick = { confirmSignOut = true })
