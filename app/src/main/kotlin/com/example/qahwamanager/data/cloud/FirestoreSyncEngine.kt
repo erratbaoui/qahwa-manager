@@ -29,7 +29,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Bi-directional offline-first sync bridge between local Room SQLite and Cloud Firestore
+ * Bidirectional offline-first sync bridge between local Room SQLite and Cloud Firestore
  * scoped strictly to `/cafes/{cafeId}/...`.
  */
 @Singleton
@@ -57,6 +57,7 @@ class FirestoreSyncEngine @Inject constructor(
         stop()
         activeCafeId = cafeId
         _syncStatus.value = SyncStatus.SYNCING
+        Log.i(TAG, "Starting Firestore sync for cafe=$cafeId")
 
         val cafeRef = firestore.collection("cafes").document(cafeId)
 
@@ -68,6 +69,7 @@ class FirestoreSyncEngine @Inject constructor(
             }
             val docs = snap?.documents.orEmpty()
             val fromCache = snap?.metadata?.isFromCache == true
+            Log.i(TAG, "Staff snapshot: count=${docs.size}, fromCache=$fromCache")
             scope.launch {
                 inboundMutex.withLock {
                     docs.forEach { doc ->
@@ -340,6 +342,7 @@ class FirestoreSyncEngine @Inject constructor(
                     .collection("staff").document(staff.remoteId)
                     .set(FirestoreSyncMapper.staffToMap(staff))
                     .await()
+                Log.i(TAG, "Pushed staff ${staff.name} (${staff.remoteId})")
             }.onFailure { Log.w(TAG, "Failed to push staff ${staff.remoteId}", it) }
         }
     }
@@ -358,6 +361,7 @@ class FirestoreSyncEngine @Inject constructor(
                     .collection("shifts").document(shift.remoteId)
                     .set(FirestoreSyncMapper.shiftToMap(shift, staff.remoteId, leftOpen))
                     .await()
+                Log.i(TAG, "Pushed shift $shiftId (${shift.remoteId})")
             }.onFailure { Log.w(TAG, "Failed to push shift $shiftId", it) }
         }
     }
