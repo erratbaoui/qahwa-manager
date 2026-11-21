@@ -185,4 +185,45 @@ class OwnerDashboardViewModelTest {
         assertEquals(startedAt, entry.shift.startedAt)
         assertEquals(endedAt, entry.shift.endedAt)
     }
+
+    @Test
+    fun computeOwnerDashboardState_computesWeeklyEarningsAndTrend() {
+        val now = utcMillis(2026, 11, 20, 20)
+        val shifts = listOf(
+            // Previous week (Mon 9 Nov – Sun 15 Nov): 500 MAD total
+            ShiftWithStaff(
+                shift = Shift(id = 1, staffId = 10, status = ShiftStatus.SETTLED, startedAt = utcMillis(2026, 11, 10, 9), countedCentimes = 20_000L),
+                staffName = "Karim",
+                staffRole = StaffRole.WAITER,
+            ),
+            ShiftWithStaff(
+                shift = Shift(id = 2, staffId = 10, status = ShiftStatus.SETTLED, startedAt = utcMillis(2026, 11, 12, 16), countedCentimes = 30_000L),
+                staffName = "Karim",
+                staffRole = StaffRole.WAITER,
+            ),
+            // Current week (Mon 16 Nov – Sun 22 Nov): 600 MAD total (+20% vs previous week)
+            ShiftWithStaff(
+                shift = Shift(id = 3, staffId = 20, status = ShiftStatus.SETTLED, startedAt = utcMillis(2026, 11, 18, 10), countedCentimes = 60_000L),
+                staffName = "Youssef",
+                staffRole = StaffRole.WAITER,
+            ),
+        )
+
+        val state = computeOwnerDashboardState(shifts, DashboardPeriod.THIS_WEEK, now, utc)
+
+        // Even when period is THIS_WEEK, weeklyEarnings exposes both weeks newest-first
+        assertEquals(2, state.weeklyEarnings.size)
+        assertEquals(60_000L, state.weeklyEarnings[0].totalCentimes)
+        assertEquals(1, state.weeklyEarnings[0].shiftCount)
+        assertEquals(20, state.weeklyEarnings[0].changePercent)
+
+        assertEquals(50_000L, state.weeklyEarnings[1].totalCentimes)
+        assertEquals(2, state.weeklyEarnings[1].shiftCount)
+        assertEquals(null, state.weeklyEarnings[1].changePercent)
+
+        // Best day & daily average for THIS_WEEK
+        assertEquals(1, state.activeDaysCount)
+        assertEquals(60_000L, state.averagePerDayCentimes)
+        assertEquals(60_000L, state.bestDay?.totalCentimes)
+    }
 }

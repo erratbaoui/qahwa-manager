@@ -151,7 +151,7 @@ fun OwnerDashboardScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 40.dp),
+                            .padding(vertical = 24.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         QahwaEmptyState(
@@ -160,25 +160,46 @@ fun OwnerDashboardScreen(
                         )
                     }
                 } else {
-                    // 1. Hero Earnings Card
+                    // 1. Hero Earnings Card with period explanation, daily avg & best day
                     EarningsHeroCard(state = state)
 
                     // 2. Daily Earnings Bar Chart
                     if (state.dailyEarnings.isNotEmpty()) {
-                        QahwaSectionHeader(title = stringResource(R.string.daily_earnings))
+                        SectionTitleWithHint(
+                            title = stringResource(R.string.daily_earnings),
+                            hint = stringResource(R.string.daily_earnings_hint),
+                        )
                         DailyEarningsChartCard(days = state.dailyEarnings)
                     }
 
                     // 3. Morning vs Afternoon Lucrativeness Comparison
-                    QahwaSectionHeader(title = stringResource(R.string.morning_vs_afternoon))
+                    SectionTitleWithHint(
+                        title = stringResource(R.string.morning_vs_afternoon),
+                        hint = stringResource(R.string.morning_vs_afternoon_hint),
+                    )
                     MorningVsAfternoonCard(
                         morning = state.morningStats,
                         afternoon = state.afternoonStats,
                     )
 
-                    // 4. Top Performing Staff Leaderboard
-                    QahwaSectionHeader(title = stringResource(R.string.top_performing_staff))
-                    TopStaffCard(staff = state.topStaff)
+                    // 4. Top Performing Waiters Leaderboard
+                    SectionTitleWithHint(
+                        title = stringResource(R.string.top_performing_staff),
+                        hint = stringResource(R.string.top_waiters_hint),
+                    )
+                    TopStaffCard(
+                        staff = state.topStaff,
+                        totalEarningsCentimes = state.totalEarningsCentimes,
+                    )
+                }
+
+                // 5. Week-by-Week Earnings Breakdown (always visible whenever any waiter shift exists)
+                if (state.weeklyEarnings.isNotEmpty()) {
+                    SectionTitleWithHint(
+                        title = stringResource(R.string.weekly_earnings),
+                        hint = stringResource(R.string.weekly_earnings_hint),
+                    )
+                    WeeklyEarningsCard(weeks = state.weeklyEarnings)
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -235,8 +256,27 @@ private fun PeriodFilterRow(
 }
 
 @Composable
+private fun SectionTitleWithHint(title: String, hint: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        QahwaSectionHeader(title = title)
+        Text(
+            text = hint,
+            style = MaterialTheme.typography.bodySmall,
+            color = QahwaTheme.colors.textSecondary,
+        )
+    }
+}
+
+@Composable
 private fun EarningsHeroCard(state: OwnerDashboardUiState) {
     val qColors = QahwaTheme.colors
+    val bestDayFormat = rememberDateFormat("EEE, d MMM")
+    val periodLabel = when (state.period) {
+        DashboardPeriod.TODAY -> stringResource(R.string.today)
+        DashboardPeriod.THIS_WEEK -> stringResource(R.string.this_week)
+        DashboardPeriod.THIS_MONTH -> stringResource(R.string.this_month)
+        DashboardPeriod.ALL_TIME -> stringResource(R.string.all_time)
+    }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -249,11 +289,18 @@ private fun EarningsHeroCard(state: OwnerDashboardUiState) {
                 .padding(22.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = stringResource(R.string.total_earnings),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = BrandAmberGold,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = stringResource(R.string.total_earnings),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = BrandAmberGold,
+                    )
+                    Text(
+                        text = stringResource(R.string.dashboard_hero_subtitle, periodLabel),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = BrandCream.copy(alpha = 0.72f),
+                    )
+                }
                 Text(
                     text = formatMad(state.totalEarningsCentimes),
                     style = MaterialTheme.typography.displaySmall.copy(fontFeatureSettings = "tnum"),
@@ -277,6 +324,19 @@ private fun EarningsHeroCard(state: OwnerDashboardUiState) {
                             color = BrandCream,
                         )
                     }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = stringResource(R.string.avg_per_day),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = BrandCream.copy(alpha = 0.72f),
+                        )
+                        Text(
+                            text = formatMad(state.averagePerDayCentimes),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = BrandCream,
+                        )
+                    }
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = stringResource(R.string.avg_per_shift),
@@ -291,6 +351,23 @@ private fun EarningsHeroCard(state: OwnerDashboardUiState) {
                         )
                     }
                 }
+                state.bestDay?.let { peak ->
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = BrandCream.copy(alpha = 0.10f),
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.best_day_highlight,
+                                bestDayFormat.format(Date(peak.dayStartMillis)),
+                                formatMad(peak.totalCentimes),
+                            ),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = BrandAmberGold,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                    }
+                }
             }
         }
     }
@@ -300,6 +377,7 @@ private fun EarningsHeroCard(state: OwnerDashboardUiState) {
 private fun DailyEarningsChartCard(days: List<DailyEarning>) {
     val qColors = QahwaTheme.colors
     val dayLabel = rememberDateFormat("EEE")
+    val dateLabel = rememberDateFormat("d/M")
     val maxEarnings = days.maxOfOrNull { it.totalCentimes }?.coerceAtLeast(1L) ?: 1L
 
     QahwaCard(modifier = Modifier.fillMaxWidth()) {
@@ -312,7 +390,7 @@ private fun DailyEarningsChartCard(days: List<DailyEarning>) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp),
+                    .height(156.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
@@ -351,8 +429,117 @@ private fun DailyEarningsChartCard(days: List<DailyEarning>) {
                         Text(
                             text = dayLabel.format(Date(day.dayStartMillis)),
                             style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
                             color = qColors.textPrimary,
                             maxLines = 1,
+                        )
+                        Text(
+                            text = dateLabel.format(Date(day.dayStartMillis)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = qColors.textSecondary,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeeklyEarningsCard(weeks: List<WeeklyEarning>) {
+    val qColors = QahwaTheme.colors
+    val rangeFormat = rememberDateFormat("d MMM")
+    val maxTotal = weeks.maxOfOrNull { it.totalCentimes }?.coerceAtLeast(1L) ?: 1L
+
+    QahwaCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            weeks.forEachIndexed { index, week ->
+                if (index > 0) QahwaDivider()
+                val isBest = week.totalCentimes == maxTotal && weeks.size > 1
+                val ratio = (week.totalCentimes.toFloat() / maxTotal.toFloat()).coerceIn(0.05f, 1f)
+                val rangeText = "${rangeFormat.format(Date(week.weekStartMillis))} – ${rangeFormat.format(Date(week.weekEndMillis))}"
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(
+                                    text = rangeText,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = qColors.textPrimary,
+                                )
+                                if (isBest) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = BrandAmberGold.copy(alpha = 0.18f),
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.best_week),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (qColors.isDark) BrandAmberGold else qColors.primaryAccent,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                text = pluralStringResource(R.plurals.shifts_count, week.shiftCount, week.shiftCount) +
+                                    " · " + stringResource(R.string.avg_short, formatMad(week.averagePerShiftCentimes)),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = qColors.textSecondary,
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            QahwaCurrencyText(
+                                centimes = week.totalCentimes,
+                                color = if (isBest) BrandAmberGold else qColors.primaryAccent,
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            week.changePercent?.let { pct ->
+                                val positive = pct >= 0
+                                val label = if (positive) "+$pct%" else "$pct%"
+                                Text(
+                                    text = stringResource(R.string.vs_prev_week, label),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (positive) qColors.success else qColors.warning,
+                                )
+                            }
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(qColors.elevatedSurface),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(ratio)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(if (isBest) BrandAmberGold else qColors.primaryAccent),
                         )
                     }
                 }
@@ -369,11 +556,16 @@ private fun MorningVsAfternoonCard(
     val qColors = QahwaTheme.colors
     val combinedTotal = (morning.totalCentimes + afternoon.totalCentimes).coerceAtLeast(1L)
     val morningShare = (morning.totalCentimes.toFloat() / combinedTotal.toFloat()).coerceIn(0f, 1f)
+    val morningPct = (morningShare * 100).toInt()
+    val afternoonPct = 100 - morningPct
+    val avgDiff = kotlin.math.abs(morning.averageCentimes - afternoon.averageCentimes)
 
     val winnerText = when {
         morning.shiftCount == 0 && afternoon.shiftCount == 0 -> null
-        morning.averageCentimes > afternoon.averageCentimes -> stringResource(R.string.mornings_more_lucrative)
-        afternoon.averageCentimes > morning.averageCentimes -> stringResource(R.string.afternoons_more_lucrative)
+        morning.averageCentimes > afternoon.averageCentimes ->
+            stringResource(R.string.mornings_more_lucrative_by, formatMad(avgDiff))
+        afternoon.averageCentimes > morning.averageCentimes ->
+            stringResource(R.string.afternoons_more_lucrative_by, formatMad(avgDiff))
         else -> stringResource(R.string.shifts_equally_lucrative)
     }
 
@@ -421,31 +613,50 @@ private fun MorningVsAfternoonCard(
                 )
             }
 
-            // Proportional split bar
+            // Proportional split bar with percentage labels
             if (morning.totalCentimes > 0L || afternoon.totalCentimes > 0L) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(qColors.elevatedSurface),
-                ) {
-                    if (morningShare > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .weight(morningShare.coerceAtLeast(0.01f))
-                                .fillMaxHeight()
-                                .background(BrandAmberGold),
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = "${stringResource(R.string.morning_shifts)} · $morningPct%",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = qColors.textSecondary,
+                        )
+                        Text(
+                            text = "${stringResource(R.string.afternoon_shifts)} · $afternoonPct%",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = qColors.textSecondary,
                         )
                     }
-                    val afternoonShare = 1f - morningShare
-                    if (afternoonShare > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .weight(afternoonShare.coerceAtLeast(0.01f))
-                                .fillMaxHeight()
-                                .background(BrandForestLight),
-                        )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(qColors.elevatedSurface),
+                    ) {
+                        if (morningShare > 0f) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(morningShare.coerceAtLeast(0.01f))
+                                    .fillMaxHeight()
+                                    .background(BrandAmberGold),
+                            )
+                        }
+                        val afternoonShare = 1f - morningShare
+                        if (afternoonShare > 0f) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(afternoonShare.coerceAtLeast(0.01f))
+                                    .fillMaxHeight()
+                                    .background(BrandForestLight),
+                            )
+                        }
                     }
                 }
             }
@@ -508,9 +719,13 @@ private fun SlotColumn(
 }
 
 @Composable
-private fun TopStaffCard(staff: List<StaffPerformance>) {
+private fun TopStaffCard(
+    staff: List<StaffPerformance>,
+    totalEarningsCentimes: Long,
+) {
     val qColors = QahwaTheme.colors
     val maxEarnings = staff.maxOfOrNull { it.totalCentimes }?.coerceAtLeast(1L) ?: 1L
+    val safeTotal = totalEarningsCentimes.coerceAtLeast(1L)
 
     QahwaCard(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -522,6 +737,7 @@ private fun TopStaffCard(staff: List<StaffPerformance>) {
             staff.forEachIndexed { index, person ->
                 if (index > 0) QahwaDivider()
                 val ratio = (person.totalCentimes.toFloat() / maxEarnings.toFloat()).coerceIn(0.05f, 1f)
+                val sharePct = ((person.totalCentimes * 100L) / safeTotal).toInt()
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -556,7 +772,8 @@ private fun TopStaffCard(staff: List<StaffPerformance>) {
                                 )
                                 Text(
                                     text = pluralStringResource(R.plurals.shifts_count, person.shiftCount, person.shiftCount) +
-                                        " · " + stringResource(R.string.avg_short, formatMad(person.averageCentimes)),
+                                        " · " + stringResource(R.string.avg_short, formatMad(person.averageCentimes)) +
+                                        " · $sharePct%",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = qColors.textSecondary,
                                 )

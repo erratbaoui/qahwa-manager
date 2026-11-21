@@ -49,17 +49,34 @@ data class DailyEarning(
     val totalCentimes: Long,
 )
 
+data class WeeklyEarning(
+    val weekStartMillis: Long,
+    val weekEndMillis: Long,
+    val totalCentimes: Long,
+    val shiftCount: Int,
+    val changePercent: Int? = null,
+) {
+    val averagePerShiftCentimes: Long
+        get() = if (shiftCount == 0) 0L else totalCentimes / shiftCount
+}
+
 data class OwnerDashboardUiState(
     val period: DashboardPeriod = DashboardPeriod.THIS_WEEK,
     val totalEarningsCentimes: Long = 0L,
     val totalShifts: Int = 0,
+    val activeDaysCount: Int = 0,
+    val bestDay: DailyEarning? = null,
     val morningStats: SlotStats = SlotStats(),
     val afternoonStats: SlotStats = SlotStats(),
     val topStaff: List<StaffPerformance> = emptyList(),
     val dailyEarnings: List<DailyEarning> = emptyList(),
+    val weeklyEarnings: List<WeeklyEarning> = emptyList(),
 ) {
     val averagePerShiftCentimes: Long
         get() = if (totalShifts == 0) 0L else totalEarningsCentimes / totalShifts
+
+    val averagePerDayCentimes: Long
+        get() = if (activeDaysCount == 0) 0L else totalEarningsCentimes / activeDaysCount
 }
 
 /**
@@ -92,10 +109,13 @@ fun computeOwnerDashboardState(
         DashboardPeriod.ALL_TIME -> Long.MIN_VALUE
     }
 
-    val filtered = closedShifts.filter {
-        it.staffRole == StaffRole.WAITER && it.shift.startedAt >= minStart
+    val allWaiterShifts = closedShifts.filter { it.staffRole == StaffRole.WAITER }
+    val weeklyEarnings = computeWeeklyEarnings(allWaiterShifts, timeZone)
+
+    val filtered = allWaiterShifts.filter { it.shift.startedAt >= minStart }
+    if (filtered.isEmpty()) {
+        return OwnerDashboardUiState(period = period, weeklyEarnings = weeklyEarnings)
     }
-    if (filtered.isEmpty()) return OwnerDashboardUiState(period = period)
 
     var totalEarnings = 0L
     var morningTotal = 0L
@@ -143,20 +163,62 @@ fun computeOwnerDashboardState(
         }
         .sortedWith(compareByDescending<StaffPerformance> { it.totalCentimes }.thenBy { it.staffName })
 
-    val dailyEarnings = byDay.entries
-        .toList()
-        .takeLast(7)
-        .map { DailyEarning(dayStartMillis = it.key, totalCentimes = it.value) }
+    val allDays = byDay.entries.map { DailyEarning(dayStartMillis = it.key, totalCentimes = it.value) }
+    val dailyEarnings = allDays.takeLast(7)
+    val bestDay = allDays.maxByOrNull { it.totalCentimes }
 
     return OwnerDashboardUiState(
         period = period,
         totalEarningsCentimes = totalEarnings,
         totalShifts = filtered.size,
+        activeDaysCount = allDays.size,
+        bestDay = bestDay,
         morningStats = SlotStats(totalCentimes = morningTotal, shiftCount = morningCount),
         afternoonStats = SlotStats(totalCentimes = afternoonTotal, shiftCount = afternoonCount),
         topStaff = topStaff,
         dailyEarnings = dailyEarnings,
+        weeklyEarnings = weeklyEarnings,
     )
+}
+
+private fun computeWeeklyEarnings(
+    waiterShifts: List<ShiftWithStaff>,
+    timeZone: TimeZone,
+): List<WeeklyEarning> {
+    if (waiterShifts.isEmpty()) return emptyList()
+    val byWeek = sortedMapOf<Long, Pair<Long, Int>>()
+    for (entry in waiterShifts) {
+        val weekStart = startOfWeek(entry.shift.startedAt, timeZone)
+        val current = byWeek[weekStart]
+        val earnings = entry.earningsCentimes()
+        byWeek[weekStart] = if (current == null) {
+            earnings to 1
+        } else {
+            (current.first + earnings) to (current.second + 1)
+        }
+    }
+
+    val chronological = byWeek.entries.toList()
+    return chronological.mapIndexed { index, (weekStart, pair) ->
+        val (total, count) = pair
+        val prevTotal = chronological.getOrNull(index - 1)?.value?.first
+        val changePct = if (prevTotal != null && prevTotal > 0L) {
+            (((total - prevTotal) * 100L) / prevTotal).toInt()
+        } else {
+            null
+        }
+        val weekEnd = Calendar.getInstance(timeZone).apply {
+            timeInMillis = weekStart
+            add(Calendar.DAY_OF_YEAR, 6)
+        }.timeInMillis
+        WeeklyEarning(
+            weekStartMillis = weekStart,
+            weekEndMillis = weekEnd,
+            totalCentimes = total,
+            shiftCount = count,
+            changePercent = changePct,
+        )
+    }.asReversed().take(12)
 }
 
 private fun startOfDay(nowMillis: Long, timeZone: TimeZone): Long {
