@@ -8,3 +8,10 @@
 # with the mapping file (app/build/outputs/mapping/release/mapping.txt).
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# Strip verbose/debug/info logs from release builds.
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+}

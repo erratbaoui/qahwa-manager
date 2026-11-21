@@ -243,24 +243,24 @@ private fun InventoryItemCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = onEdit,
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(48.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = stringResource(R.string.edit_item),
                             tint = qColors.primaryAccent,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                     IconButton(
                         onClick = onDelete,
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(48.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = stringResource(R.string.delete),
                             tint = qColors.error,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
@@ -377,7 +377,7 @@ private fun InventoryItemDialog(
                             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
                             modifier = Modifier
                                 .weight(1f)
-                                .height(34.dp),
+                                .height(48.dp),
                             shape = RoundedCornerShape(8.dp),
                             border = BorderStroke(1.dp, qColors.divider),
                         ) {

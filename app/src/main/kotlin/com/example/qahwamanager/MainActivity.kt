@@ -7,6 +7,7 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.view.MotionEvent
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -105,6 +107,17 @@ class MainActivity : AppCompatActivity() {
             var splashCompleted by rememberSaveable { mutableStateOf(false) }
             val rootViewModel: RootViewModel = hiltViewModel()
             val rootScreen by rootViewModel.screen.collectAsStateWithLifecycle()
+            val isOwnerMode by ownerSession.isOwnerMode.collectAsStateWithLifecycle()
+
+            // Protect sensitive owner screens (PIN setup, recovery/invite codes, earnings) from screenshots & Recents.
+            val protectScreen = isOwnerMode || rootScreen == RootScreen.SETUP
+            LaunchedEffect(protectScreen) {
+                if (protectScreen) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+            }
 
             CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 QahwaManagerTheme(darkTheme = isDark) {

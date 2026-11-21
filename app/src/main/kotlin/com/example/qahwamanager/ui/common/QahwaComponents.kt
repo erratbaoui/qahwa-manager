@@ -375,11 +375,8 @@ private fun QuantityButton(
 
     Box(
         modifier = modifier
-            .minimumInteractiveComponentSize()
-            .size(36.dp)
+            .size(48.dp)
             .clip(CircleShape)
-            .background(bg)
-            .border(border, CircleShape)
             .clickable(
                 enabled = enabled,
                 onClick = onClick,
@@ -387,12 +384,21 @@ private fun QuantityButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            modifier = Modifier.size(16.dp),
-            tint = tint,
-        )
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(bg)
+                .border(border, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(16.dp),
+                tint = tint,
+            )
+        }
     }
 }
 

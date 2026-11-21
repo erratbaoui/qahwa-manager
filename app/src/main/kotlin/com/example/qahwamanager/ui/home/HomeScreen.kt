@@ -24,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,7 +63,8 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isOwnerMode by shiftViewModel.isOwnerMode.collectAsStateWithLifecycle()
     val activeShift by shiftViewModel.activeShift.collectAsStateWithLifecycle()
-    val today = rememberDateFormat("EEEEdMMMMyyyy").format(Date())
+    val dateFormat = rememberDateFormat("EEEEdMMMMyyyy")
+    val today = remember(dateFormat) { dateFormat.format(Date()) }
     val qColors = QahwaTheme.colors
 
     Column(
@@ -142,7 +144,7 @@ fun HomeScreen(
                                 verticalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
                                 Text(
-                                    text = "Qahwa manager",
+                                    text = stringResource(R.string.app_name),
                                     style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = BrandCream,

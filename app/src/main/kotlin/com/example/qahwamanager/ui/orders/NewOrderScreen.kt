@@ -42,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -100,9 +101,9 @@ fun NewOrderScreen(
     val qColors = QahwaTheme.colors
     val focusManager = LocalFocusManager.current
 
-    var tableNumber by remember { mutableStateOf("") }
-    var isTakeaway by remember { mutableStateOf(false) }
-    var selectedCategory by remember { mutableStateOf("all") }
+    var tableNumber by rememberSaveable { mutableStateOf("") }
+    var isTakeaway by rememberSaveable { mutableStateOf(false) }
+    var selectedCategory by rememberSaveable { mutableStateOf("all") }
 
     val filteredItems = remember(menuItems, selectedCategory) {
         if (selectedCategory == "all") {
@@ -111,6 +112,8 @@ fun NewOrderScreen(
             menuItems.filter { it.category.equals(selectedCategory, ignoreCase = true) }
         }
     }
+    val cartQtyById = remember(cart) { cart.associate { it.menuItem.id to it.quantity } }
+    val cartTotalCentimes = remember(cart) { cart.sumOf { it.menuItem.priceCentimes * it.quantity } }
 
     val canPlaceOrder = !isSaving && cart.isNotEmpty() && (isTakeaway || tableNumber.isNotBlank())
 
@@ -193,7 +196,7 @@ fun NewOrderScreen(
                         ProductGrid(
                             items = filteredItems,
                             language = language,
-                            cart = cart,
+                            cartQtyById = cartQtyById,
                             onAddToCart = viewModel::addToCart,
                             onRemoveFromCart = viewModel::removeFromCart,
                             modifier = Modifier.weight(1f),
@@ -271,7 +274,7 @@ fun NewOrderScreen(
                                     color = qColors.textPrimary,
                                 )
                                 QahwaCurrencyText(
-                                    centimes = viewModel.cartTotalCentimes,
+                                    centimes = cartTotalCentimes,
                                     style = MaterialTheme.typography.headlineSmall,
                                     color = qColors.primaryAccent,
                                 )
@@ -321,7 +324,7 @@ fun NewOrderScreen(
                     ProductGrid(
                         items = filteredItems,
                         language = language,
-                        cart = cart,
+                        cartQtyById = cartQtyById,
                         onAddToCart = viewModel::addToCart,
                         onRemoveFromCart = viewModel::removeFromCart,
                         modifier = Modifier
@@ -384,7 +387,7 @@ fun NewOrderScreen(
                                         color = qColors.textPrimary,
                                     )
                                     QahwaCurrencyText(
-                                        centimes = viewModel.cartTotalCentimes,
+                                        centimes = cartTotalCentimes,
                                         style = MaterialTheme.typography.titleLarge,
                                         color = qColors.primaryAccent,
                                     )
@@ -519,7 +522,7 @@ private fun CategoryChipsRow(
 private fun ProductGrid(
     items: List<MenuItem>,
     language: String,
-    cart: List<CartItem>,
+    cartQtyById: Map<Long, Int>,
     onAddToCart: (MenuItem) -> Unit,
     onRemoveFromCart: (MenuItem) -> Unit,
     modifier: Modifier = Modifier,
@@ -541,11 +544,10 @@ private fun ProductGrid(
             contentPadding = PaddingValues(vertical = 8.dp),
         ) {
             items(items, key = { it.id }) { item ->
-                val cartItem = cart.find { it.menuItem.id == item.id }
                 MenuItemSelectCard(
                     item = item,
                     language = language,
-                    quantity = cartItem?.quantity ?: 0,
+                    quantity = cartQtyById[item.id] ?: 0,
                     onAdd = { onAddToCart(item) },
                     onRemove = { onRemoveFromCart(item) },
                 )
