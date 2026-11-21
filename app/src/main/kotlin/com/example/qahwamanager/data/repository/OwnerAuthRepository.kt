@@ -1,5 +1,7 @@
 package com.example.qahwamanager.data.repository
 
+import com.example.qahwamanager.data.cloud.NoOpSyncPublisher
+import com.example.qahwamanager.data.cloud.SyncPublisher
 import com.example.qahwamanager.data.db.OwnerDao
 import com.example.qahwamanager.data.db.ShiftDao
 import com.example.qahwamanager.data.model.OwnerCredentials
@@ -29,7 +31,8 @@ constructor(
         private val ownerDao: OwnerDao,
         private val shiftDao: ShiftDao,
         private val clock: Clock,
-        @HashingDispatcher private val hashingDispatcher: CoroutineDispatcher
+        @HashingDispatcher private val hashingDispatcher: CoroutineDispatcher,
+        private val syncPublisher: SyncPublisher = NoOpSyncPublisher,
 ) {
     fun observeOwnerExists(): Flow<Boolean> = ownerDao.observeExists()
 
@@ -52,15 +55,16 @@ constructor(
                             recoverySalt = recoverySalt,
                     )
                 }
-        ownerDao.createOwner(
-                Staff(
-                        name = trimmed,
-                        role = com.example.qahwamanager.data.model.StaffRole.OWNER,
-                        isOwner = true,
-                        createdAt = clock.nowMillis(),
-                ),
-                credentials,
+        val now = clock.nowMillis()
+        val ownerStaff = Staff(
+                name = trimmed,
+                role = com.example.qahwamanager.data.model.StaffRole.OWNER,
+                isOwner = true,
+                createdAt = now,
+                updatedAt = now,
         )
+        val ownerId = ownerDao.createOwner(ownerStaff, credentials)
+        syncPublisher.pushStaff(ownerStaff.copy(id = ownerId))
         return code
     }
 

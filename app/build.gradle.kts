@@ -5,6 +5,7 @@ plugins {
   alias(libs.plugins.hilt.android)
   alias(libs.plugins.ksp)
   alias(libs.plugins.room)
+  alias(libs.plugins.google.services)
 }
 
 android {
@@ -126,6 +127,13 @@ dependencies {
   androidTestImplementation(libs.room.testing)
   androidTestImplementation(libs.kotlinx.coroutines.test)
 
-  // Kotlinx Serialization
+  // Kotlinx Serialization & Coroutines
   implementation(libs.kotlinx.serialization.json)
+  implementation(libs.kotlinx.coroutines.android)
+  implementation(libs.kotlinx.coroutines.play.services)
+
+  // Firebase (Auth + Cloud Firestore)
+  implementation(platform(libs.firebase.bom))
+  implementation(libs.firebase.auth)
+  implementation(libs.firebase.firestore)
 }

@@ -16,8 +16,14 @@ interface StaffDao {
     @Query("SELECT * FROM staff ORDER BY isOwner DESC, name")
     fun observeAll(): Flow<List<Staff>>
 
+    @Query("SELECT * FROM staff")
+    suspend fun getAllSnapshot(): List<Staff>
+
     @Query("SELECT * FROM staff WHERE id = :id")
     suspend fun getById(id: Long): Staff?
+
+    @Query("SELECT * FROM staff WHERE remoteId = :remoteId")
+    suspend fun getByRemoteId(remoteId: String): Staff?
 
     @Insert
     suspend fun insert(staff: Staff): Long

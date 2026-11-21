@@ -11,14 +11,23 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MenuItemDao {
-    @Query("SELECT * FROM menu_items ORDER BY category, name")
+    @Query("SELECT * FROM menu_items WHERE isDeleted = 0 ORDER BY category, name")
     fun getAllItems(): Flow<List<MenuItem>>
 
-    @Query("SELECT * FROM menu_items WHERE category = :category ORDER BY name")
+    @Query("SELECT * FROM menu_items WHERE isDeleted = 0 AND category = :category ORDER BY name")
     fun getItemsByCategory(category: String): Flow<List<MenuItem>>
 
-    @Query("SELECT * FROM menu_items WHERE isAvailable = 1 ORDER BY category, name")
+    @Query("SELECT * FROM menu_items WHERE isDeleted = 0 AND isAvailable = 1 ORDER BY category, name")
     fun getAvailableItems(): Flow<List<MenuItem>>
+
+    @Query("SELECT * FROM menu_items")
+    suspend fun getAllSnapshot(): List<MenuItem>
+
+    @Query("SELECT * FROM menu_items WHERE id = :id")
+    suspend fun getById(id: Long): MenuItem?
+
+    @Query("SELECT * FROM menu_items WHERE remoteId = :remoteId")
+    suspend fun getByRemoteId(remoteId: String): MenuItem?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: MenuItem): Long
@@ -29,4 +38,3 @@ interface MenuItemDao {
     @Delete
     suspend fun delete(item: MenuItem)
 }
-

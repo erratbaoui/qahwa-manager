@@ -128,6 +128,17 @@ class FakeOrderDao : OrderDao() {
         }
 
     override fun observeById(id: Long): Flow<Order?> = orders.map { list -> list.find { it.id == id } }
+
+    override suspend fun getAllSnapshot(): List<Order> = orders.value
+    override suspend fun getById(id: Long): Order? = orders.value.find { it.id == id }
+    override suspend fun getByRemoteId(remoteId: String): Order? = orders.value.find { it.remoteId == remoteId }
+    override suspend fun getItemsSnapshot(orderId: Long): List<OrderItem> = items.value.filter { it.orderId == orderId }
+    override suspend fun deleteItemsForOrder(orderId: Long) {
+        items.update { list -> list.filter { it.orderId != orderId } }
+    }
+    override suspend fun updateOrder(order: Order) {
+        orders.update { list -> list.map { if (it.id == order.id) order else it } }
+    }
 }
 
 class FakeStaffDao : StaffDao {
@@ -137,7 +148,9 @@ class FakeStaffDao : StaffDao {
 
     override fun observeActive(): Flow<List<Staff>> = staff.map { list -> list.filter { it.isActive }.ordered() }
     override fun observeAll(): Flow<List<Staff>> = staff.map { it.ordered() }
+    override suspend fun getAllSnapshot(): List<Staff> = staff.value
     override suspend fun getById(id: Long): Staff? = staff.value.find { it.id == id }
+    override suspend fun getByRemoteId(remoteId: String): Staff? = staff.value.find { it.remoteId == remoteId }
     override suspend fun insert(staff: Staff): Long {
         val id = (this.staff.value.maxOfOrNull { it.id } ?: 0) + 1
         this.staff.update { it + staff.copy(id = id) }
@@ -201,6 +214,20 @@ class FakeShiftDao(private val orderDao: FakeOrderDao, private val staffDao: Fak
 
     override fun observeLeftOpen(shiftId: Long): Flow<List<ShiftLeftOpen>> =
         leftOpen.map { list -> list.filter { it.shiftId == shiftId }.sortedBy { it.orderId } }
+
+    override suspend fun getLeftOpenSnapshot(shiftId: Long): List<ShiftLeftOpen> =
+        leftOpen.value.filter { it.shiftId == shiftId }.sortedBy { it.orderId }
+
+    override suspend fun deleteLeftOpenForShift(shiftId: Long) {
+        leftOpen.update { list -> list.filter { it.shiftId != shiftId } }
+    }
+
+    override suspend fun getAllSnapshot(): List<Shift> = shifts.value
+    override suspend fun getById(id: Long): Shift? = shifts.value.find { it.id == id }
+    override suspend fun getByRemoteId(remoteId: String): Shift? = shifts.value.find { it.remoteId == remoteId }
+    override suspend fun updateShift(shift: Shift) {
+        shifts.update { list -> list.map { if (it.id == shift.id) shift else it } }
+    }
 
     override suspend fun recordFailedOwnerPinOnActive(): Int {
         delay(IO_DELAY_MS)
@@ -311,11 +338,14 @@ class FakeOrderItemDao(private val orderDao: FakeOrderDao) : OrderItemDao {
 class FakeMenuItemDao(initial: List<MenuItem> = emptyList()) : MenuItemDao {
     val items = MutableStateFlow(initial)
 
-    override fun getAllItems(): Flow<List<MenuItem>> = items
+    override fun getAllItems(): Flow<List<MenuItem>> = items.map { list -> list.filter { !it.isDeleted } }
     override fun getItemsByCategory(category: String): Flow<List<MenuItem>> =
-        items.map { list -> list.filter { it.category == category } }
+        items.map { list -> list.filter { !it.isDeleted && it.category == category } }
     override fun getAvailableItems(): Flow<List<MenuItem>> =
-        items.map { list -> list.filter { it.isAvailable } }
+        items.map { list -> list.filter { !it.isDeleted && it.isAvailable } }
+    override suspend fun getAllSnapshot(): List<MenuItem> = items.value
+    override suspend fun getById(id: Long): MenuItem? = items.value.find { it.id == id }
+    override suspend fun getByRemoteId(remoteId: String): MenuItem? = items.value.find { it.remoteId == remoteId }
     override suspend fun insert(item: MenuItem): Long {
         val id = (items.value.maxOfOrNull { it.id } ?: 0) + 1
         items.update { it + item.copy(id = id) }
@@ -334,9 +364,10 @@ class FakeInventoryDao(initial: List<InventoryItem> = emptyList()) : InventoryDa
 
     fun quantityOf(id: Long): Double? = items.value.find { it.id == id }?.quantity
 
-    override fun getAllItems(): Flow<List<InventoryItem>> = items
+    override fun getAllItems(): Flow<List<InventoryItem>> = items.map { list -> list.filter { !it.isDeleted } }
     override fun getLowStockItems(): Flow<List<InventoryItem>> =
-        items.map { list -> list.filter { it.quantity <= it.lowStockThreshold } }
+        items.map { list -> list.filter { !it.isDeleted && it.quantity <= it.lowStockThreshold } }
+    override suspend fun getAllSnapshot(): List<InventoryItem> = items.value
     override suspend fun insert(item: InventoryItem): Long {
         items.update { it + item }
         return item.id
@@ -346,12 +377,14 @@ class FakeInventoryDao(initial: List<InventoryItem> = emptyList()) : InventoryDa
         items.update { list -> list.map { if (it.id == item.id) item else it } }
     }
     // Mirrors: UPDATE inventory_items SET quantity = MAX(0, quantity + :delta) WHERE id = :id
-    override suspend fun adjustQuantity(id: Long, delta: Double) {
+    override suspend fun adjustQuantity(id: Long, delta: Double, updatedAt: Long) {
         delay(IO_DELAY_MS)
         items.update { list ->
-            list.map { if (it.id == id) it.copy(quantity = maxOf(0.0, it.quantity + delta)) else it }
+            list.map { if (it.id == id) it.copy(quantity = maxOf(0.0, it.quantity + delta), updatedAt = updatedAt) else it }
         }
     }
+    override suspend fun getByRemoteId(remoteId: String): InventoryItem? =
+        items.value.find { it.remoteId == remoteId }
     override suspend fun delete(item: InventoryItem) {
         items.update { list -> list.filter { it.id != item.id } }
     }

@@ -1,13 +1,18 @@
 package com.example.qahwamanager.data.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.util.UUID
 
 enum class OrderStatus { OPEN, PAID, CANCELLED }
 
 // No foreign keys on the shift columns: they were added to an existing table with ALTER TABLE.
-@Entity(tableName = "orders", indices = [Index("openedShiftId"), Index("paidShiftId")])
+@Entity(
+    tableName = "orders",
+    indices = [Index("openedShiftId"), Index("paidShiftId"), Index("remoteId", unique = true)]
+)
 data class Order(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val tableNumber: String,
@@ -20,7 +25,9 @@ data class Order(
     val paidShiftId: Long? = null,
     val paidAt: Long? = null,
     val cancelledAt: Long? = null,
-    val cancelledShiftId: Long? = null
+    val cancelledShiftId: Long? = null,
+    @ColumnInfo(defaultValue = "") val remoteId: String = UUID.randomUUID().toString(),
+    @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0L
 ) {
     companion object {
         /** Stored in [tableNumber] for takeaway orders. Existing rows rely on this exact value. */

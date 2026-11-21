@@ -102,6 +102,7 @@ class InventoryViewModelTest {
         viewModel.updateItem(modified)
         advanceUntilIdle()
 
-        assertEquals(listOf(modified), fakeDao.items.value)
+        val stored = fakeDao.items.value.single()
+        assertEquals(modified.copy(updatedAt = stored.updatedAt), stored)
     }
 }

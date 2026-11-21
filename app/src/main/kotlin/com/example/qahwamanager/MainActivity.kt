@@ -39,6 +39,8 @@ import com.example.qahwamanager.ui.common.AppLocaleManager
 import com.example.qahwamanager.ui.common.AppThemeManager
 import com.example.qahwamanager.ui.common.ThemeMode
 import com.example.qahwamanager.ui.auth.OwnerSetupScreen
+import com.example.qahwamanager.ui.cloud.CafeWorkspaceScreen
+import com.example.qahwamanager.ui.cloud.CloudAuthScreen
 import com.example.qahwamanager.ui.root.RootScreen
 import com.example.qahwamanager.ui.root.RootViewModel
 import com.example.qahwamanager.ui.splash.SplashScreen
@@ -120,6 +122,8 @@ class MainActivity : AppCompatActivity() {
                             } else {
                                 when (rootScreen) {
                                     RootScreen.LOADING -> Box(Modifier.fillMaxSize())
+                                    RootScreen.CLOUD_AUTH -> CloudAuthScreen()
+                                    RootScreen.CAFE_WORKSPACE -> CafeWorkspaceScreen()
                                     RootScreen.SETUP -> OwnerSetupScreen(rootViewModel)
                                     RootScreen.APP -> MainNavigation(ownerSession)
                                 }

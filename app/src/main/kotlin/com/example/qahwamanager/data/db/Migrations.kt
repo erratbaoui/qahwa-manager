@@ -93,3 +93,38 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         db.execSQL("UPDATE `staff` SET `role` = 'OWNER' WHERE `isOwner` = 1")
     }
 }
+
+/**
+ * v4 -> v5: adds cloud sync metadata (`remoteId`, `updatedAt`, and `isDeleted` on menu/inventory)
+ * so multi-owner devices can sync safely via Cloud Firestore without primary-key collisions.
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `remoteId` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `menu_items` SET `remoteId` = 'menu-' || `id` || '-' || lower(hex(randomblob(8))) WHERE `remoteId` = ''")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_menu_items_remoteId` ON `menu_items` (`remoteId`)")
+
+        db.execSQL("ALTER TABLE `inventory_items` ADD COLUMN `remoteId` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `inventory_items` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `inventory_items` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `inventory_items` SET `remoteId` = 'inv-' || `id` || '-' || lower(hex(randomblob(8))) WHERE `remoteId` = ''")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_inventory_items_remoteId` ON `inventory_items` (`remoteId`)")
+
+        db.execSQL("ALTER TABLE `staff` ADD COLUMN `remoteId` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `staff` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `staff` SET `remoteId` = 'staff-' || `id` || '-' || lower(hex(randomblob(8))) WHERE `remoteId` = ''")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_staff_remoteId` ON `staff` (`remoteId`)")
+
+        db.execSQL("ALTER TABLE `shifts` ADD COLUMN `remoteId` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `shifts` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `shifts` SET `remoteId` = 'shift-' || `id` || '-' || lower(hex(randomblob(8))) WHERE `remoteId` = ''")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_shifts_remoteId` ON `shifts` (`remoteId`)")
+
+        db.execSQL("ALTER TABLE `orders` ADD COLUMN `remoteId` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `orders` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE `orders` SET `remoteId` = 'order-' || `id` || '-' || lower(hex(randomblob(8))) WHERE `remoteId` = ''")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_orders_remoteId` ON `orders` (`remoteId`)")
+    }
+}

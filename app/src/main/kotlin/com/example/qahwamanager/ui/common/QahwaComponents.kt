@@ -535,6 +535,7 @@ fun QahwaTextField(
     errorMessage: String? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
     trailingIcon: @Composable (() -> Unit)? = null,
 ) {
     val qColors = QahwaTheme.colors
@@ -548,6 +549,7 @@ fun QahwaTextField(
             isError = isError,
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
+            visualTransformation = visualTransformation,
             trailingIcon = trailingIcon,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),

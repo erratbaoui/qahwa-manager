@@ -1,5 +1,7 @@
 package com.example.qahwamanager.data.repository
 
+import com.example.qahwamanager.data.cloud.NoOpSyncPublisher
+import com.example.qahwamanager.data.cloud.SyncPublisher
 import com.example.qahwamanager.data.db.OrderDao
 import com.example.qahwamanager.data.db.ShiftDao
 import com.example.qahwamanager.data.model.Order
@@ -29,7 +31,8 @@ data class ShiftReport(
 class ShiftRepository @Inject constructor(
     private val shiftDao: ShiftDao,
     private val orderDao: OrderDao,
-    private val clock: Clock
+    private val clock: Clock,
+    private val syncPublisher: SyncPublisher = NoOpSyncPublisher,
 ) {
     fun observeActive(): Flow<ShiftWithStaff?> = shiftDao.observeActive()
 
@@ -39,18 +42,34 @@ class ShiftRepository @Inject constructor(
     suspend fun activeShiftId(): Long? = shiftDao.getActive()?.id
 
     /** Starts a shift for [staffId]. Throws [com.example.qahwamanager.data.db.ShiftAlreadyActiveException] if one is running. */
-    suspend fun start(staffId: Long): Long = shiftDao.startShift(staffId, clock.nowMillis())
+    suspend fun start(staffId: Long): Long {
+        val id = shiftDao.startShift(staffId, clock.nowMillis())
+        syncPublisher.pushShift(id)
+        return id
+    }
 
     /** Ends the active shift, optionally recording the cash handed over ([countedCentimes]). Returns its id, or null if none was active. */
-    suspend fun endActive(countedCentimes: Long? = null): Long? =
-        shiftDao.endActiveShift(clock.nowMillis(), takeover = false, countedCentimes = countedCentimes)
+    suspend fun endActive(countedCentimes: Long? = null): Long? {
+        val id = shiftDao.endActiveShift(clock.nowMillis(), takeover = false, countedCentimes = countedCentimes)
+        if (id != null) syncPublisher.pushShift(id)
+        return id
+    }
 
     /** Ends the running shift as a takeover and starts one for [newStaffId]. */
-    suspend fun takeOver(newStaffId: Long): Long = shiftDao.takeOver(newStaffId, clock.nowMillis())
+    suspend fun takeOver(newStaffId: Long): Long {
+        val previousId = shiftDao.getActive()?.id
+        val newId = shiftDao.takeOver(newStaffId, clock.nowMillis())
+        if (previousId != null) syncPublisher.pushShift(previousId)
+        syncPublisher.pushShift(newId)
+        return newId
+    }
 
     /** Settles an ENDED shift with the cash the owner counted. False if it isn't ENDED (already settled, or still active). */
-    suspend fun settle(shiftId: Long, countedCentimes: Long): Boolean =
-        shiftDao.settle(shiftId, countedCentimes, clock.nowMillis())
+    suspend fun settle(shiftId: Long, countedCentimes: Long): Boolean {
+        val settled = shiftDao.settle(shiftId, countedCentimes, clock.nowMillis())
+        if (settled) syncPublisher.pushShift(shiftId)
+        return settled
+    }
 
     fun observeToSettle(): Flow<List<ShiftWithStaff>> = shiftDao.observeToSettle()
 
@@ -66,13 +85,15 @@ class ShiftRepository @Inject constructor(
         amountCentimes: Long,
     ): Long {
         require(amountCentimes >= 0L) { "Amount cannot be negative" }
-        return shiftDao.recordPastShift(
+        val id = shiftDao.recordPastShift(
             staffId = staffId,
             startedAt = startedAt,
             endedAt = endedAt,
             amountCentimes = amountCentimes,
             settledAt = clock.nowMillis(),
         )
+        syncPublisher.pushShift(id)
+        return id
     }
 
     fun observeReport(shiftId: Long): Flow<ShiftReport?> = combine(

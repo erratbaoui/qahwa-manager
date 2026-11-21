@@ -42,12 +42,46 @@ abstract class OrderDao {
     }
 
     /** Marks an OPEN order paid in [shiftId] at [now]; closed orders are left alone. Returns rows changed. */
-    @Query("UPDATE orders SET status = 'PAID', paidShiftId = :shiftId, paidAt = :now WHERE id = :id AND status = 'OPEN'")
+    @Query("UPDATE orders SET status = 'PAID', paidShiftId = :shiftId, paidAt = :now, updatedAt = :now WHERE id = :id AND status = 'OPEN'")
     abstract suspend fun markPaidIfOpen(id: Long, shiftId: Long, now: Long): Int
 
     /** Cancels an OPEN order at [now], noting the shift that was active (if any). Returns rows changed. */
-    @Query("UPDATE orders SET status = 'CANCELLED', cancelledAt = :now, cancelledShiftId = :shiftId WHERE id = :id AND status = 'OPEN'")
+    @Query("UPDATE orders SET status = 'CANCELLED', cancelledAt = :now, cancelledShiftId = :shiftId, updatedAt = :now WHERE id = :id AND status = 'OPEN'")
     abstract suspend fun cancelIfOpen(id: Long, shiftId: Long?, now: Long): Int
+
+    @Query("SELECT * FROM orders")
+    abstract suspend fun getAllSnapshot(): List<Order>
+
+    @Query("SELECT * FROM orders WHERE id = :id")
+    abstract suspend fun getById(id: Long): Order?
+
+    @Query("SELECT * FROM orders WHERE remoteId = :remoteId")
+    abstract suspend fun getByRemoteId(remoteId: String): Order?
+
+    @Query("SELECT * FROM order_items WHERE orderId = :orderId")
+    abstract suspend fun getItemsSnapshot(orderId: Long): List<OrderItem>
+
+    @Query("DELETE FROM order_items WHERE orderId = :orderId")
+    abstract suspend fun deleteItemsForOrder(orderId: Long)
+
+    @androidx.room.Update
+    abstract suspend fun updateOrder(order: Order)
+
+    @Transaction
+    open suspend fun upsertRemoteOrderWithItems(order: Order, items: List<OrderItem>): Long {
+        val existing = getByRemoteId(order.remoteId)
+        val localId = if (existing == null) {
+            insertOrder(order.copy(id = 0))
+        } else {
+            updateOrder(order.copy(id = existing.id))
+            deleteItemsForOrder(existing.id)
+            existing.id
+        }
+        if (items.isNotEmpty()) {
+            insertOrderItems(items.map { it.copy(id = 0, orderId = localId) })
+        }
+        return localId
+    }
 
     @Query("SELECT * FROM orders WHERE paidShiftId = :shiftId AND status = 'PAID' ORDER BY paidAt DESC, id DESC")
     abstract fun observePaidInShift(shiftId: Long): Flow<List<Order>>

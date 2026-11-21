@@ -52,6 +52,40 @@ abstract class ShiftDao {
     @Query("SELECT * FROM shift_left_open WHERE shiftId = :shiftId ORDER BY orderId")
     abstract fun observeLeftOpen(shiftId: Long): Flow<List<ShiftLeftOpen>>
 
+    @Query("SELECT * FROM shift_left_open WHERE shiftId = :shiftId ORDER BY orderId")
+    abstract suspend fun getLeftOpenSnapshot(shiftId: Long): List<ShiftLeftOpen>
+
+    @Query("DELETE FROM shift_left_open WHERE shiftId = :shiftId")
+    abstract suspend fun deleteLeftOpenForShift(shiftId: Long)
+
+    @Query("SELECT * FROM shifts")
+    abstract suspend fun getAllSnapshot(): List<Shift>
+
+    @Query("SELECT * FROM shifts WHERE id = :id")
+    abstract suspend fun getById(id: Long): Shift?
+
+    @Query("SELECT * FROM shifts WHERE remoteId = :remoteId")
+    abstract suspend fun getByRemoteId(remoteId: String): Shift?
+
+    @androidx.room.Update
+    abstract suspend fun updateShift(shift: Shift)
+
+    @Transaction
+    open suspend fun upsertRemoteShift(shift: Shift, leftOpen: List<ShiftLeftOpen>): Long {
+        val existing = getByRemoteId(shift.remoteId)
+        val localId = if (existing == null) {
+            insertShift(shift.copy(id = 0))
+        } else {
+            updateShift(shift.copy(id = existing.id))
+            deleteLeftOpenForShift(existing.id)
+            existing.id
+        }
+        if (leftOpen.isNotEmpty()) {
+            insertLeftOpen(leftOpen.map { it.copy(shiftId = localId) })
+        }
+        return localId
+    }
+
     /** Counts a failed owner-PIN attempt on the active shift. Returns rows changed (0 with no shift). */
     @Query("UPDATE shifts SET failedOwnerPinAttempts = failedOwnerPinAttempts + 1 WHERE status = 'ACTIVE'")
     abstract suspend fun recordFailedOwnerPinOnActive(): Int
@@ -65,17 +99,17 @@ abstract class ShiftDao {
     @Query("INSERT INTO shift_left_open (shiftId, orderId, totalCentimes) SELECT :shiftId, id, totalCentimes FROM orders WHERE status = 'OPEN'")
     protected abstract suspend fun snapshotOpenOrders(shiftId: Long)
 
-    @Query("UPDATE shifts SET status = 'ENDED', endedAt = :now, endedByTakeover = :takeover, expectedCentimes = (SELECT COALESCE(SUM(totalCentimes), 0) FROM orders WHERE paidShiftId = :id AND status = 'PAID'), countedCentimes = :countedCentimes WHERE id = :id AND status = 'ACTIVE'")
+    @Query("UPDATE shifts SET status = 'ENDED', endedAt = :now, endedByTakeover = :takeover, expectedCentimes = (SELECT COALESCE(SUM(totalCentimes), 0) FROM orders WHERE paidShiftId = :id AND status = 'PAID'), countedCentimes = :countedCentimes, updatedAt = :now WHERE id = :id AND status = 'ACTIVE'")
     protected abstract suspend fun markEnded(id: Long, now: Long, takeover: Boolean, countedCentimes: Long? = null): Int
 
-    @Query("UPDATE shifts SET status = 'SETTLED', expectedCentimes = :expected, countedCentimes = :counted, settledAt = :now WHERE id = :id AND status = 'ENDED'")
+    @Query("UPDATE shifts SET status = 'SETTLED', expectedCentimes = :expected, countedCentimes = :counted, settledAt = :now, updatedAt = :now WHERE id = :id AND status = 'ENDED'")
     protected abstract suspend fun markSettled(id: Long, expected: Long, counted: Long, now: Long): Int
 
     /** Starts a shift for [staffId]. Throws [ShiftAlreadyActiveException] if one is already running. */
     @Transaction
     open suspend fun startShift(staffId: Long, now: Long): Long {
         if (getActive() != null) throw ShiftAlreadyActiveException()
-        return insertShift(Shift(staffId = staffId, status = ShiftStatus.ACTIVE, startedAt = now))
+        return insertShift(Shift(staffId = staffId, status = ShiftStatus.ACTIVE, startedAt = now, updatedAt = now))
     }
 
     /**
@@ -123,6 +157,7 @@ abstract class ShiftDao {
             settledAt = settledAt,
             expectedCentimes = amountCentimes,
             countedCentimes = amountCentimes,
+            updatedAt = settledAt,
         )
     )
 }

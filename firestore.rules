@@ -1,0 +1,428 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model — Qahwa Manager (Multi-Tenant, Spark Plan)
+// ===============================================================
+//
+// Collection: /users/{uid}
+// Document ID: Firebase Auth UID
+// Fields:
+//   - email: string (required, valid email format, <= 254 chars) - User email (PII, owner-read only)
+//   - displayName: string (required, <= 100 chars) - User display name
+//   - cafeId: string | null (optional, 1..128 chars when non-null) - Active cafe pointer (UI convenience only; NOT used for authz)
+//   - createdAt: int | timestamp (required, immutable, >= 0 if int) - Account creation time
+//   - updatedAt: int | timestamp (required, >= 0 if int) - Last profile update time
+//
+// Collection: /cafes/{cafeId}
+// Document ID: Auto-generated or UUID string
+// Fields:
+//   - name: string (required, 1..100 chars) - Cafe display name
+//   - createdBy: string (required, immutable, == request.auth.uid on create, 1..128 chars) - Creator UID
+//   - createdAt: int | timestamp (required, immutable, >= 0 if int) - Creation time
+//   - updatedAt: int | timestamp (optional, >= 0 if int) - Last update time
+//
+// Collection: /cafes/{cafeId}/members/{uid}
+// Document ID: Firebase Auth UID
+// Fields:
+//   - uid: string (optional, must equal {uid} if present) - Member UID
+//   - displayName: string (optional, <= 100 chars) - Member display name
+//   - email: string | null (optional, valid email <= 254 chars) - Co-owner email (visible only to same-cafe members)
+//   - role: string (optional, 'owner' | 'co_owner', immutable) - Member role
+//   - joinedAt: int | timestamp (required, immutable, >= 0 if int) - Join time
+//   - inviteCode: string | null (optional, 8..64 chars when non-null, immutable) - Invite code used to join
+//
+// Collection: /cafe_invites/{code}
+// Document ID: Cryptographically random invite code (8..64 chars)
+// Fields:
+//   - cafeId: string (required, immutable, 1..128 chars) - Target cafe ID
+//   - cafeName: string | null (optional, immutable, <= 100 chars) - Display name of cafe for join confirmation
+//   - createdBy: string (required, immutable, == request.auth.uid on create, 1..128 chars) - Inviter UID
+//   - createdAt: int (required, immutable, epoch millis >= 0) - Creation timestamp
+//   - expiresAt: int (required, immutable, epoch millis > createdAt and > request.time.toMillis() on create/claim) - Expiry timestamp
+//   - usedBy: string | null (required, null on create, set to request.auth.uid on claim) - Claiming user UID
+//   - usedAt: int | null (optional, epoch millis >= 0) - Claim timestamp
+//
+// Business Subcollections under /cafes/{cafeId} (member-only read/create/update, no hard delete):
+//   - /cafes/{cafeId}/staff/{docId}
+//   - /cafes/{cafeId}/shifts/{docId}
+//   - /cafes/{cafeId}/menu_items/{docId}
+//   - /cafes/{cafeId}/inventory_items/{docId}
+//   - /cafes/{cafeId}/orders/{docId}
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isCafeMember(cafeId) {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/cafes/$(cafeId)/members/$(request.auth.uid));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    function isNonEmptyString(val, maxLen) {
+      return val is string && val.size() > 0 && val.size() <= maxLen;
+    }
+
+    function isBoundedString(val, maxLen) {
+      return val is string && val.size() <= maxLen;
+    }
+
+    function isOptionalString(data, field, maxLen) {
+      return !(field in data) || data[field] == null || isBoundedString(data[field], maxLen);
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+             email.size() <= 254 &&
+             email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidEpochMillis(val) {
+      return val is int && val >= 0;
+    }
+
+    function isOptionalEpochMillis(data, field) {
+      return !(field in data) || data[field] == null || isValidEpochMillis(data[field]);
+    }
+
+    function isValidTimestampOrMillis(val) {
+      return isValidEpochMillis(val) || (val is timestamp);
+    }
+
+    function isOptionalBool(data, field) {
+      return !(field in data) || data[field] is bool;
+    }
+
+    function isNonNegNumber(val) {
+      return (val is int || val is float) && val >= 0;
+    }
+
+    function isOptionalId(data, field) {
+      return !(field in data) || data[field] == null ||
+             (data[field] is int && data[field] >= 0) ||
+             isNonEmptyString(data[field], 128);
+    }
+
+    function isOptionalNonNegInt(data, field, maxVal) {
+      return !(field in data) || data[field] == null ||
+             (data[field] is int && data[field] >= 0 && data[field] <= maxVal);
+    }
+
+    function isBootstrappingOwnCafe(cafeId) {
+      let cafePath = /databases/$(database)/documents/cafes/$(cafeId);
+      return existsAfter(cafePath) &&
+             getAfter(cafePath).data.createdBy == request.auth.uid;
+    }
+
+    function isValidInviteClaim(cafeId, code) {
+      let invitePath = /databases/$(database)/documents/cafe_invites/$(code);
+      return code.size() >= 8 &&
+             code.size() <= 64 &&
+             exists(invitePath) &&
+             get(invitePath).data.cafeId == cafeId &&
+             get(invitePath).data.usedBy == null &&
+             get(invitePath).data.expiresAt > request.time.toMillis() &&
+             getAfter(invitePath).data.usedBy == request.auth.uid;
+    }
+
+    function isJoiningWithValidInvite(cafeId) {
+      return 'inviteCode' in request.resource.data &&
+             request.resource.data.inviteCode is string &&
+             isValidInviteClaim(cafeId, request.resource.data.inviteCode);
+    }
+
+    // ===============================================================
+    // Domain Validators (Called in BOTH create and update rules)
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['email', 'displayName', 'cafeId', 'createdAt', 'updatedAt']) &&
+             hasRequiredFields(['email', 'displayName', 'createdAt', 'updatedAt']) &&
+             isValidEmail(data.email) &&
+             isBoundedString(data.displayName, 100) &&
+             (!('cafeId' in data) || data.cafeId == null || isNonEmptyString(data.cafeId, 128)) &&
+             isValidTimestampOrMillis(data.createdAt) &&
+             isValidTimestampOrMillis(data.updatedAt);
+    }
+
+    function isValidCafe(data) {
+      return hasOnlyAllowedFields(['name', 'createdBy', 'createdAt', 'updatedAt']) &&
+             hasRequiredFields(['name', 'createdBy', 'createdAt']) &&
+             isNonEmptyString(data.name, 100) &&
+             isNonEmptyString(data.createdBy, 128) &&
+             isValidTimestampOrMillis(data.createdAt) &&
+             (!('updatedAt' in data) || isValidTimestampOrMillis(data.updatedAt));
+    }
+
+    function isValidMember(data, uid) {
+      return hasOnlyAllowedFields(['uid', 'displayName', 'email', 'role', 'joinedAt', 'inviteCode']) &&
+             hasRequiredFields(['joinedAt']) &&
+             (!('uid' in data) || data.uid == uid) &&
+             isOptionalString(data, 'displayName', 100) &&
+             (!('email' in data) || data.email == null || isValidEmail(data.email)) &&
+             (!('role' in data) || data.role in ['owner', 'co_owner']) &&
+             isValidTimestampOrMillis(data.joinedAt) &&
+             (!('inviteCode' in data) || data.inviteCode == null ||
+               (data.inviteCode is string && data.inviteCode.size() >= 8 && data.inviteCode.size() <= 64));
+    }
+
+    function isValidInvite(data) {
+      return hasOnlyAllowedFields(['cafeId', 'cafeName', 'createdBy', 'createdAt', 'expiresAt', 'usedBy', 'usedAt']) &&
+             hasRequiredFields(['cafeId', 'createdBy', 'createdAt', 'expiresAt', 'usedBy']) &&
+             isNonEmptyString(data.cafeId, 128) &&
+             isOptionalString(data, 'cafeName', 100) &&
+             isNonEmptyString(data.createdBy, 128) &&
+             isValidEpochMillis(data.createdAt) &&
+             isValidEpochMillis(data.expiresAt) &&
+             data.expiresAt > data.createdAt &&
+             (data.usedBy == null || isNonEmptyString(data.usedBy, 128)) &&
+             isOptionalEpochMillis(data, 'usedAt');
+    }
+
+    function isValidStaff(data) {
+      return hasOnlyAllowedFields([
+               'id', 'remoteId', 'name', 'role', 'isOwner', 'isActive',
+               'createdAt', 'updatedAt', 'isDeleted'
+             ]) &&
+             hasRequiredFields(['name', 'role', 'isOwner', 'isActive', 'createdAt', 'updatedAt']) &&
+             isOptionalId(data, 'id') &&
+             isOptionalString(data, 'remoteId', 128) &&
+             isNonEmptyString(data.name, 100) &&
+             data.role in ['OWNER', 'WAITER', 'BARMAN', 'SECURITY', 'CLEANING'] &&
+             data.isOwner is bool &&
+             data.isActive is bool &&
+             isValidEpochMillis(data.createdAt) &&
+             isValidEpochMillis(data.updatedAt) &&
+             isOptionalBool(data, 'isDeleted');
+    }
+
+    function isValidShift(data) {
+      return hasOnlyAllowedFields([
+               'id', 'remoteId', 'staffId', 'staffRemoteId', 'status',
+               'startedAt', 'endedAt', 'endedByTakeover', 'settledAt',
+               'expectedCentimes', 'countedCentimes', 'failedOwnerPinAttempts',
+               'leftOpen', 'updatedAt', 'isDeleted'
+             ]) &&
+             hasRequiredFields(['staffId', 'status', 'startedAt', 'updatedAt']) &&
+             isOptionalId(data, 'id') &&
+             isOptionalString(data, 'remoteId', 128) &&
+             ((data.staffId is int && data.staffId >= 0) || isNonEmptyString(data.staffId, 128)) &&
+             isOptionalString(data, 'staffRemoteId', 128) &&
+             data.status in ['ACTIVE', 'ENDED', 'SETTLED'] &&
+             isValidEpochMillis(data.startedAt) &&
+             isOptionalEpochMillis(data, 'endedAt') &&
+             isOptionalBool(data, 'endedByTakeover') &&
+             isOptionalEpochMillis(data, 'settledAt') &&
+             isOptionalNonNegInt(data, 'expectedCentimes', 1000000000) &&
+             isOptionalNonNegInt(data, 'countedCentimes', 1000000000) &&
+             isOptionalNonNegInt(data, 'failedOwnerPinAttempts', 10000) &&
+             (!('leftOpen' in data) || (data.leftOpen is list && data.leftOpen.size() <= 100)) &&
+             isValidEpochMillis(data.updatedAt) &&
+             isOptionalBool(data, 'isDeleted');
+    }
+
+    function isValidMenuItem(data) {
+      return hasOnlyAllowedFields([
+               'id', 'remoteId', 'name', 'nameAr', 'nameFr', 'category',
+               'priceCentimes', 'description', 'isAvailable',
+               'updatedAt', 'isDeleted'
+             ]) &&
+             hasRequiredFields(['name', 'category', 'priceCentimes', 'isAvailable', 'updatedAt']) &&
+             isOptionalId(data, 'id') &&
+             isOptionalString(data, 'remoteId', 128) &&
+             isNonEmptyString(data.name, 100) &&
+             isOptionalString(data, 'nameAr', 100) &&
+             isOptionalString(data, 'nameFr', 100) &&
+             isNonEmptyString(data.category, 50) &&
+             data.priceCentimes is int && data.priceCentimes >= 0 && data.priceCentimes <= 100000000 &&
+             isOptionalString(data, 'description', 500) &&
+             data.isAvailable is bool &&
+             isValidEpochMillis(data.updatedAt) &&
+             isOptionalBool(data, 'isDeleted');
+    }
+
+    function isValidInventoryItem(data) {
+      return hasOnlyAllowedFields([
+               'id', 'remoteId', 'name', 'quantity', 'unit', 'lowStockThreshold',
+               'updatedAt', 'isDeleted'
+             ]) &&
+             hasRequiredFields(['name', 'quantity', 'unit', 'lowStockThreshold', 'updatedAt']) &&
+             isOptionalId(data, 'id') &&
+             isOptionalString(data, 'remoteId', 128) &&
+             isNonEmptyString(data.name, 100) &&
+             isNonNegNumber(data.quantity) &&
+             isNonEmptyString(data.unit, 30) &&
+             isNonNegNumber(data.lowStockThreshold) &&
+             isValidEpochMillis(data.updatedAt) &&
+             isOptionalBool(data, 'isDeleted');
+    }
+
+    function isValidOrder(data) {
+      return hasOnlyAllowedFields([
+               'id', 'remoteId', 'tableNumber', 'status', 'createdAt', 'totalCentimes',
+               'openedShiftId', 'paidShiftId', 'paidAt',
+               'cancelledAt', 'cancelledShiftId', 'items',
+               'updatedAt', 'isDeleted'
+             ]) &&
+             hasRequiredFields(['tableNumber', 'status', 'createdAt', 'totalCentimes', 'updatedAt']) &&
+             isOptionalId(data, 'id') &&
+             isOptionalString(data, 'remoteId', 128) &&
+             isNonEmptyString(data.tableNumber, 50) &&
+             data.status in ['OPEN', 'PAID', 'CANCELLED'] &&
+             isValidEpochMillis(data.createdAt) &&
+             data.totalCentimes is int && data.totalCentimes >= 0 && data.totalCentimes <= 1000000000 &&
+             isOptionalId(data, 'openedShiftId') &&
+             isOptionalId(data, 'paidShiftId') &&
+             isOptionalEpochMillis(data, 'paidAt') &&
+             isOptionalEpochMillis(data, 'cancelledAt') &&
+             isOptionalId(data, 'cancelledShiftId') &&
+             (!('items' in data) || (data.items is list && data.items.size() <= 100)) &&
+             isValidEpochMillis(data.updatedAt) &&
+             isOptionalBool(data, 'isDeleted');
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // 1. User profiles (PII-protected: strictly owner-only read/write, no delete)
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && isValidUser(request.resource.data);
+      allow update: if isOwner(uid) &&
+                       isValidUser(request.resource.data) &&
+                       areImmutableFieldsUnchanged(['createdAt']);
+      allow delete: if false;
+    }
+
+    // 2. Cafes (tenant roots)
+    match /cafes/{cafeId} {
+      allow get: if isCafeMember(cafeId);
+      allow list: if false;
+      allow create: if isAuthenticated() &&
+                       isValidCafe(request.resource.data) &&
+                       request.resource.data.createdBy == request.auth.uid;
+      allow update: if isCafeMember(cafeId) &&
+                       isValidCafe(request.resource.data) &&
+                       areImmutableFieldsUnchanged(['createdBy', 'createdAt']);
+      allow delete: if false;
+
+      // 3. Cafe members (authoritative tenant membership)
+      match /members/{uid} {
+        allow read: if isOwner(uid) || isCafeMember(cafeId);
+
+        // Create allowed ONLY for self AND either:
+        // (a) Bootstrapping own newly-created cafe, OR
+        // (b) Atomically claiming a valid, unused, unexpired invite code for this cafe
+        allow create: if isOwner(uid) &&
+                         isValidMember(request.resource.data, uid) &&
+                         (isBootstrappingOwnCafe(cafeId) || isJoiningWithValidInvite(cafeId));
+
+        // Allow only self displayName update; prevent any role/uid/inviteCode/joinedAt tampering
+        allow update: if isOwner(uid) &&
+                         isCafeMember(cafeId) &&
+                         isValidMember(request.resource.data, uid) &&
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName']);
+
+        allow delete: if false;
+      }
+
+      // 5. Multi-tenant business subcollections (member-only, soft-delete via isDeleted)
+      match /staff/{docId} {
+        allow read: if isCafeMember(cafeId);
+        allow create: if isCafeMember(cafeId) && isValidStaff(request.resource.data);
+        allow update: if isCafeMember(cafeId) &&
+                         isValidStaff(request.resource.data) &&
+                         areImmutableFieldsUnchanged(['createdAt']);
+        allow delete: if false;
+      }
+
+      match /shifts/{docId} {
+        allow read: if isCafeMember(cafeId);
+        allow create: if isCafeMember(cafeId) && isValidShift(request.resource.data);
+        allow update: if isCafeMember(cafeId) &&
+                         isValidShift(request.resource.data) &&
+                         areImmutableFieldsUnchanged(['startedAt']);
+        allow delete: if false;
+      }
+
+      match /menu_items/{docId} {
+        allow read: if isCafeMember(cafeId);
+        allow create: if isCafeMember(cafeId) && isValidMenuItem(request.resource.data);
+        allow update: if isCafeMember(cafeId) && isValidMenuItem(request.resource.data);
+        allow delete: if false;
+      }
+
+      match /inventory_items/{docId} {
+        allow read: if isCafeMember(cafeId);
+        allow create: if isCafeMember(cafeId) && isValidInventoryItem(request.resource.data);
+        allow update: if isCafeMember(cafeId) && isValidInventoryItem(request.resource.data);
+        allow delete: if false;
+      }
+
+      match /orders/{docId} {
+        allow read: if isCafeMember(cafeId);
+        allow create: if isCafeMember(cafeId) && isValidOrder(request.resource.data);
+        allow update: if isCafeMember(cafeId) &&
+                         isValidOrder(request.resource.data) &&
+                         areImmutableFieldsUnchanged(['createdAt']);
+        allow delete: if false;
+      }
+    }
+
+    // 4. Cafe invites (no enumeration; atomic single-use claim)
+    match /cafe_invites/{code} {
+      allow list: if false;
+      allow get: if isAuthenticated();
+
+      allow create: if isAuthenticated() &&
+                       code.size() >= 8 &&
+                       code.size() <= 64 &&
+                       isValidInvite(request.resource.data) &&
+                       isCafeMember(request.resource.data.cafeId) &&
+                       request.resource.data.createdBy == request.auth.uid &&
+                       request.resource.data.usedBy == null &&
+                       (!('usedAt' in request.resource.data) || request.resource.data.usedAt == null) &&
+                       request.resource.data.expiresAt > request.time.toMillis();
+
+      // Update allowed ONLY for claiming an unused, unexpired invite by the authenticated user
+      allow update: if isAuthenticated() &&
+                       isValidInvite(request.resource.data) &&
+                       resource.data.usedBy == null &&
+                       resource.data.expiresAt > request.time.toMillis() &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy', 'usedAt']) &&
+                       request.resource.data.usedBy == request.auth.uid;
+
+      allow delete: if isCafeMember(resource.data.cafeId);
+    }
+
+    // 6. Default deny-all fallback for any unmatched path
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
