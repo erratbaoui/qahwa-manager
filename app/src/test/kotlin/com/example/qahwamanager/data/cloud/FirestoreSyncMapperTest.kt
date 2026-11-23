@@ -1,6 +1,8 @@
 package com.example.qahwamanager.data.cloud
 
 import com.example.qahwamanager.data.model.InventoryItem
+import com.example.qahwamanager.data.model.LoyaltyConfig
+import com.example.qahwamanager.data.model.LoyaltyCustomer
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.OrderItem
@@ -171,5 +173,37 @@ class FirestoreSyncMapperTest {
         assertEquals(4_500L, restored.amountCentimes)
         assertEquals("shift-uuid-3", restored.shiftRemoteId)
         assertFalse(restored.isDeleted)
+    }
+
+    @Test
+    fun loyaltyCustomerAndConfig_roundTripCleanly() {
+        val customer = LoyaltyCustomer(
+            name = "Salma",
+            phone = "+212611223344",
+            currentStamps = 5,
+            lifetimeStamps = 13,
+            rewardsRedeemed = 1,
+            lastVisitAt = 50_000L,
+            createdAt = 10_000L,
+            remoteId = "loyalty-uuid-1",
+            updatedAt = 50_000L,
+            isDeleted = false,
+        )
+        val restoredCustomer = FirestoreSyncMapper.mapToLoyaltyCustomer(
+            customer.remoteId,
+            FirestoreSyncMapper.loyaltyCustomerToMap(customer),
+        )
+        assertEquals(customer.copy(id = 0), restoredCustomer)
+
+        val config = LoyaltyConfig(
+            stampsRequired = 8,
+            rewardTitle = "1 Free Mint Tea",
+            googleReviewUrl = "https://g.page/r/test/review",
+            updatedAt = 77_000L,
+        )
+        val restoredConfig = FirestoreSyncMapper.mapToLoyaltyConfig(
+            FirestoreSyncMapper.loyaltyConfigToMap(config, "Café Atlas"),
+        )
+        assertEquals(config, restoredConfig)
     }
 }

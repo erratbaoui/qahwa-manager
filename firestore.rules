@@ -49,6 +49,18 @@ rules_version = '2';
 //   - /cafes/{cafeId}/inventory_items/{docId}
 //   - /cafes/{cafeId}/orders/{docId}
 //   - /cafes/{cafeId}/spendings/{docId}
+//   - /cafes/{cafeId}/loyalty_customers/{docId}
+//
+// Collection: /cafes/{cafeId}/public_profile/{docId}
+// Document ID: Singleton config ID (e.g., 'config')
+// Fields:
+//   - cafeName: string | null (optional, <= 100 chars) - Public display name for NFC/QR loyalty stand
+//   - stampsRequired: int (required, 1..50) - Number of stamps needed for a reward
+//   - rewardTitle: string (required, 1..100 chars) - Title of the loyalty reward
+//   - googleReviewUrl: string | null (optional, <= 500 chars) - Google Review URL
+//   - wifiSsid: string | null (optional, <= 100 chars) - Guest Wi-Fi SSID
+//   - wifiPassword: string | null (optional, <= 100 chars) - Guest Wi-Fi password
+//   - updatedAt: int (required, epoch millis >= 0) - Last update timestamp
 //
 // ===============================================================
 
@@ -323,6 +335,44 @@ service cloud.firestore {
              isOptionalBool(data, 'isDeleted');
     }
 
+    function isValidLoyaltyCustomer(data) {
+      return hasOnlyAllowedFields([
+               'id', 'remoteId', 'name', 'phone', 'currentStamps',
+               'lifetimeStamps', 'rewardsRedeemed', 'lastVisitAt',
+               'createdAt', 'updatedAt', 'isDeleted'
+             ]) &&
+             hasRequiredFields([
+               'name', 'phone', 'currentStamps', 'lifetimeStamps',
+               'rewardsRedeemed', 'lastVisitAt', 'createdAt', 'updatedAt'
+             ]) &&
+             isOptionalId(data, 'id') &&
+             isOptionalString(data, 'remoteId', 128) &&
+             isNonEmptyString(data.name, 100) &&
+             isNonEmptyString(data.phone, 30) &&
+             data.currentStamps is int && data.currentStamps >= 0 && data.currentStamps <= 100 &&
+             data.lifetimeStamps is int && data.lifetimeStamps >= 0 && data.lifetimeStamps <= 100000 &&
+             data.rewardsRedeemed is int && data.rewardsRedeemed >= 0 && data.rewardsRedeemed <= 100000 &&
+             isValidEpochMillis(data.lastVisitAt) &&
+             isValidEpochMillis(data.createdAt) &&
+             isValidEpochMillis(data.updatedAt) &&
+             isOptionalBool(data, 'isDeleted');
+    }
+
+    function isValidPublicProfile(data) {
+      return hasOnlyAllowedFields([
+               'cafeName', 'stampsRequired', 'rewardTitle',
+               'googleReviewUrl', 'wifiSsid', 'wifiPassword', 'updatedAt'
+             ]) &&
+             hasRequiredFields(['stampsRequired', 'rewardTitle', 'updatedAt']) &&
+             isOptionalString(data, 'cafeName', 100) &&
+             data.stampsRequired is int && data.stampsRequired >= 1 && data.stampsRequired <= 50 &&
+             isNonEmptyString(data.rewardTitle, 100) &&
+             isOptionalString(data, 'googleReviewUrl', 500) &&
+             isOptionalString(data, 'wifiSsid', 100) &&
+             isOptionalString(data, 'wifiPassword', 100) &&
+             isValidEpochMillis(data.updatedAt);
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -417,6 +467,22 @@ service cloud.firestore {
         allow update: if isCafeMember(cafeId) &&
                          isValidSpending(request.resource.data) &&
                          areImmutableFieldsUnchanged(['spentAt']);
+        allow delete: if false;
+      }
+
+      match /loyalty_customers/{docId} {
+        allow read: if isCafeMember(cafeId);
+        allow create: if isCafeMember(cafeId) && isValidLoyaltyCustomer(request.resource.data);
+        allow update: if isCafeMember(cafeId) &&
+                         isValidLoyaltyCustomer(request.resource.data) &&
+                         areImmutableFieldsUnchanged(['createdAt']);
+        allow delete: if false;
+      }
+
+      match /public_profile/{docId} {
+        allow get: if true;
+        allow list: if isCafeMember(cafeId);
+        allow create, update: if isCafeMember(cafeId) && isValidPublicProfile(request.resource.data);
         allow delete: if false;
       }
     }

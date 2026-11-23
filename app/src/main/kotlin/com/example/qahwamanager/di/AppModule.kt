@@ -2,6 +2,7 @@ package com.example.qahwamanager.di
 
 import android.content.Context
 import com.example.qahwamanager.data.db.InventoryDao
+import com.example.qahwamanager.data.db.LoyaltyCustomerDao
 import com.example.qahwamanager.data.db.MenuItemDao
 import com.example.qahwamanager.data.db.OrderDao
 import com.example.qahwamanager.data.db.OrderItemDao
@@ -54,6 +55,9 @@ object AppModule {
 
     @Provides
     fun provideSpendingDao(db: QahwaDatabase): SpendingDao = db.spendingDao()
+
+    @Provides
+    fun provideLoyaltyCustomerDao(db: QahwaDatabase): LoyaltyCustomerDao = db.loyaltyCustomerDao()
 
     @Provides
     fun provideClock(): Clock = SystemClock

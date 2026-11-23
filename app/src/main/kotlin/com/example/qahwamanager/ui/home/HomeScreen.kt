@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CardGiftcard
+import com.example.qahwamanager.ui.common.QahwaSecondaryButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -57,6 +59,7 @@ import java.util.Date
 fun HomeScreen(
     onNewOrder: () -> Unit,
     onEndShift: () -> Unit,
+    onLoyalty: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     shiftViewModel: ShiftViewModel = hiltViewModel(),
 ) {
@@ -208,6 +211,13 @@ fun HomeScreen(
                 onClick = onNewOrder,
                 enabled = activeShift != null,
                 leadingIcon = Icons.Default.Add,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            QahwaSecondaryButton(
+                text = stringResource(R.string.loyalty_title),
+                onClick = onLoyalty,
+                leadingIcon = Icons.Default.CardGiftcard,
                 modifier = Modifier.fillMaxWidth(),
             )
         }

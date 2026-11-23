@@ -7,6 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.qahwamanager.data.model.InventoryItem
+import com.example.qahwamanager.data.model.LoyaltyCustomer
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.OrderItem
@@ -20,9 +21,9 @@ import com.example.qahwamanager.data.model.Staff
     entities = [
         MenuItem::class, Order::class, OrderItem::class, InventoryItem::class,
         Staff::class, Shift::class, ShiftLeftOpen::class, OwnerCredentials::class,
-        Spending::class
+        Spending::class, LoyaltyCustomer::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -35,6 +36,7 @@ abstract class QahwaDatabase : RoomDatabase() {
     abstract fun shiftDao(): ShiftDao
     abstract fun ownerDao(): OwnerDao
     abstract fun spendingDao(): SpendingDao
+    abstract fun loyaltyCustomerDao(): LoyaltyCustomerDao
 
     companion object {
         fun create(context: Context): QahwaDatabase {
@@ -43,7 +45,10 @@ abstract class QahwaDatabase : RoomDatabase() {
                 QahwaDatabase::class.java,
                 "qahwa_database"
             )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
+                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7
+                )
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

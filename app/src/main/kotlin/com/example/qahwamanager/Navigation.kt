@@ -53,6 +53,7 @@ import com.example.qahwamanager.ui.auth.OwnerPinViewModel
 import com.example.qahwamanager.ui.auth.RecoveryCodeDialog
 import com.example.qahwamanager.ui.home.HomeScreen
 import com.example.qahwamanager.ui.inventory.InventoryScreen
+import com.example.qahwamanager.ui.loyalty.LoyaltyScreen
 import com.example.qahwamanager.ui.menu.MenuScreen
 import com.example.qahwamanager.ui.owner.OwnerDashboardScreen
 import com.example.qahwamanager.ui.owner.OwnerHomeScreen
@@ -203,7 +204,11 @@ fun MainNavigation(ownerSession: OwnerSession) {
                     HomeScreen(
                         onNewOrder = { backStack.add(NewOrder) },
                         onEndShift = { backStack.add(EndShift) },
+                        onLoyalty = { backStack.add(Loyalty) },
                     )
+                }
+                entry<Loyalty> {
+                    LoyaltyScreen(onBack = { backStack.removeLastOrNull() })
                 }
                 entry<EndShift> {
                     EndShiftScreen(onBack = { backStack.removeLastOrNull() })
@@ -237,6 +242,7 @@ fun MainNavigation(ownerSession: OwnerSession) {
                         onSales = { backStack.add(Sales) },
                         onShifts = { backStack.add(Shifts) },
                         onStaff = { backStack.add(StaffList) },
+                        onLoyalty = { backStack.add(Loyalty) },
                         onNewRecoveryCode = { gate.require { pinViewModel.issueNewRecoveryCode() } },
                     )
                 }

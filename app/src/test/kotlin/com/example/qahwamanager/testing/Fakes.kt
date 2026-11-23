@@ -1,6 +1,7 @@
 package com.example.qahwamanager.testing
 
 import com.example.qahwamanager.data.db.InventoryDao
+import com.example.qahwamanager.data.db.LoyaltyCustomerDao
 import com.example.qahwamanager.data.db.MenuItemDao
 import com.example.qahwamanager.data.db.OrderDao
 import com.example.qahwamanager.data.db.OrderItemDao
@@ -10,6 +11,7 @@ import com.example.qahwamanager.data.db.ShiftDao
 import com.example.qahwamanager.data.db.SpendingDao
 import com.example.qahwamanager.data.db.StaffDao
 import com.example.qahwamanager.data.model.InventoryItem
+import com.example.qahwamanager.data.model.LoyaltyCustomer
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.OrderItem
@@ -426,5 +428,35 @@ class FakeSpendingDao(initial: List<Spending> = emptyList()) : SpendingDao {
 
     override suspend fun update(spending: Spending) {
         spendings.update { list -> list.map { if (it.id == spending.id) spending else it } }
+    }
+}
+
+class FakeLoyaltyCustomerDao(initial: List<LoyaltyCustomer> = emptyList()) : LoyaltyCustomerDao {
+    val customers = MutableStateFlow(initial)
+
+    override fun observeAll(): Flow<List<LoyaltyCustomer>> =
+        customers.map { list ->
+            list.filter { !it.isDeleted }
+                .sortedWith(compareByDescending<LoyaltyCustomer> { it.lastVisitAt }.thenByDescending { it.id })
+        }
+
+    override suspend fun getAllSnapshot(): List<LoyaltyCustomer> = customers.value
+
+    override suspend fun getById(id: Long): LoyaltyCustomer? = customers.value.find { it.id == id }
+
+    override suspend fun getByRemoteId(remoteId: String): LoyaltyCustomer? =
+        customers.value.find { it.remoteId == remoteId }
+
+    override suspend fun getByPhone(phone: String): LoyaltyCustomer? =
+        customers.value.find { !it.isDeleted && it.phone == phone }
+
+    override suspend fun insert(customer: LoyaltyCustomer): Long {
+        val id = (customers.value.maxOfOrNull { it.id } ?: 0L) + 1L
+        customers.update { it + customer.copy(id = id) }
+        return id
+    }
+
+    override suspend fun update(customer: LoyaltyCustomer) {
+        customers.update { list -> list.map { if (it.id == customer.id) customer else it } }
     }
 }

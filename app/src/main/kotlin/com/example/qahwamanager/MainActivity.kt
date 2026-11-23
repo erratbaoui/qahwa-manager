@@ -4,10 +4,13 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.nfc.NfcAdapter
 import android.os.Build
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.WindowManager
+import com.example.qahwamanager.nfc.NfcStandWriter
+import com.example.qahwamanager.nfc.NfcWriteState
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -57,6 +60,9 @@ class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var ownerSession: OwnerSession
+
+    @Inject
+    lateinit var nfcStandWriter: NfcStandWriter
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -108,6 +114,24 @@ class MainActivity : AppCompatActivity() {
             val rootViewModel: RootViewModel = hiltViewModel()
             val rootScreen by rootViewModel.screen.collectAsStateWithLifecycle()
             val isOwnerMode by ownerSession.isOwnerMode.collectAsStateWithLifecycle()
+            val nfcWriteState by nfcStandWriter.state.collectAsStateWithLifecycle()
+
+            LaunchedEffect(nfcWriteState) {
+                val adapter = NfcAdapter.getDefaultAdapter(this@MainActivity) ?: return@LaunchedEffect
+                if (nfcWriteState is NfcWriteState.WaitingForTag) {
+                    adapter.enableReaderMode(
+                        this@MainActivity,
+                        { tag -> nfcStandWriter.onTagDiscovered(tag) },
+                        NfcAdapter.FLAG_READER_NFC_A or
+                            NfcAdapter.FLAG_READER_NFC_B or
+                            NfcAdapter.FLAG_READER_NFC_F or
+                            NfcAdapter.FLAG_READER_NFC_V,
+                        null,
+                    )
+                } else {
+                    adapter.disableReaderMode(this@MainActivity)
+                }
+            }
 
             // Protect sensitive owner screens (PIN setup, recovery/invite codes, earnings) from screenshots & Recents.
             val protectScreen = isOwnerMode || rootScreen == RootScreen.SETUP

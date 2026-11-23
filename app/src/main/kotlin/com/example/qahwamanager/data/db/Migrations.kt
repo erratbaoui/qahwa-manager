@@ -153,3 +153,31 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_spendings_remoteId` ON `spendings` (`remoteId`)")
     }
 }
+
+/**
+ * v6 -> v7: adds the `loyalty_customers` table for the Tappy-style NFC/QR digital stamp card system.
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `loyalty_customers` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `name` TEXT NOT NULL,
+                `phone` TEXT NOT NULL,
+                `currentStamps` INTEGER NOT NULL,
+                `lifetimeStamps` INTEGER NOT NULL,
+                `rewardsRedeemed` INTEGER NOT NULL,
+                `lastVisitAt` INTEGER NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                `remoteId` TEXT NOT NULL DEFAULT '',
+                `updatedAt` INTEGER NOT NULL DEFAULT 0,
+                `isDeleted` INTEGER NOT NULL DEFAULT 0
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_loyalty_customers_phone` ON `loyalty_customers` (`phone`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_loyalty_customers_lastVisitAt` ON `loyalty_customers` (`lastVisitAt`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_loyalty_customers_remoteId` ON `loyalty_customers` (`remoteId`)")
+    }
+}

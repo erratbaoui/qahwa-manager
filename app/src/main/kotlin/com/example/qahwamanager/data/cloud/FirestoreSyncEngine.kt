@@ -2,12 +2,14 @@ package com.example.qahwamanager.data.cloud
 
 import android.util.Log
 import com.example.qahwamanager.data.db.InventoryDao
+import com.example.qahwamanager.data.db.LoyaltyCustomerDao
 import com.example.qahwamanager.data.db.MenuItemDao
 import com.example.qahwamanager.data.db.OrderDao
 import com.example.qahwamanager.data.db.ShiftDao
 import com.example.qahwamanager.data.db.SpendingDao
 import com.example.qahwamanager.data.db.StaffDao
 import com.example.qahwamanager.data.model.InventoryItem
+import com.example.qahwamanager.data.model.LoyaltyConfig
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.Shift
@@ -43,6 +45,7 @@ class FirestoreSyncEngine @Inject constructor(
     private val shiftDao: ShiftDao,
     private val orderDao: OrderDao,
     private val spendingDao: SpendingDao,
+    private val loyaltyCustomerDao: LoyaltyCustomerDao,
 ) : SyncPublisher {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -281,6 +284,34 @@ class FirestoreSyncEngine @Inject constructor(
                 }
             }
         }
+
+        listeners += cafeRef.collection("loyalty_customers").addSnapshotListener(MetadataChanges.INCLUDE) { snap, err ->
+            if (err != null) {
+                Log.w(TAG, "Loyalty customers listener error", err)
+                return@addSnapshotListener
+            }
+            val docs = snap?.documents.orEmpty()
+            val fromCache = snap?.metadata?.isFromCache == true
+            scope.launch {
+                inboundMutex.withLock {
+                    docs.forEach { doc ->
+                        val data = doc.data ?: return@forEach
+                        val remote = FirestoreSyncMapper.mapToLoyaltyCustomer(doc.id, data) ?: return@forEach
+                        val local = loyaltyCustomerDao.getByRemoteId(remote.remoteId)
+                        if (FirestoreSyncMapper.shouldApplyRemote(local?.updatedAt, remote.updatedAt)) {
+                            if (local == null) loyaltyCustomerDao.insert(remote)
+                            else loyaltyCustomerDao.update(remote.copy(id = local.id))
+                        }
+                    }
+                    if (!fromCache) {
+                        val remoteIds = docs.mapTo(hashSetOf()) { it.id }
+                        loyaltyCustomerDao.getAllSnapshot()
+                            .filter { it.remoteId !in remoteIds }
+                            .forEach { pushLoyaltyCustomer(it.id) }
+                    }
+                }
+            }
+        }
     }
 
     fun stop() {
@@ -352,6 +383,14 @@ class FirestoreSyncEngine @Inject constructor(
             batch.set(
                 cafeRef.collection("spendings").document(spending.remoteId),
                 FirestoreSyncMapper.spendingToMap(spending, shiftRemoteId),
+            )
+            opCount++
+        }
+
+        loyaltyCustomerDao.getAllSnapshot().forEach { customer ->
+            batch.set(
+                cafeRef.collection("loyalty_customers").document(customer.remoteId),
+                FirestoreSyncMapper.loyaltyCustomerToMap(customer),
             )
             opCount++
         }
@@ -454,6 +493,33 @@ class FirestoreSyncEngine @Inject constructor(
                     .await()
                 Log.i(TAG, "Pushed spending $spendingId (${spending.remoteId})")
             }.onFailure { Log.w(TAG, "Failed to push spending $spendingId", it) }
+        }
+    }
+
+    override fun pushLoyaltyCustomer(customerId: Long) {
+        val cafeId = activeCafeId ?: return
+        scope.launch {
+            runCatching {
+                val customer = loyaltyCustomerDao.getById(customerId) ?: return@launch
+                firestore.collection("cafes").document(cafeId)
+                    .collection("loyalty_customers").document(customer.remoteId)
+                    .set(FirestoreSyncMapper.loyaltyCustomerToMap(customer))
+                    .await()
+                Log.i(TAG, "Pushed loyalty customer $customerId (${customer.remoteId})")
+            }.onFailure { Log.w(TAG, "Failed to push loyalty customer $customerId", it) }
+        }
+    }
+
+    override fun pushLoyaltyConfig(config: LoyaltyConfig) {
+        val cafeId = activeCafeId ?: return
+        scope.launch {
+            runCatching {
+                firestore.collection("cafes").document(cafeId)
+                    .collection("public_profile").document("config")
+                    .set(FirestoreSyncMapper.loyaltyConfigToMap(config))
+                    .await()
+                Log.i(TAG, "Pushed loyalty config for cafe=$cafeId")
+            }.onFailure { Log.w(TAG, "Failed to push loyalty config", it) }
         }
     }
 

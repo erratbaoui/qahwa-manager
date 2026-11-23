@@ -1,6 +1,7 @@
 package com.example.qahwamanager.data.cloud
 
 import com.example.qahwamanager.data.model.InventoryItem
+import com.example.qahwamanager.data.model.LoyaltyConfig
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Staff
 
@@ -17,6 +18,8 @@ interface SyncPublisher {
     fun pushShift(shiftId: Long)
     fun pushOrder(orderId: Long)
     fun pushSpending(spendingId: Long) = Unit
+    fun pushLoyaltyCustomer(customerId: Long) = Unit
+    fun pushLoyaltyConfig(config: LoyaltyConfig) = Unit
 }
 
 object NoOpSyncPublisher : SyncPublisher {

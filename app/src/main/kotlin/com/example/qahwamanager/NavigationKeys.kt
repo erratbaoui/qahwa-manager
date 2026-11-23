@@ -16,4 +16,5 @@ import kotlinx.serialization.Serializable
 @Serializable data object Shifts : NavKey
 @Serializable data class ShiftReport(val shiftId: Long) : NavKey
 @Serializable data object StaffList : NavKey
+@Serializable data object Loyalty : NavKey
 

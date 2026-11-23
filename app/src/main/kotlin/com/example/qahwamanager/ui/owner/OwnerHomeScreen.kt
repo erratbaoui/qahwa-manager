@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudSync
@@ -73,6 +74,7 @@ fun OwnerHomeScreen(
     onSales: () -> Unit,
     onShifts: () -> Unit,
     onStaff: () -> Unit,
+    onLoyalty: () -> Unit = {},
     onNewRecoveryCode: () -> Unit,
     viewModel: ShiftsViewModel = hiltViewModel(),
     cloudViewModel: OwnerCloudViewModel = hiltViewModel(),
@@ -195,6 +197,7 @@ fun OwnerHomeScreen(
                     OwnerRow(icon = Icons.AutoMirrored.Filled.TrendingUp, title = stringResource(R.string.sales), onClick = onSales)
                     OwnerRow(icon = Icons.Default.Schedule, title = stringResource(R.string.shifts), badge = toSettle.size, onClick = onShifts)
                     OwnerRow(icon = Icons.Default.Group, title = stringResource(R.string.staff), onClick = onStaff)
+                    OwnerRow(icon = Icons.Default.CardGiftcard, title = stringResource(R.string.loyalty_title), onClick = onLoyalty)
                     OwnerRow(
                         icon = Icons.Default.PersonAdd,
                         title = stringResource(R.string.invite_co_owner),

@@ -1,6 +1,8 @@
 package com.example.qahwamanager.data.cloud
 
 import com.example.qahwamanager.data.model.InventoryItem
+import com.example.qahwamanager.data.model.LoyaltyConfig
+import com.example.qahwamanager.data.model.LoyaltyCustomer
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.OrderItem
@@ -274,6 +276,58 @@ object FirestoreSyncMapper {
             spentAt = data.longValue("spentAt") ?: 0L,
             updatedAt = data.longValue("updatedAt") ?: 0L,
             isDeleted = (data["isDeleted"] as? Boolean) ?: false,
+        )
+    }
+
+    fun loyaltyCustomerToMap(customer: LoyaltyCustomer): Map<String, Any?> = mapOf(
+        "name" to customer.name,
+        "phone" to customer.phone,
+        "currentStamps" to customer.currentStamps,
+        "lifetimeStamps" to customer.lifetimeStamps,
+        "rewardsRedeemed" to customer.rewardsRedeemed,
+        "lastVisitAt" to customer.lastVisitAt,
+        "createdAt" to customer.createdAt,
+        "updatedAt" to customer.updatedAt,
+        "isDeleted" to customer.isDeleted,
+    )
+
+    fun mapToLoyaltyCustomer(remoteId: String, data: Map<String, Any?>): LoyaltyCustomer? {
+        val name = data["name"] as? String ?: return null
+        val phone = data["phone"] as? String ?: return null
+        return LoyaltyCustomer(
+            name = name,
+            phone = phone,
+            currentStamps = (data["currentStamps"] as? Number)?.toInt() ?: 0,
+            lifetimeStamps = (data["lifetimeStamps"] as? Number)?.toInt() ?: 0,
+            rewardsRedeemed = (data["rewardsRedeemed"] as? Number)?.toInt() ?: 0,
+            lastVisitAt = data.longValue("lastVisitAt") ?: 0L,
+            createdAt = data.longValue("createdAt") ?: 0L,
+            remoteId = remoteId,
+            updatedAt = data.longValue("updatedAt") ?: 0L,
+            isDeleted = (data["isDeleted"] as? Boolean) ?: false,
+        )
+    }
+
+    fun loyaltyConfigToMap(config: LoyaltyConfig, cafeName: String? = null): Map<String, Any?> = mapOf(
+        "cafeName" to cafeName,
+        "stampsRequired" to config.stampsRequired,
+        "rewardTitle" to config.rewardTitle,
+        "googleReviewUrl" to config.googleReviewUrl,
+        "wifiSsid" to config.wifiSsid,
+        "wifiPassword" to config.wifiPassword,
+        "updatedAt" to config.updatedAt,
+    )
+
+    fun mapToLoyaltyConfig(data: Map<String, Any?>): LoyaltyConfig? {
+        val stampsRequired = (data["stampsRequired"] as? Number)?.toInt() ?: return null
+        val rewardTitle = data["rewardTitle"] as? String ?: return null
+        return LoyaltyConfig(
+            stampsRequired = stampsRequired.coerceIn(1, 50),
+            rewardTitle = rewardTitle,
+            googleReviewUrl = (data["googleReviewUrl"] as? String).orEmpty(),
+            wifiSsid = (data["wifiSsid"] as? String).orEmpty(),
+            wifiPassword = (data["wifiPassword"] as? String).orEmpty(),
+            updatedAt = data.longValue("updatedAt") ?: 0L,
         )
     }
 
