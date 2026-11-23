@@ -30,10 +30,12 @@ class LoyaltyRepository @Inject constructor(
         googleReviewUrl: String,
         wifiSsid: String = _config.value.wifiSsid,
         wifiPassword: String = _config.value.wifiPassword,
+        cafeName: String = _config.value.cafeName,
     ) {
         val coercedStamps = stampsRequired.coerceIn(1, 50)
         val cleanedReward = rewardTitle.trim().ifEmpty { "1 Free Coffee" }
         val updated = LoyaltyConfig(
+            cafeName = cafeName.trim(),
             stampsRequired = coercedStamps,
             rewardTitle = cleanedReward,
             googleReviewUrl = googleReviewUrl.trim(),
@@ -123,9 +125,10 @@ class LoyaltyRepository @Inject constructor(
 
     /**
      * Stamps a customer by scanned QR payload (`qahwa://loyalty/{remoteId}` or raw `remoteId`)
-     * or by phone number.
+     * or by phone number, adding [count] stamp(s).
      */
-    suspend fun stampByCodeOrPhone(rawInput: String): LoyaltyCustomer? {
+    suspend fun stampByCodeOrPhone(rawInput: String, count: Int = 1): LoyaltyCustomer? {
+        val safeCount = count.coerceIn(1, 50)
         val trimmed = rawInput.trim()
         if (trimmed.isEmpty()) return null
         val afterScheme = trimmed.substringAfter("qahwa://loyalty/", missingDelimiterValue = trimmed)
@@ -135,11 +138,11 @@ class LoyaltyRepository @Inject constructor(
             .trim()
         val byRemote = loyaltyDao.getByRemoteId(extractedId)?.takeIf { !it.isDeleted }
         if (byRemote != null) {
-            return addStamp(byRemote.id)
+            return addStamp(byRemote.id, safeCount)
         }
         val byPhone = loyaltyDao.getByPhone(normalizeMoroccanPhone(trimmed))
         if (byPhone != null) {
-            return addStamp(byPhone.id)
+            return addStamp(byPhone.id, safeCount)
         }
         return null
     }

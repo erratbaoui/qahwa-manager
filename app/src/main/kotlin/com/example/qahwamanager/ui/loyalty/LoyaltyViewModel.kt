@@ -136,6 +136,8 @@ class LoyaltyViewModel @Inject constructor(
         stampsRequired: Int,
         rewardTitle: String,
         googleReviewUrl: String,
+        wifiSsid: String = uiState.value.config.wifiSsid,
+        wifiPassword: String = uiState.value.config.wifiPassword,
         onDone: () -> Unit,
     ) {
         if (!ownerSession.isOwnerMode.value) return
@@ -143,6 +145,9 @@ class LoyaltyViewModel @Inject constructor(
             stampsRequired = stampsRequired,
             rewardTitle = rewardTitle,
             googleReviewUrl = googleReviewUrl,
+            wifiSsid = wifiSsid,
+            wifiPassword = wifiPassword,
+            cafeName = uiState.value.cafeName,
         )
         onDone()
     }

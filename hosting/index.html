@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#10251B" />
+  <link rel="manifest" href="/manifest.json" />
   <title>Qahwa Club Fidélité & Menu Digital</title>
   <style>
     :root {
@@ -375,6 +377,21 @@
       <a id="googleReviewLink" class="review-btn hidden" target="_blank" rel="noopener">
         ⭐ Laissez-nous un avis 5 étoiles sur Google Maps
       </a>
+
+      <!-- GUEST WI-FI CARD -->
+      <div class="card hidden" id="wifiCard" style="margin-top:12px;padding:14px 18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--gold-light);" id="wifiTitle">📶 Wi-Fi Gratuit</div>
+            <div style="font-size:12px;color:var(--cream);margin-top:2px;" id="wifiSsidText">—</div>
+          </div>
+          <button class="secondary-btn" id="btnCopyWifi">Copier mot de passe</button>
+        </div>
+      </div>
+
+      <button class="review-btn hidden" id="btnInstallPwa" style="width:100%;cursor:pointer;">
+        📲 Ajouter ma Carte à l'écran d'accueil
+      </button>
     </div>
 
     <!-- DIGITAL MENU VIEW -->
@@ -491,9 +508,13 @@
       cafeName: "Qahwa Café",
       stampsRequired: 9,
       rewardTitle: "1 Boisson Gratuite",
-      googleReviewUrl: ""
+      googleReviewUrl: "",
+      wifiSsid: "",
+      wifiPassword: ""
     };
     let currentCustomer = null;
+    let lastKnownStamps = null;
+    let deferredInstallPrompt = null;
     let menuItems = [];
     let unsubCustomer = null;
 
@@ -679,6 +700,15 @@
         revLink.classList.add("hidden");
       }
 
+      const wifiCard = document.getElementById("wifiCard");
+      if (cafeConfig.wifiSsid) {
+        wifiCard.classList.remove("hidden");
+        document.getElementById("wifiSsidText").textContent =
+          `${cafeConfig.wifiSsid}` + (cafeConfig.wifiPassword ? ` · ${cafeConfig.wifiPassword}` : "");
+      } else {
+        wifiCard.classList.add("hidden");
+      }
+
       if (currentCustomer) renderCustomerCard(currentCustomer);
       renderMenu();
     }
@@ -748,7 +778,12 @@
       const ref = doc(db, "cafes", cafeId, "loyalty_customers", docId);
       unsubCustomer = onSnapshot(ref, snap => {
         if (snap.exists()) {
-          renderCustomerCard(snap.data());
+          const data = snap.data();
+          if (lastKnownStamps !== null && data.currentStamps > lastKnownStamps) {
+            if (navigator.vibrate) navigator.vibrate([120, 60, 140]);
+          }
+          lastKnownStamps = data.currentStamps;
+          renderCustomerCard(data);
         }
       });
     }
@@ -762,7 +797,9 @@
             cafeName: data.cafeName || "Qahwa Café",
             stampsRequired: data.stampsRequired || 9,
             rewardTitle: data.rewardTitle || "1 Boisson Gratuite",
-            googleReviewUrl: data.googleReviewUrl || ""
+            googleReviewUrl: data.googleReviewUrl || "",
+            wifiSsid: data.wifiSsid || "",
+            wifiPassword: data.wifiPassword || ""
           };
         }
       } catch (e) {
@@ -882,6 +919,31 @@
         }
       } catch (_) {}
     }
+
+    // Copy Wi-Fi password
+    document.getElementById("btnCopyWifi").addEventListener("click", () => {
+      if (cafeConfig.wifiPassword && navigator.clipboard) {
+        navigator.clipboard.writeText(cafeConfig.wifiPassword);
+        document.getElementById("btnCopyWifi").textContent = "✔ Copié";
+      }
+    });
+
+    // Installable PWA Wallet Pass support
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      document.getElementById("btnInstallPwa").classList.remove("hidden");
+    });
+    document.getElementById("btnInstallPwa").addEventListener("click", async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      document.getElementById("btnInstallPwa").classList.add("hidden");
+    });
 
     loadCafeData();
   </script>

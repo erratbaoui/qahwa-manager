@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -135,6 +136,16 @@ fun LoyaltyScreen(
     if (showQuickStampDialog) {
         QuickStampByCodeDialog(
             onDismiss = { showQuickStampDialog = false },
+            onScanCamera = {
+                QrCodeScannerHelper.startQrScan(
+                    context = context,
+                    onScanned = { rawCode ->
+                        viewModel.stampByCodeOrPhone(rawCode) { matched ->
+                            if (matched) showQuickStampDialog = false
+                        }
+                    },
+                )
+            },
             onSubmit = { input, onResult ->
                 viewModel.stampByCodeOrPhone(input) { matched ->
                     if (matched) showQuickStampDialog = false
@@ -148,9 +159,15 @@ fun LoyaltyScreen(
         LoyaltySettingsDialog(
             config = state.config,
             onDismiss = { showSettingsDialog = false },
-            onConfirm = { stampsRequired, rewardTitle, googleReviewUrl ->
+            onConfirm = { stampsRequired, rewardTitle, googleReviewUrl, wifiSsid, wifiPassword ->
                 gate.require {
-                    viewModel.updateProgramSettings(stampsRequired, rewardTitle, googleReviewUrl) {
+                    viewModel.updateProgramSettings(
+                        stampsRequired = stampsRequired,
+                        rewardTitle = rewardTitle,
+                        googleReviewUrl = googleReviewUrl,
+                        wifiSsid = wifiSsid,
+                        wifiPassword = wifiPassword,
+                    ) {
                         showSettingsDialog = false
                     }
                 }
@@ -281,7 +298,13 @@ fun LoyaltyScreen(
                             )
                             QahwaSecondaryButton(
                                 text = stringResource(R.string.quick_stamp_code),
-                                onClick = { showQuickStampDialog = true },
+                                onClick = {
+                                    QrCodeScannerHelper.startQrScan(
+                                        context = context,
+                                        onScanned = { rawCode -> viewModel.stampByCodeOrPhone(rawCode) },
+                                        onFallbackRequired = { showQuickStampDialog = true },
+                                    )
+                                },
                                 leadingIcon = Icons.Default.QrCode2,
                                 modifier = Modifier.weight(1f),
                             )
@@ -599,6 +622,7 @@ private fun EnrollCustomerDialog(
 @Composable
 private fun QuickStampByCodeDialog(
     onDismiss: () -> Unit,
+    onScanCamera: () -> Unit,
     onSubmit: (String, (Boolean) -> Unit) -> Unit,
 ) {
     var input by remember { mutableStateOf("") }
@@ -621,6 +645,12 @@ private fun QuickStampByCodeDialog(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = qColors.textPrimary,
+                )
+                QahwaSecondaryButton(
+                    text = stringResource(R.string.scan_qr_camera),
+                    onClick = onScanCamera,
+                    leadingIcon = Icons.Default.CameraAlt,
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 QahwaTextField(
                     value = input,
@@ -662,11 +692,19 @@ private fun QuickStampByCodeDialog(
 private fun LoyaltySettingsDialog(
     config: LoyaltyConfig,
     onDismiss: () -> Unit,
-    onConfirm: (stampsRequired: Int, rewardTitle: String, googleReviewUrl: String) -> Unit,
+    onConfirm: (
+        stampsRequired: Int,
+        rewardTitle: String,
+        googleReviewUrl: String,
+        wifiSsid: String,
+        wifiPassword: String,
+    ) -> Unit,
 ) {
     var stampsInput by remember { mutableStateOf(config.stampsRequired.toString()) }
     var rewardInput by remember { mutableStateOf(config.rewardTitle) }
     var reviewUrlInput by remember { mutableStateOf(config.googleReviewUrl) }
+    var wifiSsidInput by remember { mutableStateOf(config.wifiSsid) }
+    var wifiPasswordInput by remember { mutableStateOf(config.wifiPassword) }
     val parsedStamps = stampsInput.toIntOrNull()?.takeIf { it in 1..50 }
     val canSave = parsedStamps != null && rewardInput.isNotBlank()
     val qColors = QahwaTheme.colors
@@ -712,6 +750,18 @@ private fun LoyaltySettingsDialog(
                     label = stringResource(R.string.google_review_url_label),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                QahwaTextField(
+                    value = wifiSsidInput,
+                    onValueChange = { wifiSsidInput = it },
+                    label = stringResource(R.string.wifi_ssid_label),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                QahwaTextField(
+                    value = wifiPasswordInput,
+                    onValueChange = { wifiPasswordInput = it },
+                    label = stringResource(R.string.wifi_password_label),
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -722,7 +772,13 @@ private fun LoyaltySettingsDialog(
                     TextButton(
                         onClick = {
                             if (parsedStamps != null && canSave) {
-                                onConfirm(parsedStamps, rewardInput.trim(), reviewUrlInput.trim())
+                                onConfirm(
+                                    parsedStamps,
+                                    rewardInput.trim(),
+                                    reviewUrlInput.trim(),
+                                    wifiSsidInput.trim(),
+                                    wifiPasswordInput.trim(),
+                                )
                             }
                         },
                         enabled = canSave,

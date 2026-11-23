@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 import java.util.UUID
 
 data class LoyaltyConfig(
+    val cafeName: String = "",
     val stampsRequired: Int = 8,
     val rewardTitle: String = "1 Free Coffee",
     val googleReviewUrl: String = "",

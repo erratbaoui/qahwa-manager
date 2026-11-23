@@ -204,6 +204,6 @@ class FirestoreSyncMapperTest {
         val restoredConfig = FirestoreSyncMapper.mapToLoyaltyConfig(
             FirestoreSyncMapper.loyaltyConfigToMap(config, "Café Atlas"),
         )
-        assertEquals(config, restoredConfig)
+        assertEquals(config.copy(cafeName = "Café Atlas"), restoredConfig)
     }
 }

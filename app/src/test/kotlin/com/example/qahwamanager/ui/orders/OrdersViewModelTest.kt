@@ -1,13 +1,16 @@
 package com.example.qahwamanager.ui.orders
 
+import com.example.qahwamanager.data.model.LoyaltyCustomer
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.OrderStatus
 import com.example.qahwamanager.data.model.Staff
+import com.example.qahwamanager.data.repository.LoyaltyRepository
 import com.example.qahwamanager.data.repository.MenuRepository
 import com.example.qahwamanager.data.repository.OrderRepository
 import com.example.qahwamanager.data.repository.ShiftRepository
 import com.example.qahwamanager.security.OwnerSession
+import com.example.qahwamanager.testing.FakeLoyaltyCustomerDao
 import com.example.qahwamanager.testing.FakeMenuItemDao
 import com.example.qahwamanager.testing.FakeOrderDao
 import com.example.qahwamanager.testing.FakeOrderItemDao
@@ -69,6 +72,7 @@ class OrdersViewModelTest {
             OrderRepository(orderDao, FakeOrderItemDao(orderDao), clock),
             MenuRepository(FakeMenuItemDao(listOf(tea))),
             ShiftRepository(shiftDao, orderDao, clock),
+            LoyaltyRepository(FakeLoyaltyCustomerDao(), clock),
             ownerSession,
         )
         backgroundScope.launch { viewModel.activeShift.collect {} }
@@ -213,5 +217,23 @@ class OrdersViewModelTest {
         val order = orderDao.orders.value.single()
         assertEquals(OrderStatus.CANCELLED, order.status)
         assertNull(order.cancelledShiftId)
+    }
+
+    @Test
+    fun stampLoyaltyForOrder_enrollsNewOrStampsExistingCustomer() = runTest {
+        build()
+        var stamped: LoyaltyCustomer? = null
+
+        viewModel.stampLoyaltyForOrder(
+            codeOrPhone = "06 55 44 33 22",
+            customerName = "Amina",
+            stampsCount = 2,
+        ) { stamped = it }
+        advanceUntilIdle()
+
+        assertNotNull(stamped)
+        assertEquals("Amina", stamped!!.name)
+        assertEquals("+212655443322", stamped!!.phone)
+        assertEquals(2, stamped!!.currentStamps)
     }
 }

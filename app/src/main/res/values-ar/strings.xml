@@ -291,6 +291,11 @@
     <string name="table_count_label">عدد الطاولات للطباعة (1–40)</string>
     <string name="print_a4_pdf_sheet">طباعة %1$d ملصق QR للطاولات (A4 / PDF)</string>
     <string name="open_web_print_studio">فتح استوديو الطباعة في المتصفح</string>
+    <string name="scan_qr_camera">مسح رمز QR للزبون بالكاميرا</string>
+    <string name="wifi_ssid_label">اسم شبكة Wi-Fi للزبائن (اختياري)</string>
+    <string name="wifi_password_label">كلمة مرور Wi-Fi للزبائن (اختياري)</string>
+    <string name="stamp_order_loyalty">ختم بطاقة الولاء (+%1$d)</string>
+    <string name="loyalty_stamped_toast">تم ختم بطاقة %1$s (%2$d أختام حالياً)</string>
     <plurals name="shifts_count">
         <item quantity="zero">%d وردية</item>
         <item quantity="one">وردية واحدة</item>

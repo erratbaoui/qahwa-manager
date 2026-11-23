@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
@@ -24,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,12 +34,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
+import com.example.qahwamanager.data.model.LoyaltyCustomer
 import com.example.qahwamanager.data.model.OrderItem
 import com.example.qahwamanager.data.model.OrderStatus
 import com.example.qahwamanager.ui.auth.LocalOwnerGate
@@ -46,12 +52,16 @@ import com.example.qahwamanager.ui.common.QahwaCurrencyText
 import com.example.qahwamanager.ui.common.QahwaDestructiveButton
 import com.example.qahwamanager.ui.common.QahwaDivider
 import com.example.qahwamanager.ui.common.QahwaPrimaryButton
+import com.example.qahwamanager.ui.common.QahwaSecondaryButton
 import com.example.qahwamanager.ui.common.QahwaSectionHeader
 import com.example.qahwamanager.ui.common.QahwaStatusBadge
+import com.example.qahwamanager.ui.common.QahwaTextField
 import com.example.qahwamanager.ui.common.QahwaTopBarActions
 import com.example.qahwamanager.ui.common.currentLanguage
 import com.example.qahwamanager.ui.common.formatQuantity
 import com.example.qahwamanager.ui.common.tableLabel
+import com.example.qahwamanager.ui.loyalty.QrCodeScannerHelper
+import com.example.qahwamanager.ui.theme.BrandAmberGold
 import com.example.qahwamanager.ui.theme.QahwaTheme
 import com.example.qahwamanager.util.localizedName
 
@@ -73,6 +83,46 @@ fun OrderDetailScreen(
 
     var showPayDialog by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
+    var showLoyaltyDialog by remember { mutableStateOf(false) }
+    var stampedCustomer by remember { mutableStateOf<LoyaltyCustomer?>(null) }
+    val context = LocalContext.current
+    val orderStampsCount = remember(orderItems) { orderItems.sumOf { it.quantity }.coerceAtLeast(1) }
+
+    if (showLoyaltyDialog) {
+        OrderLoyaltyStampDialog(
+            stampsCount = orderStampsCount,
+            onDismiss = { showLoyaltyDialog = false },
+            onScanCamera = {
+                QrCodeScannerHelper.startQrScan(
+                    context = context,
+                    onScanned = { rawCode ->
+                        viewModel.stampLoyaltyForOrder(
+                            codeOrPhone = rawCode,
+                            stampsCount = orderStampsCount,
+                        ) { customer ->
+                            if (customer != null) {
+                                stampedCustomer = customer
+                                showLoyaltyDialog = false
+                            }
+                        }
+                    },
+                )
+            },
+            onSubmit = { phoneOrCode, name, onResult ->
+                viewModel.stampLoyaltyForOrder(
+                    codeOrPhone = phoneOrCode,
+                    customerName = name,
+                    stampsCount = orderStampsCount,
+                ) { customer ->
+                    if (customer != null) {
+                        stampedCustomer = customer
+                        showLoyaltyDialog = false
+                    }
+                    onResult(customer != null)
+                }
+            },
+        )
+    }
 
     if (showPayDialog) {
         QahwaConfirmDialog(
@@ -236,6 +286,38 @@ fun OrderDetailScreen(
                                     color = qColors.textSecondary,
                                 )
                             }
+                            stampedCustomer?.let { cust ->
+                                Text(
+                                    text = stringResource(
+                                        R.string.loyalty_stamped_toast,
+                                        cust.name,
+                                        cust.currentStamps,
+                                    ),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = BrandAmberGold,
+                                )
+                            }
+                            QahwaSecondaryButton(
+                                text = stringResource(R.string.stamp_order_loyalty, orderStampsCount),
+                                onClick = {
+                                    QrCodeScannerHelper.startQrScan(
+                                        context = context,
+                                        onScanned = { rawCode ->
+                                            viewModel.stampLoyaltyForOrder(
+                                                codeOrPhone = rawCode,
+                                                stampsCount = orderStampsCount,
+                                            ) { customer ->
+                                                if (customer != null) stampedCustomer = customer
+                                                else showLoyaltyDialog = true
+                                            }
+                                        },
+                                        onFallbackRequired = { showLoyaltyDialog = true },
+                                    )
+                                },
+                                leadingIcon = Icons.Default.CardGiftcard,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                             QahwaPrimaryButton(
                                 text = stringResource(R.string.mark_as_paid),
                                 onClick = { showPayDialog = true },
@@ -305,6 +387,83 @@ private fun OrderItemRow(item: OrderItem, language: String) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = qColors.textSecondary,
             )
+        }
+    }
+}
+
+@Composable
+private fun OrderLoyaltyStampDialog(
+    stampsCount: Int,
+    onDismiss: () -> Unit,
+    onScanCamera: () -> Unit,
+    onSubmit: (phoneOrCode: String, customerName: String, onResult: (Boolean) -> Unit) -> Unit,
+) {
+    var phoneOrCode by remember { mutableStateOf("") }
+    var customerName by remember { mutableStateOf("") }
+    var hasError by remember { mutableStateOf(false) }
+    val qColors = QahwaTheme.colors
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = qColors.cardSurface,
+            border = BorderStroke(1.dp, qColors.divider),
+            modifier = Modifier.widthIn(max = 420.dp),
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.stamp_order_loyalty, stampsCount),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = qColors.textPrimary,
+                )
+                QahwaSecondaryButton(
+                    text = stringResource(R.string.scan_qr_camera),
+                    onClick = onScanCamera,
+                    leadingIcon = Icons.Default.CameraAlt,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                QahwaTextField(
+                    value = phoneOrCode,
+                    onValueChange = {
+                        phoneOrCode = it
+                        hasError = false
+                    },
+                    label = stringResource(R.string.enter_qr_or_phone),
+                    isError = hasError,
+                    errorMessage = if (hasError) stringResource(R.string.customer_not_found) else null,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                QahwaTextField(
+                    value = customerName,
+                    onValueChange = { customerName = it },
+                    label = stringResource(R.string.waiter_name),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.cancel), color = qColors.textSecondary)
+                    }
+                    TextButton(
+                        onClick = {
+                            onSubmit(phoneOrCode, customerName) { ok -> hasError = !ok }
+                        },
+                        enabled = phoneOrCode.isNotBlank(),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.save),
+                            color = qColors.primaryAccent,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
         }
     }
 }

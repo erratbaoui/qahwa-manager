@@ -275,6 +275,11 @@
     <string name="table_count_label">Number of tables to print (1–40)</string>
     <string name="print_a4_pdf_sheet">Print %1$d Table QR Stickers (A4 / PDF)</string>
     <string name="open_web_print_studio">Open Web Print Studio in Browser</string>
+    <string name="scan_qr_camera">Scan Customer QR with Camera</string>
+    <string name="wifi_ssid_label">Guest Wi-Fi Network Name (SSID, optional)</string>
+    <string name="wifi_password_label">Guest Wi-Fi Password (optional)</string>
+    <string name="stamp_order_loyalty">Stamp Loyalty Card (+%1$d)</string>
+    <string name="loyalty_stamped_toast">Stamped %1$s (%2$d total stamps)</string>
     <plurals name="shifts_count">
         <item quantity="one">%d shift</item>
         <item quantity="other">%d shifts</item>

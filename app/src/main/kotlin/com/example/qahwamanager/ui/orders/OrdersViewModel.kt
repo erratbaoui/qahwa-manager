@@ -2,10 +2,12 @@ package com.example.qahwamanager.ui.orders
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.qahwamanager.data.model.LoyaltyCustomer
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.OrderItem
 import com.example.qahwamanager.data.model.ShiftWithStaff
+import com.example.qahwamanager.data.repository.LoyaltyRepository
 import com.example.qahwamanager.data.repository.MenuRepository
 import com.example.qahwamanager.data.repository.OrderRepository
 import com.example.qahwamanager.data.repository.ShiftRepository
@@ -28,6 +30,7 @@ class OrdersViewModel @Inject constructor(
     private val orderRepository: OrderRepository,
     private val menuRepository: MenuRepository,
     private val shiftRepository: ShiftRepository,
+    private val loyaltyRepository: LoyaltyRepository,
     private val ownerSession: OwnerSession
 ) : ViewModel() {
 
@@ -115,6 +118,33 @@ class OrdersViewModel @Inject constructor(
     fun observeOrder(orderId: Long): Flow<Order?> = orderRepository.observeOrder(orderId)
 
     fun observeOrderItems(orderId: Long): Flow<List<OrderItem>> = orderRepository.getOrderItems(orderId)
+
+    /** Awards [stampsCount] loyalty stamp(s) to an existing customer by QR/phone, or enrolls a new one if [customerName] is provided. */
+    fun stampLoyaltyForOrder(
+        codeOrPhone: String,
+        customerName: String = "",
+        stampsCount: Int = 1,
+        onResult: (LoyaltyCustomer?) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val safeCount = stampsCount.coerceIn(1, 50)
+            val matched = loyaltyRepository.stampByCodeOrPhone(codeOrPhone, safeCount)
+            if (matched != null) {
+                onResult(matched)
+                return@launch
+            }
+            val cleanedName = customerName.trim().ifEmpty { "Client" }
+            val enrolled = runCatching {
+                val created = loyaltyRepository.enrollCustomer(
+                    name = cleanedName,
+                    phone = codeOrPhone,
+                    addInitialStamp = false,
+                )
+                loyaltyRepository.addStamp(created.id, safeCount) ?: created
+            }.getOrNull()
+            onResult(enrolled)
+        }
+    }
 
     /** Runs one write at a time; taps that arrive while a write is in flight are ignored. */
     private fun save(block: suspend () -> Unit) {

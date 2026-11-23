@@ -132,8 +132,9 @@ dependencies {
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.play.services)
 
-  // Firebase (Auth + Cloud Firestore)
+  // Firebase (Auth + Cloud Firestore) & Google Code Scanner
   implementation(platform(libs.firebase.bom))
   implementation(libs.firebase.auth)
   implementation(libs.firebase.firestore)
+  implementation(libs.play.services.code.scanner)
 }

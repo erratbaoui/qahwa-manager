@@ -309,7 +309,7 @@ object FirestoreSyncMapper {
     }
 
     fun loyaltyConfigToMap(config: LoyaltyConfig, cafeName: String? = null): Map<String, Any?> = mapOf(
-        "cafeName" to cafeName,
+        "cafeName" to (config.cafeName.ifBlank { cafeName ?: "" }).ifBlank { null },
         "stampsRequired" to config.stampsRequired,
         "rewardTitle" to config.rewardTitle,
         "googleReviewUrl" to config.googleReviewUrl,
@@ -322,6 +322,7 @@ object FirestoreSyncMapper {
         val stampsRequired = (data["stampsRequired"] as? Number)?.toInt() ?: return null
         val rewardTitle = data["rewardTitle"] as? String ?: return null
         return LoyaltyConfig(
+            cafeName = (data["cafeName"] as? String).orEmpty(),
             stampsRequired = stampsRequired.coerceIn(1, 50),
             rewardTitle = rewardTitle,
             googleReviewUrl = (data["googleReviewUrl"] as? String).orEmpty(),
