@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FilterChip
@@ -59,6 +61,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -156,8 +160,10 @@ fun LoyaltyScreen(
 
     if (showStandLinkDialog) {
         StandLinkDialog(
+            cafeName = state.cafeName,
             standUrl = state.standUrl,
-            googleReviewUrl = state.config.googleReviewUrl,
+            printStudioUrl = state.printStudioUrl,
+            config = state.config,
             onWriteNfc = {
                 showStandLinkDialog = false
                 gate.require { viewModel.startWritingNfcStand() }
@@ -261,22 +267,30 @@ fun LoyaltyScreen(
                 }
 
                 item {
-                    // Quick actions: New member + Stamp by code/phone + NFC Stand
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        QahwaPrimaryButton(
-                            text = stringResource(R.string.enroll_customer),
-                            onClick = { showEnrollDialog = true },
-                            leadingIcon = Icons.Default.PersonAdd,
-                            modifier = Modifier.weight(1f),
-                        )
+                    // Quick actions: New member + Stamp by code/phone + Print Table QR Stickers
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            QahwaPrimaryButton(
+                                text = stringResource(R.string.enroll_customer),
+                                onClick = { showEnrollDialog = true },
+                                leadingIcon = Icons.Default.PersonAdd,
+                                modifier = Modifier.weight(1f),
+                            )
+                            QahwaSecondaryButton(
+                                text = stringResource(R.string.quick_stamp_code),
+                                onClick = { showQuickStampDialog = true },
+                                leadingIcon = Icons.Default.QrCode2,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                         QahwaSecondaryButton(
-                            text = stringResource(R.string.quick_stamp_code),
-                            onClick = { showQuickStampDialog = true },
-                            leadingIcon = Icons.Default.QrCode2,
-                            modifier = Modifier.weight(1f),
+                            text = stringResource(R.string.print_table_qr_codes),
+                            onClick = { showStandLinkDialog = true },
+                            leadingIcon = Icons.Default.Print,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
@@ -727,14 +741,21 @@ private fun LoyaltySettingsDialog(
 
 @Composable
 private fun StandLinkDialog(
+    cafeName: String,
     standUrl: String,
-    googleReviewUrl: String,
+    printStudioUrl: String,
+    config: LoyaltyConfig,
     onWriteNfc: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val qColors = QahwaTheme.colors
     val context = LocalContext.current
     var copied by remember { mutableStateOf(false) }
+    var tableCountInput by remember { mutableStateOf("12") }
+    val tableCount = tableCountInput.toIntOrNull()?.coerceIn(1, 40) ?: 12
+    val qrMatrix = remember(standUrl) {
+        if (standUrl.isNotBlank()) QrCodeGenerator.encode(standUrl) else emptyArray()
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -743,10 +764,12 @@ private fun StandLinkDialog(
             border = BorderStroke(1.dp, qColors.divider),
             modifier = Modifier
                 .resetsOwnerIdleTimer()
-                .widthIn(max = 440.dp),
+                .widthIn(max = 460.dp),
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Text(
@@ -760,6 +783,80 @@ private fun StandLinkDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     color = qColors.textSecondary,
                 )
+
+                // Live scannable QR Code Preview on screen
+                if (qrMatrix.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.White,
+                            border = BorderStroke(2.dp, BrandAmberGold),
+                            modifier = Modifier.size(184.dp),
+                        ) {
+                            Canvas(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(12.dp),
+                            ) {
+                                val n = qrMatrix.size
+                                val cell = size.width / n
+                                for (r in 0 until n) {
+                                    for (c in 0 until n) {
+                                        if (qrMatrix[r][c]) {
+                                            drawRect(
+                                                color = Color(0xFF143023),
+                                                topLeft = Offset(c * cell, r * cell),
+                                                size = Size(cell * 1.03f, cell * 1.03f),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                QahwaTextField(
+                    value = tableCountInput,
+                    onValueChange = { tableCountInput = it },
+                    label = stringResource(R.string.table_count_label),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                QahwaPrimaryButton(
+                    text = stringResource(R.string.print_a4_pdf_sheet, tableCount),
+                    onClick = {
+                        TableQrPrintHelper.printTableQrSheet(
+                            context = context,
+                            cafeName = cafeName,
+                            baseStandUrl = standUrl,
+                            tableCount = tableCount,
+                            stampsRequired = config.stampsRequired,
+                            rewardTitle = config.rewardTitle,
+                        )
+                    },
+                    leadingIcon = Icons.Default.Print,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                QahwaSecondaryButton(
+                    text = stringResource(R.string.open_web_print_studio),
+                    onClick = {
+                        val encodedName = URLEncoder.encode(cafeName, "UTF-8")
+                        val encodedReward = URLEncoder.encode(config.rewardTitle, "UTF-8")
+                        val fullUrl = "$printStudioUrl&name=$encodedName&reward=$encodedReward&tables=$tableCount"
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl)))
+                        }
+                    },
+                    leadingIcon = Icons.Default.QrCode2,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = qColors.background,
@@ -773,13 +870,7 @@ private fun StandLinkDialog(
                         modifier = Modifier.padding(14.dp),
                     )
                 }
-                if (googleReviewUrl.isNotBlank()) {
-                    Text(
-                        text = "Google Reviews: $googleReviewUrl",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = qColors.textSecondary,
-                    )
-                }
+
                 QahwaSecondaryButton(
                     text = stringResource(if (copied) R.string.code_copied else R.string.copy_stand_link),
                     onClick = {
@@ -790,7 +881,7 @@ private fun StandLinkDialog(
                     leadingIcon = Icons.Default.ContentCopy,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                QahwaPrimaryButton(
+                QahwaSecondaryButton(
                     text = stringResource(R.string.write_nfc_tag),
                     onClick = onWriteNfc,
                     leadingIcon = Icons.Default.Nfc,

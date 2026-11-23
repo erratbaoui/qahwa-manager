@@ -77,6 +77,7 @@ class LoyaltyRepository @Inject constructor(
             rewardsRedeemed = 0,
             lastVisitAt = now,
             createdAt = now,
+            remoteId = deterministicRemoteId(normalizedPhone),
             updatedAt = now,
         )
         val id = loyaltyDao.insert(created)
@@ -167,5 +168,9 @@ class LoyaltyRepository @Inject constructor(
                 else -> digitsAndPlus
             }
         }
+
+        /** Deterministic document ID (`phone_<digits>`) shared by the Android POS and Table QR Web App. */
+        fun deterministicRemoteId(normalizedPhone: String): String =
+            "phone_" + normalizedPhone.filter { it.isDigit() }
     }
 }

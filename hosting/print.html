@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qahwa Manager — Studio d'Impression QR Codes Tables</title>
+  <style>
+    @page { size: A4; margin: 10mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #FAF6F0;
+      color: #143023;
+      padding: 20px;
+    }
+    .toolbar {
+      max-width: 900px;
+      margin: 0 auto 24px auto;
+      background: #143023;
+      color: #FAF6F0;
+      padding: 18px 22px;
+      border-radius: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+    .toolbar-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .toolbar-group label {
+      font-size: 11px;
+      color: #D4A359;
+      font-weight: 700;
+    }
+    .toolbar-group input {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #2B5440;
+      background: #1B3E2E;
+      color: #FAF6F0;
+      font-size: 14px;
+    }
+    .print-btn {
+      background: #D4A359;
+      color: #143023;
+      border: none;
+      padding: 11px 20px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .grid {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8mm;
+    }
+    .sticker {
+      border: 2px solid #143023;
+      border-radius: 16px;
+      padding: 12px 10px;
+      text-align: center;
+      background: #FFFFFF;
+      page-break-inside: avoid;
+    }
+    .badge {
+      display: inline-block;
+      background: #143023;
+      color: #D4A359;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 12px;
+      border-radius: 999px;
+      margin-bottom: 5px;
+    }
+    .cafe-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #143023;
+      margin-bottom: 6px;
+    }
+    .qr-box {
+      width: 138px;
+      height: 138px;
+      margin: 0 auto 6px auto;
+      padding: 4px;
+      border: 1.5px solid #D4A359;
+      border-radius: 10px;
+    }
+    .qr-box svg { width: 100%; height: 100%; display: block; }
+    .reward-pill {
+      display: inline-block;
+      background: #D4A359;
+      color: #143023;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 8px;
+      margin-bottom: 5px;
+    }
+    .cta-fr { font-size: 10px; font-weight: 600; color: #2B4C3B; margin-bottom: 2px; }
+    .cta-ar { font-size: 10.5px; font-weight: 700; color: #143023; }
+    @media print {
+      body { background: #FFFFFF; padding: 0; }
+      .toolbar { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <label for="inCafeName">Nom du Café</label>
+      <input id="inCafeName" type="text" value="Qahwa Café" />
+    </div>
+    <div class="toolbar-group">
+      <label for="inTables">Nombre de Tables</label>
+      <input id="inTables" type="number" min="1" max="50" value="12" style="width:90px;" />
+    </div>
+    <div class="toolbar-group">
+      <label for="inReward">Offre Fidélité</label>
+      <input id="inReward" type="text" value="9 cafés = 1 Boisson Gratuite" />
+    </div>
+    <button class="print-btn" onclick="window.print()">🖨️ Imprimer / Enregistrer PDF (A4)</button>
+  </div>
+
+  <div class="grid" id="stickersGrid"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const cafeId = params.get("cafe") || "default";
+    const initName = params.get("name") || "Qahwa Café";
+    const initStamps = params.get("stamps") || "9";
+    const initReward = params.get("reward") || "1 Boisson Gratuite";
+    const initTables = parseInt(params.get("tables") || "12", 10) || 12;
+
+    document.getElementById("inCafeName").value = initName;
+    document.getElementById("inTables").value = initTables;
+    document.getElementById("inReward").value = `${initStamps} = ${initReward}`;
+
+    // Same ISO/IEC 18004 QR SVG Generator
+    const QR = (() => {
+      const VERSIONS = [
+        { v: 1, totalData: 19, ecPerBlock: 7, blocks: 1, align: [] },
+        { v: 2, totalData: 34, ecPerBlock: 10, blocks: 1, align: [6, 18] },
+        { v: 3, totalData: 55, ecPerBlock: 15, blocks: 1, align: [6, 22] },
+        { v: 4, totalData: 80, ecPerBlock: 20, blocks: 1, align: [6, 26] },
+        { v: 5, totalData: 108, ecPerBlock: 26, blocks: 1, align: [6, 30] },
+        { v: 6, totalData: 136, ecPerBlock: 18, blocks: 2, align: [6, 34] }
+      ];
+      const EXP = new Int32Array(512), LOG = new Int32Array(256);
+      let x = 1;
+      for (let i = 0; i < 255; i++) { EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11D; }
+      for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+      const mul = (a, b) => (a === 0 || b === 0 ? 0 : EXP[LOG[a] + LOG[b]]);
+      const rsRem = (data, deg) => {
+        let gen = [1];
+        for (let i = 0; i < deg; i++) {
+          const next = new Array(gen.length + 1).fill(0);
+          for (let j = 0; j < gen.length; j++) { next[j] ^= gen[j]; next[j + 1] ^= mul(gen[j], EXP[i]); }
+          gen = next;
+        }
+        const rem = new Array(deg).fill(0);
+        for (const b of data) {
+          const f = b ^ rem[0]; rem.shift(); rem.push(0);
+          for (let i = 0; i < deg; i++) rem[i] ^= mul(gen[i + 1], f);
+        }
+        return rem;
+      };
+      return {
+        toSvg(text) {
+          const bytes = Array.from(new TextEncoder().encode(text));
+          const info = VERSIONS.find(v => bytes.length + 2 <= v.totalData) || VERSIONS[VERSIONS.length - 1];
+          const usable = bytes.slice(0, info.totalData - 2);
+          const bits = [];
+          const pushBits = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+          pushBits(4, 4); pushBits(usable.length, 8); usable.forEach(b => pushBits(b, 8));
+          pushBits(0, Math.min(4, info.totalData * 8 - bits.length));
+          while (bits.length % 8 !== 0) bits.push(0);
+          const dataCw = new Array(info.totalData).fill(0);
+          for (let i = 0; i < bits.length / 8; i++) {
+            let cw = 0; for (let b = 0; b < 8; b++) cw = (cw << 1) | bits[i * 8 + b]; dataCw[i] = cw;
+          }
+          let pad = true;
+          for (let i = bits.length / 8; i < info.totalData; i++) { dataCw[i] = pad ? 0xEC : 0x11; pad = !pad; }
+          const bs = info.totalData / info.blocks, dBlocks = [], ecBlocks = [];
+          for (let b = 0; b < info.blocks; b++) {
+            const blk = dataCw.slice(b * bs, (b + 1) * bs);
+            dBlocks.push(blk); ecBlocks.push(rsRem(blk, info.ecPerBlock));
+          }
+          const finalCw = [];
+          for (let i = 0; i < bs; i++) for (let b = 0; b < info.blocks; b++) finalCw.push(dBlocks[b][i]);
+          for (let i = 0; i < info.ecPerBlock; i++) for (let b = 0; b < info.blocks; b++) finalCw.push(ecBlocks[b][i]);
+          const size = 17 + 4 * info.v;
+          const mod = Array.from({ length: size }, () => new Array(size).fill(false));
+          const fn = Array.from({ length: size }, () => new Array(size).fill(false));
+          const setFn = (r, c, d) => { if (r >= 0 && r < size && c >= 0 && c < size) { mod[r][c] = d; fn[r][c] = true; } };
+          const finder = (tr, tc) => {
+            for (let dr = -1; dr <= 7; dr++) for (let dc = -1; dc <= 7; dc++) {
+              const out = dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6 && (dr === 0 || dr === 6 || dc === 0 || dc === 6);
+              const inn = dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4;
+              setFn(tr + dr, tc + dc, out || inn);
+            }
+          };
+          finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+          for (let i = 8; i < size - 8; i++) { setFn(6, i, i % 2 === 0); setFn(i, 6, i % 2 === 0); }
+          for (const cr of info.align) for (const cc of info.align) {
+            if ((cr <= 8 && cc <= 8) || (cr <= 8 && cc >= size - 9) || (cr >= size - 9 && cc <= 8)) continue;
+            for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++)
+              setFn(cr + dr, cc + dc, Math.abs(dr) === 2 || Math.abs(dc) === 2 || (dr === 0 && dc === 0));
+          }
+          setFn(4 * info.v + 9, 8, true);
+          for (let i = 0; i <= 8; i++) { if (!fn[8][i]) setFn(8, i, false); if (!fn[i][8]) setFn(i, 8, false); }
+          for (let i = 0; i <= 7; i++) { if (!fn[8][size - 1 - i]) setFn(8, size - 1 - i, false); if (!fn[size - 1 - i][8]) setFn(size - 1 - i, 8, false); }
+          let bitIdx = 0, up = true, totalBits = finalCw.length * 8;
+          for (let right = size - 1; right >= 1; right -= 2) {
+            if (right === 6) right = 5;
+            for (let s = 0; s < size; s++) {
+              const r = up ? size - 1 - s : s;
+              for (let j = 0; j < 2; j++) {
+                const c = right - j;
+                if (!fn[r][c]) {
+                  const dark = bitIdx < totalBits ? ((finalCw[bitIdx >>> 3] >>> (7 - (bitIdx & 7))) & 1) === 1 : false;
+                  mod[r][c] = (r + c) % 2 === 0 ? !dark : dark;
+                  bitIdx++;
+                }
+              }
+            }
+            up = !up;
+          }
+          const fmt = 0x77C4, fBit = i => ((fmt >>> i) & 1) === 1;
+          const tl = [[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+          for (let i = 0; i < 15; i++) mod[tl[i][0]][tl[i][1]] = fBit(14 - i);
+          for (let i = 0; i <= 6; i++) mod[size - 1 - i][8] = fBit(14 - i);
+          for (let i = 7; i <= 14; i++) mod[8][size - 15 + i] = fBit(14 - i);
+          const q = 2, tot = size + q * 2;
+          let d = "";
+          for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (mod[r][c]) d += `M${c + q} ${r + q}h1v1h-1z`;
+          return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${tot} ${tot}" shape-rendering="crispEdges"><rect width="${tot}" height="${tot}" fill="#FFFFFF"/><path fill="#143023" d="${d}"/></svg>`;
+        }
+      };
+    })();
+
+    function renderGrid() {
+      const cafeName = document.getElementById("inCafeName").value || "Qahwa Café";
+      const tables = Math.min(50, Math.max(1, parseInt(document.getElementById("inTables").value || "12", 10)));
+      const reward = document.getElementById("inReward").value || "9 cafés = 1 Boisson Gratuite";
+      const grid = document.getElementById("stickersGrid");
+      grid.innerHTML = "";
+      for (let t = 1; t <= tables; t++) {
+        const url = `${window.location.origin}/?cafe=${encodeURIComponent(cafeId)}&table=${t}`;
+        const card = document.createElement("div");
+        card.className = "sticker";
+        card.innerHTML = `
+          <div class="badge">TABLE ${t} · طاولة ${t}</div>
+          <div class="cafe-title">${cafeName}</div>
+          <div class="qr-box">${QR.toSvg(url)}</div>
+          <div class="reward-pill">☕ ${reward}</div>
+          <div class="cta-fr">Scannez pour cumuler vos points fidélité</div>
+          <div class="cta-ar" dir="rtl">امسح الرمز لجمع النقاط وربح مشروب مجاني</div>
+        `;
+        grid.appendChild(card);
+      }
+    }
+
+    document.getElementById("inCafeName").addEventListener("input", renderGrid);
+    document.getElementById("inTables").addEventListener("input", renderGrid);
+    document.getElementById("inReward").addEventListener("input", renderGrid);
+    renderGrid();
+  </script>
+</body>
+</html>

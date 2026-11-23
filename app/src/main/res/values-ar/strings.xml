@@ -287,6 +287,10 @@
     <string name="write_nfc_tag">برمجة شريحة NFC</string>
     <string name="nfc_touch_tag_prompt">قرّب ظهر هاتفك من ملصق أو بطاقة NFC الآن…</string>
     <string name="nfc_write_success">تمت برمجة شريحة NFC بنجاح! يمكن للزبائن الآن لمسها بهواتفهم.</string>
+    <string name="print_table_qr_codes">طباعة رموز QR للطاولات</string>
+    <string name="table_count_label">عدد الطاولات للطباعة (1–40)</string>
+    <string name="print_a4_pdf_sheet">طباعة %1$d ملصق QR للطاولات (A4 / PDF)</string>
+    <string name="open_web_print_studio">فتح استوديو الطباعة في المتصفح</string>
     <plurals name="shifts_count">
         <item quantity="zero">%d وردية</item>
         <item quantity="one">وردية واحدة</item>

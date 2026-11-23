@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Qahwa Club Fidélité & Menu Digital</title>
+  <style>
+    :root {
+      --bg: #10251B;
+      --card: #173527;
+      --card-elevated: #1E4332;
+      --gold: #D4A359;
+      --gold-light: #F3D299;
+      --cream: #FAF6F0;
+      --muted: #A9C2B5;
+      --border: #2B5440;
+      --success: #38B26F;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at top, #1B3E2E 0%, var(--bg) 70%);
+      color: var(--cream);
+      min-height: 100vh;
+      padding: 16px 14px 40px;
+    }
+    .container {
+      max-width: 440px;
+      margin: 0 auto;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(212, 163, 89, 0.16);
+      border: 1px solid var(--gold);
+      color: var(--gold-light);
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .lang-switch {
+      display: flex;
+      gap: 4px;
+      background: var(--card);
+      padding: 3px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    .lang-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .lang-btn.active {
+      background: var(--gold);
+      color: #10251B;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--cream);
+      margin-bottom: 4px;
+    }
+    .hero p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: var(--card);
+      padding: 5px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--gold);
+      color: #10251B;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.28);
+    }
+    .card-title {
+      font-size: 17px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: var(--cream);
+    }
+    .card-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      line-height: 1.45;
+    }
+    .field {
+      margin-bottom: 12px;
+    }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold-light);
+      margin-bottom: 5px;
+    }
+    .field input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #10251B;
+      color: var(--cream);
+      font-size: 15px;
+      outline: none;
+    }
+    .field input:focus {
+      border-color: var(--gold);
+    }
+    .primary-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, var(--gold) 0%, #B88336 100%);
+      color: #10251B;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .primary-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .secondary-btn {
+      display: inline-block;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 7px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .stamps-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .stamp-circle {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #10251B;
+      border: 2px dashed var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: rgba(255,255,255,0.22);
+      transition: transform 0.25s ease, background 0.25s ease;
+    }
+    .stamp-circle.filled {
+      background: var(--gold);
+      border: 2px solid var(--gold-light);
+      color: #10251B;
+      transform: scale(1.04);
+      box-shadow: 0 4px 12px rgba(212,163,89,0.35);
+    }
+    .reward-banner {
+      background: rgba(212, 163, 89, 0.15);
+      border: 1.5px solid var(--gold);
+      border-radius: 14px;
+      padding: 12px 14px;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .reward-banner.unlocked {
+      background: rgba(56, 178, 111, 0.22);
+      border-color: var(--success);
+      color: #B4F5CE;
+    }
+    .qr-wrap {
+      background: #FFFFFF;
+      width: 176px;
+      height: 176px;
+      margin: 12px auto;
+      padding: 10px;
+      border-radius: 16px;
+      border: 3px solid var(--gold);
+    }
+    .qr-wrap svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .stat-box {
+      background: #10251B;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--gold-light);
+    }
+    .stat-lbl {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .menu-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .menu-item:last-child { border-bottom: none; }
+    .menu-name { font-weight: 700; font-size: 15px; }
+    .menu-cat { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .menu-price {
+      background: rgba(212,163,89,0.18);
+      color: var(--gold-light);
+      font-weight: 800;
+      font-size: 13px;
+      padding: 5px 10px;
+      border-radius: 8px;
+    }
+    .review-btn {
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      background: var(--card-elevated);
+      border: 1px solid var(--gold);
+      color: var(--gold-light);
+      font-weight: 700;
+      font-size: 13px;
+      padding: 12px;
+      border-radius: 14px;
+      margin-top: 10px;
+    }
+    .error-msg {
+      color: #FF8B8B;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container" id="appRoot">
+    <div class="topbar">
+      <div class="brand-badge" id="tableBadge">☕ Qahwa Club</div>
+      <div class="lang-switch">
+        <button class="lang-btn active" data-lang="fr">FR</button>
+        <button class="lang-btn" data-lang="ar">عربي</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1 id="cafeNameHeading">Qahwa Café</h1>
+      <p id="rewardSubtitle">Cumulez vos points et gagnez des boissons gratuites</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tabLoyaltyBtn">🎁 Carte Fidélité</button>
+      <button class="tab-btn" id="tabMenuBtn">📖 Menu Digital</button>
+    </div>
+
+    <!-- LOYALTY VIEW -->
+    <div id="loyaltySection">
+      <!-- ENROLLMENT FORM -->
+      <div class="card" id="enrollCard">
+        <div class="card-title" id="enrollTitle">Rejoignez notre Programme Fidélité</div>
+        <div class="card-sub" id="enrollSub">
+          Entrez votre nom et numéro de téléphone pour créer ou consulter votre carte fidélité digitale.
+        </div>
+        <form id="enrollForm">
+          <div class="field">
+            <label id="lblName" for="inputName">Nom complet</label>
+            <input id="inputName" type="text" required maxlength="80" placeholder="Ex: Yassine" />
+          </div>
+          <div class="field">
+            <label id="lblPhone" for="inputPhone">Numéro de téléphone (06 / 07)</label>
+            <input id="inputPhone" type="tel" required maxlength="20" placeholder="06 12 34 56 78" />
+          </div>
+          <div id="enrollError" class="error-msg hidden"></div>
+          <button type="submit" class="primary-btn" id="btnEnrollSubmit">
+            Activer ma Carte & Cumuler mes Points
+          </button>
+        </form>
+      </div>
+
+      <!-- ACTIVE MEMBER STAMP CARD -->
+      <div class="card hidden" id="memberCard">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div class="card-title" id="memberNameDisplay">—</div>
+            <div style="font-size:12px;color:var(--muted);" id="memberPhoneDisplay">—</div>
+          </div>
+          <button class="secondary-btn" id="btnSwitchAccount">Changer</button>
+        </div>
+
+        <div class="stamps-grid" id="stampsGrid"></div>
+
+        <div class="reward-banner" id="rewardStatusBanner"></div>
+
+        <div style="text-align:center;">
+          <div style="font-size:12px;color:var(--muted);" id="qrPromptText">
+            Présentez ce QR code ou votre numéro au serveur pour ajouter +1 point
+          </div>
+          <div class="qr-wrap" id="memberQrBox"></div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-val" id="statCurrent">0</div>
+            <div class="stat-lbl" id="lblStatCurrent">Points actuels</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="statLifetime">0</div>
+            <div class="stat-lbl" id="lblStatLifetime">Total points</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="statRedeemed">0</div>
+            <div class="stat-lbl" id="lblStatRedeemed">Boissons offertes</div>
+          </div>
+        </div>
+      </div>
+
+      <a id="googleReviewLink" class="review-btn hidden" target="_blank" rel="noopener">
+        ⭐ Laissez-nous un avis 5 étoiles sur Google Maps
+      </a>
+    </div>
+
+    <!-- DIGITAL MENU VIEW -->
+    <div id="menuSection" class="hidden">
+      <div class="card">
+        <div class="card-title" id="menuHeading">Notre Carte</div>
+        <div id="menuList" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      onSnapshot,
+      collection,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuJp-CWDVAvy8XkjL4cLyx9N34UTtJzwc",
+      authDomain: "qahwa-manager-pos-2026.firebaseapp.com",
+      projectId: "qahwa-manager-pos-2026"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const params = new URLSearchParams(window.location.search);
+    const cafeId = params.get("cafe") || "default";
+    const tableNo = params.get("table") || "";
+
+    const I18N = {
+      fr: {
+        dir: "ltr",
+        tablePrefix: "Table",
+        clubBadge: "☕ Club Fidélité",
+        tabLoyalty: "🎁 Carte Fidélité",
+        tabMenu: "📖 Menu Digital",
+        enrollTitle: "Rejoignez notre Programme Fidélité",
+        enrollSub: "Entrez votre nom et numéro de téléphone pour activer votre carte et cumuler des points vers des boissons gratuites.",
+        lblName: "Nom complet",
+        lblPhone: "Numéro de téléphone (06 / 07)",
+        btnSubmit: "Activer ma Carte & Cumuler mes Points",
+        btnSwitch: "Changer",
+        qrPrompt: "Présentez ce code ou votre numéro au serveur lors de votre commande",
+        statCurrent: "Points actuels",
+        statLifetime: "Total points",
+        statRedeemed: "Boissons offertes",
+        reviewCta: "⭐ Laissez-nous un avis 5 étoiles sur Google Maps",
+        menuHeading: "Notre Carte",
+        menuEmpty: "Le menu sera bientôt disponible.",
+        invalidPhone: "Veuillez entrer un numéro de téléphone valide (ex: 0612345678).",
+        progressMsg: (cur, req, rew) => `Plus que ${Math.max(0, req - cur)} point(s) pour débloquer : ${rew}`,
+        unlockedMsg: (rew) => `🎉 Félicitations ! Votre récompense (${rew}) est prête ! Montrez cet écran au serveur.`,
+        subtitle: (req, rew) => `${req} points = ${rew}`
+      },
+      ar: {
+        dir: "rtl",
+        tablePrefix: "طاولة",
+        clubBadge: "☕ نادي الوفاء",
+        tabLoyalty: "🎁 بطاقة الوفاء",
+        tabMenu: "📖 قائمة المشروبات",
+        enrollTitle: "انضم إلى برنامج الوفاء",
+        enrollSub: "أدخل اسمك ورقم هاتفك لتفعيل بطاقتك الرقمية وجمع النقاط للحصول على مشروبات مجانية.",
+        lblName: "الاسم الكامل",
+        lblPhone: "رقم الهاتف (06 / 07)",
+        btnSubmit: "تفعيل بطاقتي وجمع النقاط",
+        btnSwitch: "تغيير الرقم",
+        qrPrompt: "أظهر هذا الرمز أو رقم هاتفك للنادل عند الطلب لإضافة نقطة",
+        statCurrent: "النقاط الحالية",
+        statLifetime: "مجموع النقاط",
+        statRedeemed: "مشروبات مجانية",
+        reviewCta: "⭐ قيّمنا بـ 5 نجوم على خرائط جوجل",
+        menuHeading: "قائمة المشروبات",
+        menuEmpty: "القائمة ستكون متوفرة قريباً.",
+        invalidPhone: "يرجى إدخال رقم هاتف صحيح (مثال: 0612345678).",
+        progressMsg: (cur, req, rew) => `باقي ${Math.max(0, req - cur)} نقطة للحصول على: ${rew}`,
+        unlockedMsg: (rew) => `🎉 مبروك! مكافأتك (${rew}) جاهزة! أظهر هذه الشاشة للنادل.`,
+        subtitle: (req, rew) => `${req} نقاط = ${rew}`
+      },
+      en: {
+        dir: "ltr",
+        tablePrefix: "Table",
+        clubBadge: "☕ Loyalty Club",
+        tabLoyalty: "🎁 Loyalty Card",
+        tabMenu: "📖 Digital Menu",
+        enrollTitle: "Join our Loyalty Club",
+        enrollSub: "Enter your name and phone number to activate your digital stamp card and earn free drinks.",
+        lblName: "Full Name",
+        lblPhone: "Phone Number (06 / 07)",
+        btnSubmit: "Activate My Card & Collect Points",
+        btnSwitch: "Switch",
+        qrPrompt: "Show this QR code or tell your phone number to your waiter to collect +1 stamp",
+        statCurrent: "Current Stamps",
+        statLifetime: "Lifetime Stamps",
+        statRedeemed: "Free Drinks",
+        reviewCta: "⭐ Leave us a 5-Star Review on Google Maps",
+        menuHeading: "Our Menu",
+        menuEmpty: "Menu items will appear here soon.",
+        invalidPhone: "Please enter a valid phone number (e.g. 0612345678).",
+        progressMsg: (cur, req, rew) => `${Math.max(0, req - cur)} more stamp(s) to unlock: ${rew}`,
+        unlockedMsg: (rew) => `🎉 Free Drink Unlocked (${rew})! Show this screen to your waiter.`,
+        subtitle: (req, rew) => `${req} stamps = ${rew}`
+      }
+    };
+
+    let currentLang = "fr";
+    let cafeConfig = {
+      cafeName: "Qahwa Café",
+      stampsRequired: 9,
+      rewardTitle: "1 Boisson Gratuite",
+      googleReviewUrl: ""
+    };
+    let currentCustomer = null;
+    let menuItems = [];
+    let unsubCustomer = null;
+
+    // Minimal ISO/IEC 18004 QR SVG Generator (Byte mode, ECC Level L, Versions 1..6)
+    const QR = (() => {
+      const VERSIONS = [
+        { v: 1, totalData: 19, ecPerBlock: 7, blocks: 1, align: [] },
+        { v: 2, totalData: 34, ecPerBlock: 10, blocks: 1, align: [6, 18] },
+        { v: 3, totalData: 55, ecPerBlock: 15, blocks: 1, align: [6, 22] },
+        { v: 4, totalData: 80, ecPerBlock: 20, blocks: 1, align: [6, 26] },
+        { v: 5, totalData: 108, ecPerBlock: 26, blocks: 1, align: [6, 30] },
+        { v: 6, totalData: 136, ecPerBlock: 18, blocks: 2, align: [6, 34] }
+      ];
+      const EXP = new Int32Array(512);
+      const LOG = new Int32Array(256);
+      let x = 1;
+      for (let i = 0; i < 255; i++) {
+        EXP[i] = x;
+        LOG[x] = i;
+        x <<= 1;
+        if (x & 0x100) x ^= 0x11D;
+      }
+      for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+      const mul = (a, b) => (a === 0 || b === 0 ? 0 : EXP[LOG[a] + LOG[b]]);
+      const rsRem = (data, deg) => {
+        let gen = [1];
+        for (let i = 0; i < deg; i++) {
+          const next = new Array(gen.length + 1).fill(0);
+          for (let j = 0; j < gen.length; j++) {
+            next[j] ^= gen[j];
+            next[j + 1] ^= mul(gen[j], EXP[i]);
+          }
+          gen = next;
+        }
+        const rem = new Array(deg).fill(0);
+        for (const b of data) {
+          const f = b ^ rem[0];
+          rem.shift();
+          rem.push(0);
+          for (let i = 0; i < deg; i++) rem[i] ^= mul(gen[i + 1], f);
+        }
+        return rem;
+      };
+      return {
+        toSvg(text) {
+          const bytes = Array.from(new TextEncoder().encode(text));
+          const info = VERSIONS.find(v => bytes.length + 2 <= v.totalData) || VERSIONS[VERSIONS.length - 1];
+          const usable = bytes.slice(0, info.totalData - 2);
+          const bits = [];
+          const pushBits = (val, len) => {
+            for (let i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1);
+          };
+          pushBits(4, 4);
+          pushBits(usable.length, 8);
+          usable.forEach(b => pushBits(b, 8));
+          const cap = info.totalData * 8;
+          pushBits(0, Math.min(4, cap - bits.length));
+          while (bits.length % 8 !== 0) bits.push(0);
+          const dataCw = new Array(info.totalData).fill(0);
+          for (let i = 0; i < bits.length / 8; i++) {
+            let cw = 0;
+            for (let b = 0; b < 8; b++) cw = (cw << 1) | bits[i * 8 + b];
+            dataCw[i] = cw;
+          }
+          let pad = true;
+          for (let i = bits.length / 8; i < info.totalData; i++) {
+            dataCw[i] = pad ? 0xEC : 0x11;
+            pad = !pad;
+          }
+          const bs = info.totalData / info.blocks;
+          const dBlocks = [], ecBlocks = [];
+          for (let b = 0; b < info.blocks; b++) {
+            const blk = dataCw.slice(b * bs, (b + 1) * bs);
+            dBlocks.push(blk);
+            ecBlocks.push(rsRem(blk, info.ecPerBlock));
+          }
+          const finalCw = [];
+          for (let i = 0; i < bs; i++) for (let b = 0; b < info.blocks; b++) finalCw.push(dBlocks[b][i]);
+          for (let i = 0; i < info.ecPerBlock; i++) for (let b = 0; b < info.blocks; b++) finalCw.push(ecBlocks[b][i]);
+
+          const size = 17 + 4 * info.v;
+          const mod = Array.from({ length: size }, () => new Array(size).fill(false));
+          const fn = Array.from({ length: size }, () => new Array(size).fill(false));
+          const setFn = (r, c, d) => {
+            if (r >= 0 && r < size && c >= 0 && c < size) { mod[r][c] = d; fn[r][c] = true; }
+          };
+          const finder = (tr, tc) => {
+            for (let dr = -1; dr <= 7; dr++) for (let dc = -1; dc <= 7; dc++) {
+              const out = dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6 && (dr === 0 || dr === 6 || dc === 0 || dc === 6);
+              const inn = dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4;
+              setFn(tr + dr, tc + dc, out || inn);
+            }
+          };
+          finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+          for (let i = 8; i < size - 8; i++) { setFn(6, i, i % 2 === 0); setFn(i, 6, i % 2 === 0); }
+          for (const cr of info.align) for (const cc of info.align) {
+            if ((cr <= 8 && cc <= 8) || (cr <= 8 && cc >= size - 9) || (cr >= size - 9 && cc <= 8)) continue;
+            for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++)
+              setFn(cr + dr, cc + dc, Math.abs(dr) === 2 || Math.abs(dc) === 2 || (dr === 0 && dc === 0));
+          }
+          setFn(4 * info.v + 9, 8, true);
+          for (let i = 0; i <= 8; i++) { if (!fn[8][i]) setFn(8, i, false); if (!fn[i][8]) setFn(i, 8, false); }
+          for (let i = 0; i <= 7; i++) { if (!fn[8][size - 1 - i]) setFn(8, size - 1 - i, false); if (!fn[size - 1 - i][8]) setFn(size - 1 - i, 8, false); }
+
+          let bitIdx = 0, up = true;
+          const totalBits = finalCw.length * 8;
+          for (let right = size - 1; right >= 1; right -= 2) {
+            if (right === 6) right = 5;
+            for (let s = 0; s < size; s++) {
+              const r = up ? size - 1 - s : s;
+              for (let j = 0; j < 2; j++) {
+                const c = right - j;
+                if (!fn[r][c]) {
+                  const dark = bitIdx < totalBits ? ((finalCw[bitIdx >>> 3] >>> (7 - (bitIdx & 7))) & 1) === 1 : false;
+                  mod[r][c] = (r + c) % 2 === 0 ? !dark : dark;
+                  bitIdx++;
+                }
+              }
+            }
+            up = !up;
+          }
+          const fmt = 0x77C4;
+          const fBit = i => ((fmt >>> i) & 1) === 1;
+          const tl = [[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+          for (let i = 0; i < 15; i++) mod[tl[i][0]][tl[i][1]] = fBit(14 - i);
+          for (let i = 0; i <= 6; i++) mod[size - 1 - i][8] = fBit(14 - i);
+          for (let i = 7; i <= 14; i++) mod[8][size - 15 + i] = fBit(14 - i);
+
+          const q = 2, tot = size + q * 2;
+          let d = "";
+          for (let r = 0; r < size; r++) for (let c = 0; c < size; c++)
+            if (mod[r][c]) d += `M${c + q} ${r + q}h1v1h-1z`;
+          return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${tot} ${tot}" shape-rendering="crispEdges"><rect width="${tot}" height="${tot}" fill="#FFFFFF"/><path fill="#10251B" d="${d}"/></svg>`;
+        }
+      };
+    })();
+
+    function normalizeMoroccanPhone(raw) {
+      const cleaned = raw.replace(/[^0-9+]/g, "");
+      if (cleaned.startsWith("06") && cleaned.length === 10) return "+212" + cleaned.slice(1);
+      if (cleaned.startsWith("07") && cleaned.length === 10) return "+212" + cleaned.slice(1);
+      if (cleaned.startsWith("212") && !cleaned.startsWith("+")) return "+" + cleaned;
+      return cleaned;
+    }
+
+    function phoneToDocId(normalizedPhone) {
+      const digits = normalizedPhone.replace(/[^0-9]/g, "");
+      return "phone_" + digits;
+    }
+
+    function renderTexts() {
+      const t = I18N[currentLang];
+      document.documentElement.dir = t.dir;
+      document.documentElement.lang = currentLang;
+      document.getElementById("tableBadge").textContent = tableNo
+        ? `📍 ${t.tablePrefix} ${tableNo}`
+        : t.clubBadge;
+      document.getElementById("cafeNameHeading").textContent = cafeConfig.cafeName || "Qahwa Café";
+      document.getElementById("rewardSubtitle").textContent = t.subtitle(
+        cafeConfig.stampsRequired,
+        cafeConfig.rewardTitle
+      );
+      document.getElementById("tabLoyaltyBtn").textContent = t.tabLoyalty;
+      document.getElementById("tabMenuBtn").textContent = t.tabMenu;
+      document.getElementById("enrollTitle").textContent = t.enrollTitle;
+      document.getElementById("enrollSub").textContent = t.enrollSub;
+      document.getElementById("lblName").textContent = t.lblName;
+      document.getElementById("lblPhone").textContent = t.lblPhone;
+      document.getElementById("btnEnrollSubmit").textContent = t.btnSubmit;
+      document.getElementById("btnSwitchAccount").textContent = t.btnSwitch;
+      document.getElementById("qrPromptText").textContent = t.qrPrompt;
+      document.getElementById("lblStatCurrent").textContent = t.statCurrent;
+      document.getElementById("lblStatLifetime").textContent = t.statLifetime;
+      document.getElementById("lblStatRedeemed").textContent = t.statRedeemed;
+      document.getElementById("menuHeading").textContent = t.menuHeading;
+
+      const revLink = document.getElementById("googleReviewLink");
+      revLink.textContent = t.reviewCta;
+      if (cafeConfig.googleReviewUrl) {
+        revLink.href = cafeConfig.googleReviewUrl;
+        revLink.classList.remove("hidden");
+      } else {
+        revLink.classList.add("hidden");
+      }
+
+      if (currentCustomer) renderCustomerCard(currentCustomer);
+      renderMenu();
+    }
+
+    function renderCustomerCard(cust) {
+      currentCustomer = cust;
+      const t = I18N[currentLang];
+      document.getElementById("enrollCard").classList.add("hidden");
+      document.getElementById("memberCard").classList.remove("hidden");
+
+      document.getElementById("memberNameDisplay").textContent = cust.name;
+      document.getElementById("memberPhoneDisplay").textContent = cust.phone;
+      document.getElementById("statCurrent").textContent = cust.currentStamps;
+      document.getElementById("statLifetime").textContent = cust.lifetimeStamps;
+      document.getElementById("statRedeemed").textContent = cust.rewardsRedeemed;
+
+      const req = Math.max(1, cafeConfig.stampsRequired || 9);
+      const grid = document.getElementById("stampsGrid");
+      grid.innerHTML = "";
+      for (let i = 1; i <= req; i++) {
+        const div = document.createElement("div");
+        const filled = i <= cust.currentStamps;
+        div.className = "stamp-circle" + (filled ? " filled" : "");
+        div.textContent = "☕";
+        grid.appendChild(div);
+      }
+
+      const banner = document.getElementById("rewardStatusBanner");
+      if (cust.currentStamps >= req) {
+        banner.className = "reward-banner unlocked";
+        banner.textContent = t.unlockedMsg(cafeConfig.rewardTitle);
+      } else {
+        banner.className = "reward-banner";
+        banner.textContent = t.progressMsg(cust.currentStamps, req, cafeConfig.rewardTitle);
+      }
+
+      document.getElementById("memberQrBox").innerHTML = QR.toSvg(`qahwa://loyalty/${cust.remoteId}`);
+    }
+
+    function renderMenu() {
+      const t = I18N[currentLang];
+      const listEl = document.getElementById("menuList");
+      if (!menuItems.length) {
+        listEl.innerHTML = `<div style="color:var(--muted);font-size:13px;">${t.menuEmpty}</div>`;
+        return;
+      }
+      listEl.innerHTML = menuItems.map(item => {
+        const displayName =
+          (currentLang === "ar" && item.nameAr) ? item.nameAr :
+          (currentLang === "fr" && item.nameFr) ? item.nameFr :
+          item.name;
+        const mad = ((item.priceCentimes || 0) / 100).toFixed(2);
+        return `
+          <div class="menu-item">
+            <div>
+              <div class="menu-name">${displayName}</div>
+              <div class="menu-cat">${item.category || ""}</div>
+            </div>
+            <div class="menu-price">${mad} MAD</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function subscribeToCustomer(docId) {
+      if (unsubCustomer) unsubCustomer();
+      const ref = doc(db, "cafes", cafeId, "loyalty_customers", docId);
+      unsubCustomer = onSnapshot(ref, snap => {
+        if (snap.exists()) {
+          renderCustomerCard(snap.data());
+        }
+      });
+    }
+
+    async function loadCafeData() {
+      try {
+        const cfgSnap = await getDoc(doc(db, "cafes", cafeId, "public_profile", "config"));
+        if (cfgSnap.exists()) {
+          const data = cfgSnap.data();
+          cafeConfig = {
+            cafeName: data.cafeName || "Qahwa Café",
+            stampsRequired: data.stampsRequired || 9,
+            rewardTitle: data.rewardTitle || "1 Boisson Gratuite",
+            googleReviewUrl: data.googleReviewUrl || ""
+          };
+        }
+      } catch (e) {
+        console.warn("Could not load public_profile/config", e);
+      }
+      renderTexts();
+
+      try {
+        const menuSnap = await getDocs(collection(db, "cafes", cafeId, "menu_items"));
+        menuItems = menuSnap.docs
+          .map(d => d.data())
+          .filter(m => !m.isDeleted && m.isAvailable !== false);
+        renderMenu();
+      } catch (e) {
+        console.warn("Could not load menu_items", e);
+      }
+    }
+
+    // Language switcher
+    document.querySelectorAll(".lang-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".lang-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentLang = btn.dataset.lang;
+        renderTexts();
+      });
+    });
+
+    // Tabs
+    const tabLoyaltyBtn = document.getElementById("tabLoyaltyBtn");
+    const tabMenuBtn = document.getElementById("tabMenuBtn");
+    tabLoyaltyBtn.addEventListener("click", () => {
+      tabLoyaltyBtn.classList.add("active");
+      tabMenuBtn.classList.remove("active");
+      document.getElementById("loyaltySection").classList.remove("hidden");
+      document.getElementById("menuSection").classList.add("hidden");
+    });
+    tabMenuBtn.addEventListener("click", () => {
+      tabMenuBtn.classList.add("active");
+      tabLoyaltyBtn.classList.remove("active");
+      document.getElementById("menuSection").classList.remove("hidden");
+      document.getElementById("loyaltySection").classList.add("hidden");
+    });
+
+    // Switch account button
+    document.getElementById("btnSwitchAccount").addEventListener("click", () => {
+      if (unsubCustomer) unsubCustomer();
+      localStorage.removeItem(`qahwa_member_${cafeId}`);
+      currentCustomer = null;
+      document.getElementById("memberCard").classList.add("hidden");
+      document.getElementById("enrollCard").classList.remove("hidden");
+    });
+
+    // Self-enrollment form handler
+    document.getElementById("enrollForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById("enrollError");
+      errEl.classList.add("hidden");
+      const name = document.getElementById("inputName").value.trim();
+      const rawPhone = document.getElementById("inputPhone").value.trim();
+      const normalizedPhone = normalizeMoroccanPhone(rawPhone);
+      const digits = normalizedPhone.replace(/[^0-9]/g, "");
+
+      if (!name || digits.length < 8 || digits.length > 15) {
+        errEl.textContent = I18N[currentLang].invalidPhone;
+        errEl.classList.remove("hidden");
+        return;
+      }
+
+      const docId = phoneToDocId(normalizedPhone);
+      const btn = document.getElementById("btnEnrollSubmit");
+      btn.disabled = true;
+
+      try {
+        const ref = doc(db, "cafes", cafeId, "loyalty_customers", docId);
+        const existing = await getDoc(ref);
+        if (existing.exists()) {
+          const data = existing.data();
+          localStorage.setItem(`qahwa_member_${cafeId}`, JSON.stringify({ docId }));
+          renderCustomerCard(data);
+          subscribeToCustomer(docId);
+        } else {
+          const now = Date.now();
+          const newCustomer = {
+            remoteId: docId,
+            name: name,
+            phone: normalizedPhone,
+            currentStamps: 0,
+            lifetimeStamps: 0,
+            rewardsRedeemed: 0,
+            lastVisitAt: now,
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: false
+          };
+          await setDoc(ref, newCustomer);
+          localStorage.setItem(`qahwa_member_${cafeId}`, JSON.stringify({ docId }));
+          renderCustomerCard(newCustomer);
+          subscribeToCustomer(docId);
+        }
+      } catch (err) {
+        console.error("Enrollment error", err);
+        errEl.textContent = err.message || "Connection error";
+        errEl.classList.remove("hidden");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // Restore saved session on load
+    const savedRaw = localStorage.getItem(`qahwa_member_${cafeId}`);
+    if (savedRaw) {
+      try {
+        const saved = JSON.parse(savedRaw);
+        if (saved && saved.docId) {
+          subscribeToCustomer(saved.docId);
+        }
+      } catch (_) {}
+    }
+
+    loadCafeData();
+  </script>
+</body>
+</html>

@@ -275,6 +275,10 @@
     <string name="write_nfc_tag">Programmer puce NFC</string>
     <string name="nfc_touch_tag_prompt">Approchez le dos de votre téléphone du sticker ou de la carte NFC…</string>
     <string name="nfc_write_success">Support NFC programmé ! Vos clients peuvent maintenant poser leur téléphone dessus.</string>
+    <string name="print_table_qr_codes">Imprimer les QR Codes Tables</string>
+    <string name="table_count_label">Nombre de tables à imprimer (1–40)</string>
+    <string name="print_a4_pdf_sheet">Imprimer %1$d stickers QR de table (A4 / PDF)</string>
+    <string name="open_web_print_studio">Ouvrir le studio d\'impression Web</string>
     <plurals name="shifts_count">
         <item quantity="one">%d service</item>
         <item quantity="many">%d services</item>

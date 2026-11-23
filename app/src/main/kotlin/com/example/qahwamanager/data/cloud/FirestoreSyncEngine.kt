@@ -298,6 +298,7 @@ class FirestoreSyncEngine @Inject constructor(
                         val data = doc.data ?: return@forEach
                         val remote = FirestoreSyncMapper.mapToLoyaltyCustomer(doc.id, data) ?: return@forEach
                         val local = loyaltyCustomerDao.getByRemoteId(remote.remoteId)
+                            ?: loyaltyCustomerDao.getByPhone(remote.phone)
                         if (FirestoreSyncMapper.shouldApplyRemote(local?.updatedAt, remote.updatedAt)) {
                             if (local == null) loyaltyCustomerDao.insert(remote)
                             else loyaltyCustomerDao.update(remote.copy(id = local.id))
@@ -312,6 +313,18 @@ class FirestoreSyncEngine @Inject constructor(
                 }
             }
         }
+
+        listeners += cafeRef.collection("public_profile").document("config")
+            .addSnapshotListener(MetadataChanges.INCLUDE) { snap, err ->
+                if (err != null) {
+                    Log.w(TAG, "Public profile config listener error", err)
+                    return@addSnapshotListener
+                }
+                val fromCache = snap?.metadata?.isFromCache == true
+                if (!fromCache && (snap == null || !snap.exists())) {
+                    pushLoyaltyConfig(LoyaltyConfig(updatedAt = System.currentTimeMillis()))
+                }
+            }
     }
 
     fun stop() {

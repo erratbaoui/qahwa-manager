@@ -42,14 +42,14 @@ rules_version = '2';
 //   - usedBy: string | null (required, null on create, set to request.auth.uid on claim) - Claiming user UID
 //   - usedAt: int | null (optional, epoch millis >= 0) - Claim timestamp
 //
-// Business Subcollections under /cafes/{cafeId} (member-only read/create/update, no hard delete):
+// Business Subcollections under /cafes/{cafeId} (member-only read/create/update, no hard delete, except where noted):
 //   - /cafes/{cafeId}/staff/{docId}
 //   - /cafes/{cafeId}/shifts/{docId}
-//   - /cafes/{cafeId}/menu_items/{docId}
+//   - /cafes/{cafeId}/menu_items/{docId} (public read for table QR digital menu; member-only create/update)
 //   - /cafes/{cafeId}/inventory_items/{docId}
 //   - /cafes/{cafeId}/orders/{docId}
 //   - /cafes/{cafeId}/spendings/{docId}
-//   - /cafes/{cafeId}/loyalty_customers/{docId}
+//   - /cafes/{cafeId}/loyalty_customers/{docId} (member-only list/update; public get & 0-stamp self-enrollment create for deterministic docId ^phone_[0-9]{8,15}$)
 //
 // Collection: /cafes/{cafeId}/public_profile/{docId}
 // Document ID: Singleton config ID (e.g., 'config')
@@ -358,6 +358,16 @@ service cloud.firestore {
              isOptionalBool(data, 'isDeleted');
     }
 
+    function isValidPublicLoyaltyEnrollment(data, docId) {
+      return docId.matches("^phone_[0-9]{8,15}$") &&
+             isValidLoyaltyCustomer(data) &&
+             'remoteId' in data && data.remoteId == docId &&
+             data.currentStamps == 0 &&
+             data.lifetimeStamps == 0 &&
+             data.rewardsRedeemed == 0 &&
+             (!('isDeleted' in data) || data.isDeleted == false);
+    }
+
     function isValidPublicProfile(data) {
       return hasOnlyAllowedFields([
                'cafeName', 'stampsRequired', 'rewardTitle',
@@ -439,7 +449,7 @@ service cloud.firestore {
       }
 
       match /menu_items/{docId} {
-        allow read: if isCafeMember(cafeId);
+        allow read: if true;
         allow create: if isCafeMember(cafeId) && isValidMenuItem(request.resource.data);
         allow update: if isCafeMember(cafeId) && isValidMenuItem(request.resource.data);
         allow delete: if false;
@@ -471,8 +481,10 @@ service cloud.firestore {
       }
 
       match /loyalty_customers/{docId} {
-        allow read: if isCafeMember(cafeId);
-        allow create: if isCafeMember(cafeId) && isValidLoyaltyCustomer(request.resource.data);
+        allow list: if isCafeMember(cafeId);
+        allow get: if isCafeMember(cafeId) || docId.matches("^phone_[0-9]{8,15}$");
+        allow create: if (isCafeMember(cafeId) && isValidLoyaltyCustomer(request.resource.data)) ||
+                         isValidPublicLoyaltyEnrollment(request.resource.data, docId);
         allow update: if isCafeMember(cafeId) &&
                          isValidLoyaltyCustomer(request.resource.data) &&
                          areImmutableFieldsUnchanged(['createdAt']);

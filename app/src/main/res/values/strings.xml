@@ -271,6 +271,10 @@
     <string name="write_nfc_tag">Write to NFC Tag</string>
     <string name="nfc_touch_tag_prompt">Hold the back of your phone against the NFC sticker or card…</string>
     <string name="nfc_write_success">NFC stand programmed! Customers can now tap it with their phone.</string>
+    <string name="print_table_qr_codes">Print Table QR Stickers</string>
+    <string name="table_count_label">Number of tables to print (1–40)</string>
+    <string name="print_a4_pdf_sheet">Print %1$d Table QR Stickers (A4 / PDF)</string>
+    <string name="open_web_print_studio">Open Web Print Studio in Browser</string>
     <plurals name="shifts_count">
         <item quantity="one">%d shift</item>
         <item quantity="other">%d shifts</item>

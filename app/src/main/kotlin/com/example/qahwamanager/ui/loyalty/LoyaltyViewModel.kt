@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class LoyaltyUiState(
+    val cafeName: String = "Qahwa Café",
     val config: LoyaltyConfig = LoyaltyConfig(),
     val allCustomers: List<LoyaltyCustomer> = emptyList(),
     val filteredCustomers: List<LoyaltyCustomer> = emptyList(),
@@ -28,6 +29,7 @@ data class LoyaltyUiState(
     val totalStampsIssued: Int = 0,
     val totalRewardsRedeemed: Int = 0,
     val standUrl: String = "",
+    val printStudioUrl: String = "",
     val query: String = "",
     val showInactiveOnly: Boolean = false,
 )
@@ -71,8 +73,11 @@ class LoyaltyViewModel @Inject constructor(
             }
         }
         val cafeId = cafe?.cafeId ?: "default"
+        val cafeName = cafe?.name?.ifBlank { "Qahwa Café" } ?: "Qahwa Café"
         val standUrl = "https://qahwa-manager-pos-2026.web.app/?cafe=$cafeId"
+        val printStudioUrl = "https://qahwa-manager-pos-2026.web.app/print.html?cafe=$cafeId&stamps=${config.stampsRequired}"
         LoyaltyUiState(
+            cafeName = cafeName,
             config = config,
             allCustomers = customers,
             filteredCustomers = filtered,
@@ -80,6 +85,7 @@ class LoyaltyViewModel @Inject constructor(
             totalStampsIssued = customers.sumOf { it.lifetimeStamps },
             totalRewardsRedeemed = customers.sumOf { it.rewardsRedeemed },
             standUrl = standUrl,
+            printStudioUrl = printStudioUrl,
             query = query,
             showInactiveOnly = inactiveOnly,
         )
