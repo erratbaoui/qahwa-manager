@@ -130,6 +130,21 @@ fun ShiftReportScreen(
                             )
                         }
                         ReportRow(stringResource(R.string.wrong_pin_attempts), shift.failedOwnerPinAttempts.toString())
+                        if (current.spendings.isNotEmpty()) {
+                            QahwaDivider()
+                            ReportRow(
+                                stringResource(R.string.shift_spendings),
+                                formatMad(current.spendings.sumOf { it.amountCentimes }),
+                                bold = true,
+                            )
+                            current.spendings.forEach { spending ->
+                                ReportRow(
+                                    "    " + spending.title,
+                                    formatMad(spending.amountCentimes),
+                                    muted = true,
+                                )
+                            }
+                        }
                         if (shift.endedByTakeover) {
                             Text(stringResource(R.string.ended_by_takeover), style = MaterialTheme.typography.bodyMedium, color = qColors.warning, fontWeight = FontWeight.SemiBold)
                         }

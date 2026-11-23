@@ -5,12 +5,14 @@ import com.example.qahwamanager.data.db.InventoryDao
 import com.example.qahwamanager.data.db.MenuItemDao
 import com.example.qahwamanager.data.db.OrderDao
 import com.example.qahwamanager.data.db.ShiftDao
+import com.example.qahwamanager.data.db.SpendingDao
 import com.example.qahwamanager.data.db.StaffDao
 import com.example.qahwamanager.data.model.InventoryItem
 import com.example.qahwamanager.data.model.MenuItem
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.Shift
 import com.example.qahwamanager.data.model.ShiftLeftOpen
+import com.example.qahwamanager.data.model.Spending
 import com.example.qahwamanager.data.model.Staff
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -40,6 +42,7 @@ class FirestoreSyncEngine @Inject constructor(
     private val staffDao: StaffDao,
     private val shiftDao: ShiftDao,
     private val orderDao: OrderDao,
+    private val spendingDao: SpendingDao,
 ) : SyncPublisher {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -239,6 +242,45 @@ class FirestoreSyncEngine @Inject constructor(
                 }
             }
         }
+
+        listeners += cafeRef.collection("spendings").addSnapshotListener(MetadataChanges.INCLUDE) { snap, err ->
+            if (err != null) {
+                Log.w(TAG, "Spendings listener error", err)
+                return@addSnapshotListener
+            }
+            val docs = snap?.documents.orEmpty()
+            val fromCache = snap?.metadata?.isFromCache == true
+            scope.launch {
+                inboundMutex.withLock {
+                    docs.forEach { doc ->
+                        val data = doc.data ?: return@forEach
+                        val remote = FirestoreSyncMapper.mapToSpending(doc.id, data) ?: return@forEach
+                        val local = spendingDao.getByRemoteId(remote.remoteId)
+                        if (FirestoreSyncMapper.shouldApplyRemote(local?.updatedAt, remote.updatedAt)) {
+                            val localShiftId = remote.shiftRemoteId?.let { shiftDao.getByRemoteId(it)?.id }
+                            val mapped = Spending(
+                                id = local?.id ?: 0L,
+                                shiftId = localShiftId,
+                                title = remote.title,
+                                amountCentimes = remote.amountCentimes,
+                                spentAt = remote.spentAt,
+                                remoteId = remote.remoteId,
+                                updatedAt = remote.updatedAt,
+                                isDeleted = remote.isDeleted,
+                            )
+                            if (local == null) spendingDao.insert(mapped)
+                            else spendingDao.update(mapped)
+                        }
+                    }
+                    if (!fromCache) {
+                        val remoteIds = docs.mapTo(hashSetOf()) { it.id }
+                        spendingDao.getAllSnapshot()
+                            .filter { it.remoteId !in remoteIds }
+                            .forEach { pushSpending(it.id) }
+                    }
+                }
+            }
+        }
     }
 
     fun stop() {
@@ -301,6 +343,15 @@ class FirestoreSyncEngine @Inject constructor(
                     paidShiftRemoteId = order.paidShiftId?.let { shiftById[it]?.remoteId },
                     cancelledShiftRemoteId = order.cancelledShiftId?.let { shiftById[it]?.remoteId },
                 ),
+            )
+            opCount++
+        }
+
+        spendingDao.getAllSnapshot().forEach { spending ->
+            val shiftRemoteId = spending.shiftId?.let { shiftById[it]?.remoteId }
+            batch.set(
+                cafeRef.collection("spendings").document(spending.remoteId),
+                FirestoreSyncMapper.spendingToMap(spending, shiftRemoteId),
             )
             opCount++
         }
@@ -388,6 +439,21 @@ class FirestoreSyncEngine @Inject constructor(
                     )
                     .await()
             }.onFailure { Log.w(TAG, "Failed to push order $orderId", it) }
+        }
+    }
+
+    override fun pushSpending(spendingId: Long) {
+        val cafeId = activeCafeId ?: return
+        scope.launch {
+            runCatching {
+                val spending = spendingDao.getById(spendingId) ?: return@launch
+                val shiftRemoteId = spending.shiftId?.let { shiftDao.getById(it)?.remoteId }
+                firestore.collection("cafes").document(cafeId)
+                    .collection("spendings").document(spending.remoteId)
+                    .set(FirestoreSyncMapper.spendingToMap(spending, shiftRemoteId))
+                    .await()
+                Log.i(TAG, "Pushed spending $spendingId (${spending.remoteId})")
+            }.onFailure { Log.w(TAG, "Failed to push spending $spendingId", it) }
         }
     }
 

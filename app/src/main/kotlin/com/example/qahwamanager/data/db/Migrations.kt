@@ -128,3 +128,28 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_orders_remoteId` ON `orders` (`remoteId`)")
     }
 }
+
+/**
+ * v5 -> v6: adds the `spendings` table for tracking daily/shift expenses.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `spendings` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `shiftId` INTEGER,
+                `title` TEXT NOT NULL,
+                `amountCentimes` INTEGER NOT NULL,
+                `spentAt` INTEGER NOT NULL,
+                `remoteId` TEXT NOT NULL DEFAULT '',
+                `updatedAt` INTEGER NOT NULL DEFAULT 0,
+                `isDeleted` INTEGER NOT NULL DEFAULT 0
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_spendings_shiftId` ON `spendings` (`shiftId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_spendings_spentAt` ON `spendings` (`spentAt`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_spendings_remoteId` ON `spendings` (`remoteId`)")
+    }
+}

@@ -2,12 +2,15 @@ package com.example.qahwamanager.data.repository
 
 import com.example.qahwamanager.data.cloud.NoOpSyncPublisher
 import com.example.qahwamanager.data.cloud.SyncPublisher
+import com.example.qahwamanager.data.db.EmptySpendingDao
 import com.example.qahwamanager.data.db.OrderDao
 import com.example.qahwamanager.data.db.ShiftDao
+import com.example.qahwamanager.data.db.SpendingDao
 import com.example.qahwamanager.data.model.Order
 import com.example.qahwamanager.data.model.ShiftLeftOpen
 import com.example.qahwamanager.data.model.ShiftStatus
 import com.example.qahwamanager.data.model.ShiftWithStaff
+import com.example.qahwamanager.data.model.Spending
 import com.example.qahwamanager.data.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -24,7 +27,8 @@ data class ShiftReport(
     val paidOrders: List<Order>,
     val cancelledOrders: List<Order>,
     val leftOpen: List<ShiftLeftOpen>,
-    val leftOpenOrders: List<Order> = emptyList()
+    val leftOpenOrders: List<Order> = emptyList(),
+    val spendings: List<Spending> = emptyList(),
 )
 
 @Singleton
@@ -33,6 +37,7 @@ class ShiftRepository @Inject constructor(
     private val orderDao: OrderDao,
     private val clock: Clock,
     private val syncPublisher: SyncPublisher = NoOpSyncPublisher,
+    private val spendingDao: SpendingDao = EmptySpendingDao,
 ) {
     fun observeActive(): Flow<ShiftWithStaff?> = shiftDao.observeActive()
 
@@ -97,14 +102,18 @@ class ShiftRepository @Inject constructor(
     }
 
     fun observeReport(shiftId: Long): Flow<ShiftReport?> = combine(
-        combine(shiftDao.observeById(shiftId), shiftDao.observeExpectedCentimes(shiftId)) { shift, expected -> shift to expected },
+        combine(
+            shiftDao.observeById(shiftId),
+            shiftDao.observeExpectedCentimes(shiftId),
+            spendingDao.observeForShift(shiftId),
+        ) { shift, expected, spendings -> Triple(shift, expected, spendings) },
         orderDao.observePaidInShift(shiftId),
         orderDao.observeCancelledForShift(shiftId),
         shiftDao.observeLeftOpen(shiftId),
         orderDao.observeLeftOpenOrders(shiftId),
-    ) { (shift, liveExpected), paid, cancelled, leftOpen, leftOpenOrders ->
+    ) { (shift, liveExpected, spendings), paid, cancelled, leftOpen, leftOpenOrders ->
         shift ?: return@combine null
         val expected = if (shift.shift.status == ShiftStatus.SETTLED) shift.shift.expectedCentimes ?: liveExpected else liveExpected
-        ShiftReport(shift, expected, paid, cancelled, leftOpen, leftOpenOrders)
+        ShiftReport(shift, expected, paid, cancelled, leftOpen, leftOpenOrders, spendings)
     }
 }

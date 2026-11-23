@@ -8,6 +8,7 @@ import com.example.qahwamanager.data.db.OrderItemDao
 import com.example.qahwamanager.data.db.OwnerDao
 import com.example.qahwamanager.data.db.QahwaDatabase
 import com.example.qahwamanager.data.db.ShiftDao
+import com.example.qahwamanager.data.db.SpendingDao
 import com.example.qahwamanager.data.db.StaffDao
 import com.example.qahwamanager.data.time.Clock
 import com.example.qahwamanager.data.time.SystemClock
@@ -50,6 +51,9 @@ object AppModule {
 
     @Provides
     fun provideOwnerDao(db: QahwaDatabase): OwnerDao = db.ownerDao()
+
+    @Provides
+    fun provideSpendingDao(db: QahwaDatabase): SpendingDao = db.spendingDao()
 
     @Provides
     fun provideClock(): Clock = SystemClock

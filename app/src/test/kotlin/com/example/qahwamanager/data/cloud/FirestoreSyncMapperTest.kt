@@ -7,6 +7,7 @@ import com.example.qahwamanager.data.model.OrderItem
 import com.example.qahwamanager.data.model.OrderStatus
 import com.example.qahwamanager.data.model.Shift
 import com.example.qahwamanager.data.model.ShiftStatus
+import com.example.qahwamanager.data.model.Spending
 import com.example.qahwamanager.data.model.Staff
 import com.example.qahwamanager.data.model.StaffRole
 import org.junit.Assert.assertEquals
@@ -146,5 +147,29 @@ class FirestoreSyncMapperTest {
         assertTrue(FirestoreSyncMapper.shouldApplyRemote(localUpdatedAt = 100L, remoteUpdatedAt = 200L))
         assertFalse(FirestoreSyncMapper.shouldApplyRemote(localUpdatedAt = 200L, remoteUpdatedAt = 200L))
         assertFalse(FirestoreSyncMapper.shouldApplyRemote(localUpdatedAt = 300L, remoteUpdatedAt = 200L))
+    }
+
+    @Test
+    fun spending_roundTripsWithShiftLink() {
+        val spending = Spending(
+            shiftId = 3L,
+            title = "Milk & Mint",
+            amountCentimes = 4_500L,
+            spentAt = 9_000L,
+            remoteId = "spending-uuid-1",
+            updatedAt = 9_500L,
+            isDeleted = false,
+        )
+
+        val restored = FirestoreSyncMapper.mapToSpending(
+            spending.remoteId,
+            FirestoreSyncMapper.spendingToMap(spending, "shift-uuid-3"),
+        )
+
+        assertNotNull(restored)
+        assertEquals("Milk & Mint", restored!!.title)
+        assertEquals(4_500L, restored.amountCentimes)
+        assertEquals("shift-uuid-3", restored.shiftRemoteId)
+        assertFalse(restored.isDeleted)
     }
 }

@@ -48,6 +48,7 @@ rules_version = '2';
 //   - /cafes/{cafeId}/menu_items/{docId}
 //   - /cafes/{cafeId}/inventory_items/{docId}
 //   - /cafes/{cafeId}/orders/{docId}
+//   - /cafes/{cafeId}/spendings/{docId}
 //
 // ===============================================================
 
@@ -305,6 +306,23 @@ service cloud.firestore {
              isOptionalBool(data, 'isDeleted');
     }
 
+    function isValidSpending(data) {
+      return hasOnlyAllowedFields([
+               'id', 'remoteId', 'shiftId', 'shiftRemoteId', 'title',
+               'amountCentimes', 'spentAt', 'updatedAt', 'isDeleted'
+             ]) &&
+             hasRequiredFields(['title', 'amountCentimes', 'spentAt', 'updatedAt']) &&
+             isOptionalId(data, 'id') &&
+             isOptionalString(data, 'remoteId', 128) &&
+             isOptionalId(data, 'shiftId') &&
+             isOptionalString(data, 'shiftRemoteId', 128) &&
+             isNonEmptyString(data.title, 120) &&
+             data.amountCentimes is int && data.amountCentimes >= 0 && data.amountCentimes <= 1000000000 &&
+             isValidEpochMillis(data.spentAt) &&
+             isValidEpochMillis(data.updatedAt) &&
+             isOptionalBool(data, 'isDeleted');
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -390,6 +408,15 @@ service cloud.firestore {
         allow update: if isCafeMember(cafeId) &&
                          isValidOrder(request.resource.data) &&
                          areImmutableFieldsUnchanged(['createdAt']);
+        allow delete: if false;
+      }
+
+      match /spendings/{docId} {
+        allow read: if isCafeMember(cafeId);
+        allow create: if isCafeMember(cafeId) && isValidSpending(request.resource.data);
+        allow update: if isCafeMember(cafeId) &&
+                         isValidSpending(request.resource.data) &&
+                         areImmutableFieldsUnchanged(['spentAt']);
         allow delete: if false;
       }
     }

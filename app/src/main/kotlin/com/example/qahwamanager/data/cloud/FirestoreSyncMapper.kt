@@ -7,8 +7,19 @@ import com.example.qahwamanager.data.model.OrderItem
 import com.example.qahwamanager.data.model.OrderStatus
 import com.example.qahwamanager.data.model.Shift
 import com.example.qahwamanager.data.model.ShiftStatus
+import com.example.qahwamanager.data.model.Spending
 import com.example.qahwamanager.data.model.Staff
 import com.example.qahwamanager.data.model.StaffRole
+
+data class RemoteSpendingRecord(
+    val remoteId: String,
+    val shiftRemoteId: String?,
+    val title: String,
+    val amountCentimes: Long,
+    val spentAt: Long,
+    val updatedAt: Long,
+    val isDeleted: Boolean,
+)
 
 data class RemoteShiftLeftOpen(
     val orderRemoteId: String,
@@ -239,6 +250,32 @@ object FirestoreSyncMapper {
     /** Last-Write-Wins check: apply incoming remote row when no local row exists or remote is newer. */
     fun shouldApplyRemote(localUpdatedAt: Long?, remoteUpdatedAt: Long): Boolean =
         localUpdatedAt == null || remoteUpdatedAt > localUpdatedAt
+
+    fun spendingToMap(
+        spending: Spending,
+        shiftRemoteId: String?,
+    ): Map<String, Any?> = mapOf(
+        "shiftId" to shiftRemoteId,
+        "shiftRemoteId" to shiftRemoteId,
+        "title" to spending.title,
+        "amountCentimes" to spending.amountCentimes,
+        "spentAt" to spending.spentAt,
+        "updatedAt" to spending.updatedAt,
+        "isDeleted" to spending.isDeleted,
+    )
+
+    fun mapToSpending(remoteId: String, data: Map<String, Any?>): RemoteSpendingRecord? {
+        val title = data["title"] as? String ?: return null
+        return RemoteSpendingRecord(
+            remoteId = remoteId,
+            shiftRemoteId = (data["shiftRemoteId"] as? String) ?: (data["shiftId"] as? String),
+            title = title,
+            amountCentimes = data.longValue("amountCentimes") ?: 0L,
+            spentAt = data.longValue("spentAt") ?: 0L,
+            updatedAt = data.longValue("updatedAt") ?: 0L,
+            isDeleted = (data["isDeleted"] as? Boolean) ?: false,
+        )
+    }
 
     private fun Map<String, Any?>.longValue(key: String): Long? = (this[key] as? Number)?.toLong()
     private fun Map<String, Any?>.doubleValue(key: String): Double? = (this[key] as? Number)?.toDouble()

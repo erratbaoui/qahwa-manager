@@ -235,6 +235,15 @@
     <string name="mornings_more_lucrative_by">Mornings earn +%1$s more per shift on average</string>
     <string name="afternoons_more_lucrative_by">Afternoons earn +%1$s more per shift on average</string>
     <string name="top_waiters_hint">Ranked by total cash collected with each waiter\'s share of period earnings</string>
+    <string name="add_spending">Add spending</string>
+    <string name="shift_spendings">Spendings this shift</string>
+    <string name="spendings_title">Spendings</string>
+    <string name="spendings_hint">Daily and shift expenses deducted from gross waiter earnings</string>
+    <string name="spending_reason">Reason (e.g. Milk, Mint, Ice)</string>
+    <string name="spending_amount_mad">Amount spent (MAD)</string>
+    <string name="net_earnings">Net Earnings</string>
+    <string name="gross_earnings">Gross Earnings</string>
+    <string name="spendings_short">Spent: %1$s</string>
     <plurals name="shifts_count">
         <item quantity="one">%d shift</item>
         <item quantity="other">%d shifts</item>

@@ -3,6 +3,7 @@ package com.example.qahwamanager.ui.owner
 import com.example.qahwamanager.data.model.Shift
 import com.example.qahwamanager.data.model.ShiftStatus
 import com.example.qahwamanager.data.model.ShiftWithStaff
+import com.example.qahwamanager.data.model.Spending
 import com.example.qahwamanager.data.model.StaffRole
 import com.example.qahwamanager.data.repository.ShiftRepository
 import com.example.qahwamanager.data.repository.StaffRepository
@@ -225,5 +226,30 @@ class OwnerDashboardViewModelTest {
         assertEquals(1, state.activeDaysCount)
         assertEquals(60_000L, state.averagePerDayCentimes)
         assertEquals(60_000L, state.bestDay?.totalCentimes)
+    }
+
+    @Test
+    fun computeOwnerDashboardState_deductsSpendingsForNetEarningsAndWeeklyNet() {
+        val now = utcMillis(2026, 11, 20, 20)
+        val shifts = listOf(
+            ShiftWithStaff(
+                shift = Shift(id = 1, staffId = 10, status = ShiftStatus.SETTLED, startedAt = utcMillis(2026, 11, 20, 9), countedCentimes = 50_000L),
+                staffName = "Karim",
+                staffRole = StaffRole.WAITER,
+            ),
+        )
+        val spendings = listOf(
+            Spending(id = 1, shiftId = 1, title = "Milk & Mint", amountCentimes = 8_000L, spentAt = utcMillis(2026, 11, 20, 11)),
+            Spending(id = 2, shiftId = null, title = "Deleted", amountCentimes = 5_000L, spentAt = utcMillis(2026, 11, 20, 12), isDeleted = true),
+        )
+
+        val state = computeOwnerDashboardState(shifts, DashboardPeriod.THIS_WEEK, now, utc, spendings)
+
+        assertEquals(50_000L, state.totalEarningsCentimes)
+        assertEquals(8_000L, state.totalSpendingsCentimes)
+        assertEquals(42_000L, state.netEarningsCentimes)
+        assertEquals(1, state.spendings.size)
+        assertEquals(8_000L, state.weeklyEarnings.first().spendingsCentimes)
+        assertEquals(42_000L, state.weeklyEarnings.first().netCentimes)
     }
 }

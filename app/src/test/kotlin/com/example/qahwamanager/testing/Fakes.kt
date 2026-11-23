@@ -7,6 +7,7 @@ import com.example.qahwamanager.data.db.OrderItemDao
 import com.example.qahwamanager.data.db.OwnerDao
 import com.example.qahwamanager.data.db.ShiftAlreadyActiveException
 import com.example.qahwamanager.data.db.ShiftDao
+import com.example.qahwamanager.data.db.SpendingDao
 import com.example.qahwamanager.data.db.StaffDao
 import com.example.qahwamanager.data.model.InventoryItem
 import com.example.qahwamanager.data.model.MenuItem
@@ -18,6 +19,7 @@ import com.example.qahwamanager.data.model.Shift
 import com.example.qahwamanager.data.model.ShiftLeftOpen
 import com.example.qahwamanager.data.model.ShiftStatus
 import com.example.qahwamanager.data.model.ShiftWithStaff
+import com.example.qahwamanager.data.model.Spending
 import com.example.qahwamanager.data.model.Staff
 import com.example.qahwamanager.data.time.Clock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -389,4 +391,40 @@ class FakeInventoryDao(initial: List<InventoryItem> = emptyList()) : InventoryDa
         items.update { list -> list.filter { it.id != item.id } }
     }
     override suspend fun getById(id: Long): InventoryItem? = items.value.find { it.id == id }
+}
+
+class FakeSpendingDao(initial: List<Spending> = emptyList()) : SpendingDao {
+    val spendings = MutableStateFlow(initial)
+
+    override fun observeAll(): Flow<List<Spending>> =
+        spendings.map { list ->
+            list.filter { !it.isDeleted }
+                .sortedWith(compareByDescending<Spending> { it.spentAt }.thenByDescending { it.id })
+        }
+
+    override fun observeForShift(shiftId: Long): Flow<List<Spending>> =
+        spendings.map { list ->
+            list.filter { !it.isDeleted && it.shiftId == shiftId }
+                .sortedWith(compareByDescending<Spending> { it.spentAt }.thenByDescending { it.id })
+        }
+
+    override fun observeTotalForShift(shiftId: Long): Flow<Long> =
+        observeForShift(shiftId).map { list -> list.sumOf { it.amountCentimes } }
+
+    override suspend fun getAllSnapshot(): List<Spending> = spendings.value
+
+    override suspend fun getById(id: Long): Spending? = spendings.value.find { it.id == id }
+
+    override suspend fun getByRemoteId(remoteId: String): Spending? =
+        spendings.value.find { it.remoteId == remoteId }
+
+    override suspend fun insert(spending: Spending): Long {
+        val id = (spendings.value.maxOfOrNull { it.id } ?: 0L) + 1L
+        spendings.update { it + spending.copy(id = id) }
+        return id
+    }
+
+    override suspend fun update(spending: Spending) {
+        spendings.update { list -> list.map { if (it.id == spending.id) spending else it } }
+    }
 }

@@ -2,12 +2,16 @@ package com.example.qahwamanager.ui.owner
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.qahwamanager.data.db.EmptySpendingDao
 import com.example.qahwamanager.data.model.ShiftWithStaff
+import com.example.qahwamanager.data.model.Spending
 import com.example.qahwamanager.data.model.Staff
 import com.example.qahwamanager.data.model.StaffRole
 import com.example.qahwamanager.data.repository.ShiftRepository
+import com.example.qahwamanager.data.repository.SpendingRepository
 import com.example.qahwamanager.data.repository.StaffRepository
 import com.example.qahwamanager.data.time.Clock
+import com.example.qahwamanager.data.time.SystemClock
 import com.example.qahwamanager.security.OwnerSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,15 +58,20 @@ data class WeeklyEarning(
     val weekEndMillis: Long,
     val totalCentimes: Long,
     val shiftCount: Int,
+    val spendingsCentimes: Long = 0L,
     val changePercent: Int? = null,
 ) {
     val averagePerShiftCentimes: Long
         get() = if (shiftCount == 0) 0L else totalCentimes / shiftCount
+
+    val netCentimes: Long
+        get() = totalCentimes - spendingsCentimes
 }
 
 data class OwnerDashboardUiState(
     val period: DashboardPeriod = DashboardPeriod.THIS_WEEK,
     val totalEarningsCentimes: Long = 0L,
+    val totalSpendingsCentimes: Long = 0L,
     val totalShifts: Int = 0,
     val activeDaysCount: Int = 0,
     val bestDay: DailyEarning? = null,
@@ -71,7 +80,11 @@ data class OwnerDashboardUiState(
     val topStaff: List<StaffPerformance> = emptyList(),
     val dailyEarnings: List<DailyEarning> = emptyList(),
     val weeklyEarnings: List<WeeklyEarning> = emptyList(),
+    val spendings: List<Spending> = emptyList(),
 ) {
+    val netEarningsCentimes: Long
+        get() = totalEarningsCentimes - totalSpendingsCentimes
+
     val averagePerShiftCentimes: Long
         get() = if (totalShifts == 0) 0L else totalEarningsCentimes / totalShifts
 
@@ -101,6 +114,7 @@ fun computeOwnerDashboardState(
     period: DashboardPeriod,
     nowMillis: Long,
     timeZone: TimeZone = TimeZone.getDefault(),
+    allSpendings: List<Spending> = emptyList(),
 ): OwnerDashboardUiState {
     val minStart = when (period) {
         DashboardPeriod.TODAY -> startOfDay(nowMillis, timeZone)
@@ -109,12 +123,21 @@ fun computeOwnerDashboardState(
         DashboardPeriod.ALL_TIME -> Long.MIN_VALUE
     }
 
+    val activeSpendings = allSpendings.filter { !it.isDeleted }
+    val filteredSpendings = activeSpendings.filter { it.spentAt >= minStart }
+    val totalSpendings = filteredSpendings.sumOf { it.amountCentimes }
+
     val allWaiterShifts = closedShifts.filter { it.staffRole == StaffRole.WAITER }
-    val weeklyEarnings = computeWeeklyEarnings(allWaiterShifts, timeZone)
+    val weeklyEarnings = computeWeeklyEarnings(allWaiterShifts, activeSpendings, timeZone)
 
     val filtered = allWaiterShifts.filter { it.shift.startedAt >= minStart }
     if (filtered.isEmpty()) {
-        return OwnerDashboardUiState(period = period, weeklyEarnings = weeklyEarnings)
+        return OwnerDashboardUiState(
+            period = period,
+            totalSpendingsCentimes = totalSpendings,
+            weeklyEarnings = weeklyEarnings,
+            spendings = filteredSpendings,
+        )
     }
 
     var totalEarnings = 0L
@@ -170,6 +193,7 @@ fun computeOwnerDashboardState(
     return OwnerDashboardUiState(
         period = period,
         totalEarningsCentimes = totalEarnings,
+        totalSpendingsCentimes = totalSpendings,
         totalShifts = filtered.size,
         activeDaysCount = allDays.size,
         bestDay = bestDay,
@@ -178,15 +202,19 @@ fun computeOwnerDashboardState(
         topStaff = topStaff,
         dailyEarnings = dailyEarnings,
         weeklyEarnings = weeklyEarnings,
+        spendings = filteredSpendings,
     )
 }
 
 private fun computeWeeklyEarnings(
     waiterShifts: List<ShiftWithStaff>,
+    spendings: List<Spending>,
     timeZone: TimeZone,
 ): List<WeeklyEarning> {
-    if (waiterShifts.isEmpty()) return emptyList()
+    if (waiterShifts.isEmpty() && spendings.isEmpty()) return emptyList()
     val byWeek = sortedMapOf<Long, Pair<Long, Int>>()
+    val spendingsByWeek = hashMapOf<Long, Long>()
+
     for (entry in waiterShifts) {
         val weekStart = startOfWeek(entry.shift.startedAt, timeZone)
         val current = byWeek[weekStart]
@@ -198,9 +226,18 @@ private fun computeWeeklyEarnings(
         }
     }
 
+    for (spending in spendings) {
+        val weekStart = startOfWeek(spending.spentAt, timeZone)
+        spendingsByWeek[weekStart] = (spendingsByWeek[weekStart] ?: 0L) + spending.amountCentimes
+        if (weekStart !in byWeek) {
+            byWeek[weekStart] = 0L to 0
+        }
+    }
+
     val chronological = byWeek.entries.toList()
     return chronological.mapIndexed { index, (weekStart, pair) ->
         val (total, count) = pair
+        val weekSpendings = spendingsByWeek[weekStart] ?: 0L
         val prevTotal = chronological.getOrNull(index - 1)?.value?.first
         val changePct = if (prevTotal != null && prevTotal > 0L) {
             (((total - prevTotal) * 100L) / prevTotal).toInt()
@@ -216,6 +253,7 @@ private fun computeWeeklyEarnings(
             weekEndMillis = weekEnd,
             totalCentimes = total,
             shiftCount = count,
+            spendingsCentimes = weekSpendings,
             changePercent = changePct,
         )
     }.asReversed().take(12)
@@ -295,6 +333,7 @@ class OwnerDashboardViewModel @Inject constructor(
     staffRepository: StaffRepository,
     private val clock: Clock,
     private val ownerSession: OwnerSession,
+    private val spendingRepository: SpendingRepository = SpendingRepository(EmptySpendingDao, SystemClock),
 ) : ViewModel() {
 
     private val _period = MutableStateFlow(DashboardPeriod.THIS_WEEK)
@@ -316,9 +355,15 @@ class OwnerDashboardViewModel @Inject constructor(
 
     val uiState: StateFlow<OwnerDashboardUiState> = combine(
         shiftRepository.observeClosedShifts(),
+        spendingRepository.observeAll(),
         _period,
-    ) { shifts, selectedPeriod ->
-        computeOwnerDashboardState(shifts, selectedPeriod, clock.nowMillis())
+    ) { shifts, spendings, selectedPeriod ->
+        computeOwnerDashboardState(
+            closedShifts = shifts,
+            period = selectedPeriod,
+            nowMillis = clock.nowMillis(),
+            allSpendings = spendings,
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -351,6 +396,39 @@ class OwnerDashboardViewModel @Inject constructor(
             } finally {
                 _isSaving.value = false
             }
+        }
+    }
+
+    fun addSpending(
+        title: String,
+        utcDateMillis: Long,
+        slot: ShiftSlot,
+        amountCentimes: Long,
+        onDone: () -> Unit = {},
+    ) {
+        if (!ownerSession.isOwnerMode.value || _isSaving.value) return
+        _isSaving.value = true
+        viewModelScope.launch {
+            try {
+                val (spentAt, _) = pastShiftBounds(utcDateMillis, slot)
+                val activeShiftId = shiftRepository.activeShiftId()
+                spendingRepository.addSpending(
+                    title = title,
+                    amountCentimes = amountCentimes,
+                    shiftId = activeShiftId,
+                    spentAt = spentAt,
+                )
+                onDone()
+            } finally {
+                _isSaving.value = false
+            }
+        }
+    }
+
+    fun deleteSpending(spendingId: Long) {
+        if (!ownerSession.isOwnerMode.value) return
+        viewModelScope.launch {
+            spendingRepository.deleteSpending(spendingId)
         }
     }
 }

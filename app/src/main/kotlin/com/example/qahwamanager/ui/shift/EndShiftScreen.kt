@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Icon
@@ -71,11 +72,23 @@ fun EndShiftScreen(
     val shift by viewModel.activeShift.collectAsStateWithLifecycle()
     val openOrders by viewModel.openOrders.collectAsStateWithLifecycle()
     val collected by viewModel.collectedCentimes.collectAsStateWithLifecycle()
+    val spendings by viewModel.shiftSpendings.collectAsStateWithLifecycle()
+    val spendingsTotal by viewModel.shiftSpendingsTotalCentimes.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val qColors = QahwaTheme.colors
     val isWaiter = shift?.staffRole == StaffRole.WAITER
     var showHandoverDialog by remember { mutableStateOf(false) }
     var showConfirmLeaveOpen by remember { mutableStateOf(false) }
+    var showAddSpending by remember { mutableStateOf(false) }
+
+    if (showAddSpending) {
+        AddShiftSpendingDialog(
+            onDismiss = { showAddSpending = false },
+            onConfirm = { title, amountCentimes ->
+                viewModel.addSpending(title, amountCentimes) { showAddSpending = false }
+            },
+        )
+    }
 
     if (showHandoverDialog && isWaiter) {
         EndShiftAmountDialog(
@@ -171,6 +184,49 @@ fun EndShiftScreen(
                             }
                             if (isWaiter) {
                                 QahwaCurrencyText(centimes = collected, color = qColors.primaryAccent)
+                            }
+                        }
+                    }
+                }
+                QahwaCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.shift_spendings),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = qColors.textPrimary,
+                                )
+                                QahwaCurrencyText(
+                                    centimes = spendingsTotal,
+                                    color = qColors.warning,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                            QahwaSecondaryButton(
+                                text = stringResource(R.string.add_spending),
+                                onClick = { showAddSpending = true },
+                                enabled = !isSaving && shift != null,
+                                leadingIcon = Icons.Default.Add,
+                            )
+                        }
+                        spendings.forEach { s ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(text = s.title, style = MaterialTheme.typography.bodySmall, color = qColors.textSecondary)
+                                Text(text = formatMad(s.amountCentimes), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = qColors.warning)
                             }
                         }
                     }

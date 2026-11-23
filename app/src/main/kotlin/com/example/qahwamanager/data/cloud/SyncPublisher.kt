@@ -16,6 +16,7 @@ interface SyncPublisher {
     fun pushStaff(staff: Staff)
     fun pushShift(shiftId: Long)
     fun pushOrder(orderId: Long)
+    fun pushSpending(spendingId: Long) = Unit
 }
 
 object NoOpSyncPublisher : SyncPublisher {
@@ -24,4 +25,5 @@ object NoOpSyncPublisher : SyncPublisher {
     override fun pushStaff(staff: Staff) = Unit
     override fun pushShift(shiftId: Long) = Unit
     override fun pushOrder(orderId: Long) = Unit
+    override fun pushSpending(spendingId: Long) = Unit
 }

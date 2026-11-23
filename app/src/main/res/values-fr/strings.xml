@@ -239,6 +239,15 @@
     <string name="mornings_more_lucrative_by">Les matins rapportent +%1$s de plus par service en moyenne</string>
     <string name="afternoons_more_lucrative_by">Les après-midis rapportent +%1$s de plus par service en moyenne</string>
     <string name="top_waiters_hint">Classés par total encaissé avec la part de chaque serveur sur la période</string>
+    <string name="add_spending">Ajouter une dépense</string>
+    <string name="shift_spendings">Dépenses du service</string>
+    <string name="spendings_title">Dépenses</string>
+    <string name="spendings_hint">Dépenses du jour et des services déduites des revenus bruts</string>
+    <string name="spending_reason">Motif (ex. Lait, Menthe, Glace)</string>
+    <string name="spending_amount_mad">Montant dépensé (MAD)</string>
+    <string name="net_earnings">Revenus nets</string>
+    <string name="gross_earnings">Revenus bruts</string>
+    <string name="spendings_short">Dépensé : %1$s</string>
     <plurals name="shifts_count">
         <item quantity="one">%d service</item>
         <item quantity="many">%d services</item>

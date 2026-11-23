@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.DatePicker
@@ -34,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
@@ -53,6 +55,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,6 +63,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.qahwamanager.R
+import com.example.qahwamanager.data.model.Spending
 import com.example.qahwamanager.data.model.Staff
 import com.example.qahwamanager.ui.auth.LocalOwnerGate
 import com.example.qahwamanager.ui.auth.resetsOwnerIdleTimer
@@ -68,6 +72,7 @@ import com.example.qahwamanager.ui.common.QahwaCurrencyText
 import com.example.qahwamanager.ui.common.QahwaDivider
 import com.example.qahwamanager.ui.common.QahwaEmptyState
 import com.example.qahwamanager.ui.common.QahwaPrimaryButton
+import com.example.qahwamanager.ui.common.QahwaSecondaryButton
 import com.example.qahwamanager.ui.common.QahwaSectionHeader
 import com.example.qahwamanager.ui.common.QahwaTextField
 import com.example.qahwamanager.ui.common.formatMad
@@ -98,6 +103,7 @@ fun OwnerDashboardScreen(
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val gate = LocalOwnerGate.current
     var showAddPastEarnings by remember { mutableStateOf(false) }
+    var showAddSpending by remember { mutableStateOf(false) }
 
     if (showAddPastEarnings) {
         AddPastEarningsDialog(
@@ -112,6 +118,24 @@ fun OwnerDashboardScreen(
                         slot = slot,
                         amountCentimes = amountCentimes,
                         onDone = { showAddPastEarnings = false },
+                    )
+                }
+            },
+        )
+    }
+
+    if (showAddSpending) {
+        AddDashboardSpendingDialog(
+            isSaving = isSaving,
+            onDismiss = { showAddSpending = false },
+            onConfirm = { title, utcDateMillis, slot, amountCentimes ->
+                gate.require {
+                    viewModel.addSpending(
+                        title = title,
+                        utcDateMillis = utcDateMillis,
+                        slot = slot,
+                        amountCentimes = amountCentimes,
+                        onDone = { showAddSpending = false },
                     )
                 }
             },
@@ -139,15 +163,26 @@ fun OwnerDashboardScreen(
                     onSelect = viewModel::selectPeriod,
                 )
 
-                // Backdate earnings for previous dates
-                QahwaPrimaryButton(
-                    text = stringResource(R.string.add_past_earnings),
-                    onClick = { showAddPastEarnings = true },
-                    leadingIcon = Icons.Default.Add,
+                // Quick actions: Add past earnings + Add spending
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                )
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    QahwaPrimaryButton(
+                        text = stringResource(R.string.add_past_earnings),
+                        onClick = { showAddPastEarnings = true },
+                        leadingIcon = Icons.Default.Add,
+                        modifier = Modifier.weight(1f),
+                    )
+                    QahwaSecondaryButton(
+                        text = stringResource(R.string.add_spending),
+                        onClick = { showAddSpending = true },
+                        leadingIcon = Icons.Default.Add,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
 
-                if (state.totalShifts == 0) {
+                if (state.totalShifts == 0 && state.spendings.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -183,14 +218,28 @@ fun OwnerDashboardScreen(
                     )
 
                     // 4. Top Performing Waiters Leaderboard
-                    SectionTitleWithHint(
-                        title = stringResource(R.string.top_performing_staff),
-                        hint = stringResource(R.string.top_waiters_hint),
-                    )
-                    TopStaffCard(
-                        staff = state.topStaff,
-                        totalEarningsCentimes = state.totalEarningsCentimes,
-                    )
+                    if (state.topStaff.isNotEmpty()) {
+                        SectionTitleWithHint(
+                            title = stringResource(R.string.top_performing_staff),
+                            hint = stringResource(R.string.top_waiters_hint),
+                        )
+                        TopStaffCard(
+                            staff = state.topStaff,
+                            totalEarningsCentimes = state.totalEarningsCentimes,
+                        )
+                    }
+
+                    // 4b. Spendings Recorded in Selected Period
+                    if (state.spendings.isNotEmpty()) {
+                        SectionTitleWithHint(
+                            title = stringResource(R.string.spendings_title),
+                            hint = stringResource(R.string.spendings_hint),
+                        )
+                        SpendingsListCard(
+                            spendings = state.spendings,
+                            onDelete = { id -> gate.require { viewModel.deleteSpending(id) } },
+                        )
+                    }
                 }
 
                 // 5. Week-by-Week Earnings Breakdown (always visible whenever any waiter shift exists)
@@ -291,7 +340,7 @@ private fun EarningsHeroCard(state: OwnerDashboardUiState) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = stringResource(R.string.total_earnings),
+                        text = stringResource(R.string.net_earnings),
                         style = MaterialTheme.typography.labelLarge,
                         color = BrandAmberGold,
                     )
@@ -302,11 +351,42 @@ private fun EarningsHeroCard(state: OwnerDashboardUiState) {
                     )
                 }
                 Text(
-                    text = formatMad(state.totalEarningsCentimes),
+                    text = formatMad(state.netEarningsCentimes),
                     style = MaterialTheme.typography.displaySmall.copy(fontFeatureSettings = "tnum"),
                     fontWeight = FontWeight.Bold,
                     color = BrandCream,
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.gross_earnings),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = BrandCream.copy(alpha = 0.72f),
+                        )
+                        Text(
+                            text = formatMad(state.totalEarningsCentimes),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = BrandCream,
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = stringResource(R.string.spendings_title),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = BrandCream.copy(alpha = 0.72f),
+                        )
+                        Text(
+                            text = formatMad(state.totalSpendingsCentimes),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = BrandAmberGold,
+                        )
+                    }
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -502,7 +582,10 @@ private fun WeeklyEarningsCard(weeks: List<WeeklyEarning>) {
                             }
                             Text(
                                 text = pluralStringResource(R.plurals.shifts_count, week.shiftCount, week.shiftCount) +
-                                    " · " + stringResource(R.string.avg_short, formatMad(week.averagePerShiftCentimes)),
+                                    " · " + stringResource(R.string.avg_short, formatMad(week.averagePerShiftCentimes)) +
+                                    if (week.spendingsCentimes > 0L) {
+                                        " · " + stringResource(R.string.spendings_short, formatMad(week.spendingsCentimes))
+                                    } else "",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = qColors.textSecondary,
                             )
@@ -510,7 +593,7 @@ private fun WeeklyEarningsCard(weeks: List<WeeklyEarning>) {
 
                         Column(horizontalAlignment = Alignment.End) {
                             QahwaCurrencyText(
-                                centimes = week.totalCentimes,
+                                centimes = week.netCentimes,
                                 color = if (isBest) BrandAmberGold else qColors.primaryAccent,
                                 style = MaterialTheme.typography.titleMedium,
                             )
@@ -798,6 +881,290 @@ private fun TopStaffCard(
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(3.dp))
                                 .background(if (index == 0) BrandAmberGold else qColors.primaryAccent),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpendingsListCard(
+    spendings: List<Spending>,
+    onDelete: (Long) -> Unit,
+) {
+    val qColors = QahwaTheme.colors
+    val dateFormat = rememberDateFormat("EEE, d MMM · HH:mm")
+
+    QahwaCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            spendings.forEachIndexed { index, item ->
+                if (index > 0) QahwaDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = qColors.textPrimary,
+                        )
+                        Text(
+                            text = dateFormat.format(Date(item.spentAt)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = qColors.textSecondary,
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        QahwaCurrencyText(
+                            centimes = item.amountCentimes,
+                            color = qColors.warning,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        IconButton(
+                            onClick = { onDelete(item.id) },
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = stringResource(R.string.delete),
+                                tint = qColors.error,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddDashboardSpendingDialog(
+    isSaving: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (title: String, utcDateMillis: Long, slot: ShiftSlot, amountCentimes: Long) -> Unit,
+) {
+    val qColors = QahwaTheme.colors
+    val todayUtcMillis = remember {
+        val local = Calendar.getInstance()
+        Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            clear()
+            set(local.get(Calendar.YEAR), local.get(Calendar.MONTH), local.get(Calendar.DAY_OF_MONTH))
+        }.timeInMillis
+    }
+    var titleInput by remember { mutableStateOf("") }
+    var selectedDateUtcMillis by remember { mutableStateOf(todayUtcMillis) }
+    var selectedSlot by remember { mutableStateOf(ShiftSlot.MORNING) }
+    var amountInput by remember { mutableStateOf("") }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val parsedCentimes = parseMadToCentimes(amountInput)?.takeIf { it > 0L }
+    val showAmountError = amountInput.isNotBlank() && parsedCentimes == null
+    val canSave = titleInput.isNotBlank() && parsedCentimes != null && !isSaving
+
+    val dateFormatter = remember {
+        SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+    }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDateUtcMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                    utcTimeMillis <= todayUtcMillis
+            },
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { selectedDateUtcMillis = it }
+                        showDatePicker = false
+                    },
+                ) {
+                    Text(stringResource(R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = qColors.cardSurface,
+            border = BorderStroke(1.dp, qColors.divider),
+            modifier = Modifier
+                .resetsOwnerIdleTimer()
+                .widthIn(max = 460.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.add_spending),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = qColors.textPrimary,
+                )
+
+                QahwaTextField(
+                    value = titleInput,
+                    onValueChange = { titleInput = it },
+                    label = stringResource(R.string.spending_reason),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Next,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                // Date selector
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = stringResource(R.string.select_date),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = qColors.textSecondary,
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = qColors.background,
+                        border = BorderStroke(1.dp, qColors.divider),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarToday,
+                                    contentDescription = null,
+                                    tint = qColors.primaryAccent,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    text = dateFormatter.format(Date(selectedDateUtcMillis)),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color = qColors.textPrimary,
+                                )
+                            }
+                            TextButton(onClick = { showDatePicker = true }) {
+                                Text(
+                                    text = stringResource(R.string.change_date),
+                                    color = qColors.primaryAccent,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Shift period selector (Morning / Afternoon)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = stringResource(R.string.shift_period),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = qColors.textSecondary,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(
+                            ShiftSlot.MORNING to R.string.morning_shifts,
+                            ShiftSlot.AFTERNOON to R.string.afternoon_shifts,
+                        ).forEach { (slot, labelRes) ->
+                            val isSelected = selectedSlot == slot
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedSlot = slot },
+                                label = {
+                                    Text(
+                                        text = stringResource(labelRes),
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                    containerColor = qColors.background,
+                                    labelColor = qColors.textSecondary,
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = qColors.divider,
+                                    selectedBorderColor = Color.Transparent,
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                            )
+                        }
+                    }
+                }
+
+                QahwaTextField(
+                    value = amountInput,
+                    onValueChange = { amountInput = it },
+                    label = stringResource(R.string.spending_amount_mad),
+                    isError = showAmountError,
+                    errorMessage = if (showAmountError) stringResource(R.string.invalid_number) else null,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.cancel), color = qColors.textSecondary)
+                    }
+                    TextButton(
+                        onClick = {
+                            if (canSave && parsedCentimes != null) {
+                                onConfirm(titleInput.trim(), selectedDateUtcMillis, selectedSlot, parsedCentimes)
+                            }
+                        },
+                        enabled = canSave,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.save),
+                            color = if (canSave) qColors.primaryAccent else qColors.textSecondary,
+                            fontWeight = FontWeight.SemiBold,
                         )
                     }
                 }

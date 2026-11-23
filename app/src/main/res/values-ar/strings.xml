@@ -251,6 +251,15 @@
     <string name="mornings_more_lucrative_by">الصباح يحقق +%1$s أكثر في المتوسط لكل وردية</string>
     <string name="afternoons_more_lucrative_by">المساء يحقق +%1$s أكثر في المتوسط لكل وردية</string>
     <string name="top_waiters_hint">مرتّبون حسب إجمالي النقد المحصّل مع نسبة مساهمة كل نادل</string>
+    <string name="add_spending">إضافة مصروف</string>
+    <string name="shift_spendings">مصاريف هذه الوردية</string>
+    <string name="spendings_title">المصاريف</string>
+    <string name="spendings_hint">المصاريف اليومية ومصاريف الورديات المخصومة من إجمالي الأرباح</string>
+    <string name="spending_reason">السبب (مثل: حليب، نعناع، ثلج)</string>
+    <string name="spending_amount_mad">المبلغ المصروف (درهم)</string>
+    <string name="net_earnings">صافي الأرباح</string>
+    <string name="gross_earnings">إجمالي الأرباح</string>
+    <string name="spendings_short">مصاريف: %1$s</string>
     <plurals name="shifts_count">
         <item quantity="zero">%d وردية</item>
         <item quantity="one">وردية واحدة</item>
