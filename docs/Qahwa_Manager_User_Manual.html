@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Qahwa Manager — Complete Admin, Waiter & Customer User Manual</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 11mm 12mm 12mm 12mm;
+    }
+    :root {
+      --forest: #143023;
+      --forest-light: #1E4633;
+      --gold: #D4A359;
+      --gold-soft: #FBF5EA;
+      --cream: #FAF6F0;
+      --ink: #1C2822;
+      --muted: #52665C;
+      --border: #D8CFC2;
+      --success: #207A4B;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: #FFFFFF;
+      line-height: 1.5;
+      font-size: 10.5pt;
+    }
+    .cover-header {
+      background: linear-gradient(135deg, var(--forest) 0%, var(--forest-light) 100%);
+      color: var(--cream);
+      padding: 26px 28px;
+      border-radius: 16px;
+      border-bottom: 5px solid var(--gold);
+      margin-bottom: 18px;
+    }
+    .cover-badge {
+      display: inline-block;
+      background: var(--gold);
+      color: var(--forest);
+      font-weight: 800;
+      font-size: 8.5pt;
+      padding: 3px 10px;
+      border-radius: 999px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .cover-header h1 {
+      font-size: 22pt;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: #FFFFFF;
+    }
+    .cover-header p {
+      font-size: 10.5pt;
+      color: #D7E6DEC8;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .meta-box {
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--gold);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .meta-box .lbl {
+      font-size: 8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .meta-box .val {
+      font-size: 10pt;
+      font-weight: 800;
+      color: var(--forest);
+      margin-top: 2px;
+    }
+    .part-banner {
+      background: var(--forest);
+      color: #FFFFFF;
+      padding: 10px 16px;
+      border-radius: 10px;
+      margin: 18px 0 12px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      page-break-after: avoid;
+    }
+    .part-banner h2 {
+      font-size: 13.5pt;
+      font-weight: 800;
+    }
+    .part-banner span {
+      background: var(--gold);
+      color: var(--forest);
+      font-size: 8pt;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+    .section-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 11px;
+      background: #FFFFFF;
+      page-break-inside: avoid;
+    }
+    .section-card h3 {
+      font-size: 11.5pt;
+      font-weight: 800;
+      color: var(--forest);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: var(--forest);
+      font-size: 9pt;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    p {
+      margin-bottom: 6px;
+    }
+    ul, ol {
+      padding-left: 20px;
+      margin-bottom: 6px;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+    .callout {
+      background: var(--gold-soft);
+      border: 1px solid var(--gold);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 9.5pt;
+      margin-top: 6px;
+      color: var(--forest);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 7px 10px;
+      text-align: left;
+    }
+    th {
+      background: var(--cream);
+      color: var(--forest);
+      font-weight: 800;
+    }
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .flow-step {
+      background: var(--cream);
+      border: 1.5px solid var(--forest);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+    .flow-step .icon {
+      font-size: 18pt;
+      margin-bottom: 4px;
+    }
+    .flow-step .title {
+      font-weight: 800;
+      font-size: 9.5pt;
+      color: var(--forest);
+      margin-bottom: 3px;
+    }
+    .flow-step .desc {
+      font-size: 8.5pt;
+      color: var(--muted);
+    }
+    .page-break {
+      page-break-before: always;
+    }
+    .footer-note {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 8.5pt;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+    }
+    code {
+      font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+      background: var(--cream);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 9pt;
+      color: var(--forest);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- COVER & OVERVIEW -->
+  <div class="cover-header">
+    <div class="cover-badge">Official Operations &amp; Loyalty Guide</div>
+    <h1>Qahwa Manager POS &amp; Digital Loyalty Club</h1>
+    <p>Complete User Manual for Café Administrators (Owners &amp; Co-Owners), Waiters/Cashiers, and Customers</p>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-box">
+      <div class="lbl">Supported Languages</div>
+      <div class="val">Français · العربية (RTL) · English</div>
+    </div>
+    <div class="meta-box">
+      <div class="lbl">Customer Web &amp; QR Portal</div>
+      <div class="val">qahwa-manager-pos-2026.web.app</div>
+    </div>
+    <div class="meta-box">
+      <div class="lbl">Cloud Sync &amp; Loyalty Cost</div>
+      <div class="val">0 MAD / Month (Firebase Spark)</div>
+    </div>
+  </div>
+
+  <!-- PART 1: ADMIN GUIDE -->
+  <div class="part-banner">
+    <h2>PART I — Administrator Guide (Café Owner &amp; Co-Owners)</h2>
+    <span>OWNER MODE (PIN GATED)</span>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="step-num">1</span> Owner PIN Security Gate &amp; Session Protection</h3>
+    <p>All sensitive administrative actions in Qahwa Manager are protected by a cryptographic Owner PIN gate:</p>
+    <ul>
+      <li><strong>Unlocking Owner Mode:</strong> Tap the <strong>Owner Lock Icon</strong> in the top bar (or navigate to <strong>Owner Hub</strong>) and enter your 4–8 digit Owner PIN.</li>
+      <li><strong>Auto-Lock &amp; Privacy:</strong> Owner Mode automatically locks after <strong>5 minutes of inactivity</strong> or immediately when the app goes to the background. While Owner Mode is active, Android screenshot and screen-recording protection (<code>FLAG_SECURE</code>) is enforced.</li>
+      <li><strong>Changing the PIN:</strong> Open <strong>Owner Hub → Change Owner PIN</strong> to set a new PIN at any time.</li>
+    </ul>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="step-num">2</span> Multi-Device Cloud Sync &amp; Co-Owner Workspace Invites</h3>
+    <p>Qahwa Manager works 100% offline and synchronizes automatically in real time across all your café's phones and tablets once linked to a Café Workspace:</p>
+    <ol>
+      <li>Open <strong>Owner Hub → Cloud Sync &amp; Co-Owners</strong> and sign in or create an account with your email and password.</li>
+      <li><strong>Create Your Café Workspace:</strong> Enter your café's name (e.g., <em>Café C Martinéz</em>). All existing local menu items, staff, inventory, shifts, orders, spendings, and loyalty members are automatically backed up to Cloud Firestore.</li>
+      <li><strong>Invite a Co-Owner / Partner:</strong> Tap <strong>Generate Invite Code</strong> to create a single-use 8-character code (valid for 24 hours). Your co-owner signs in on their phone, taps <strong>Join with Invite Code</strong>, and immediately sees live orders, shifts, earnings, and loyalty cards.</li>
+    </ol>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="step-num">3</span> Staff Roles, Trilingual Menu &amp; Inventory Setup</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Staff Role</th>
+          <th>Cash Collection &amp; Shifts</th>
+          <th>Typical Responsibilities</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>WAITER (Serveur / نادل)</strong></td>
+          <td><strong>Yes</strong> — Can start/end shifts &amp; collect order payments</td>
+          <td>Taking table/takeaway orders, stamping loyalty cards, logging shift spendings</td>
+        </tr>
+        <tr>
+          <td><strong>OWNER / BARMAN / SECURITY / CLEANING</strong></td>
+          <td><strong>No</strong> — Operational roster roles</td>
+          <td>Counter preparation, management, security, and cleaning staff roster tracking</td>
+        </tr>
+      </tbody>
+    </table>
+    <ul>
+      <li><strong>Menu Management (Owner Hub → Menu):</strong> Add or edit drinks and food in <strong>English, Arabic, and French</strong> with exact prices in MAD and availability toggles. All active items appear automatically on your customers' Table QR Digital Menu.</li>
+      <li><strong>Inventory Tracking (Owner Hub → Inventory):</strong> Track stock quantities (coffee beans, milk, sugar, cups) and set low-stock alert thresholds shown on the Home Screen.</li>
+    </ul>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="step-num">4</span> Shift Settlement, Spendings &amp; Explanatory Analytics Dashboard</h3>
+    <ul>
+      <li><strong>Settling Waiter Shifts (Owner Hub → Settle Shifts):</strong> When a waiter ends their shift, enter the <strong>Counted Cash (MAD)</strong> handed over by the waiter. The app compares it against <strong>Expected Cash</strong> (Paid Orders minus Shift Spendings) and flags the shift as <strong>Exact</strong>, <strong>Short</strong>, or <strong>Over</strong>.</li>
+      <li><strong>Adding Historical Earnings:</strong> In <strong>Owner Hub → Dashboard → Add Past Earnings</strong>, backfill revenue from previous days by choosing the date, Morning/Afternoon period, Waiter, and MAD amount.</li>
+      <li><strong>Explanatory Owner Dashboard:</strong>
+        <ul>
+          <li><strong>Gross vs. Net Earnings:</strong> Displays Total Gross Revenue, Total Spendings (daily supplies bought during shifts), and <strong>Net Earnings</strong> (<code>Gross − Spendings</code>).</li>
+          <li><strong>Weekly Breakdown (Mon–Sun):</strong> Compares every week's revenue, shift count, daily average, week-over-week <code>%</code> growth badge, and highlights your <strong>Best Week</strong>.</li>
+          <li><strong>Morning vs. Afternoon &amp; Top Waiters:</strong> Explains which shift period is more lucrative per shift and shows each waiter's exact <code>%</code> share of revenue.</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="step-num">5</span> Setting Up the Loyalty Club, Printable Table QR Stickers &amp; NFC Stands</h3>
+    <p>Open <strong>Loyalty Cards &amp; NFC</strong> from the Home Screen or Owner Hub:</p>
+    <ol>
+      <li><strong>Configure Loyalty Rules (⚙️ Settings Icon in Top Bar):</strong>
+        <ul>
+          <li><strong>Stamps Required (1–50):</strong> Number of drinks needed to unlock a free reward (e.g., <code>9</code>).</li>
+          <li><strong>Reward Title:</strong> Name of the free reward shown to customers (e.g., <code>1 Boisson Gratuite / قهوة مجانية</code>).</li>
+          <li><strong>Google Maps Review Link:</strong> Paste your Google Maps review URL so customers can rate your café 5 stars in one tap.</li>
+          <li><strong>Guest Wi-Fi (SSID &amp; Password):</strong> Optional Wi-Fi credentials displayed on the customer's phone when they scan a table QR code.</li>
+        </ul>
+      </li>
+      <li><strong>Print Table QR Stickers (A4 / PDF):</strong>
+        <ul>
+          <li>Tap <strong>Print Table QR Stickers</strong>, enter the number of tables in your café (e.g., <code>12</code>), and tap <strong>Print 12 Table QR Stickers (A4 / PDF)</strong>.</li>
+          <li>Print directly to a Wi-Fi printer or save as an A4 PDF (or tap <strong>Open Web Print Studio in Browser</strong> to print from any PC at <code>/print.html</code>). Cut and stick each numbered QR sticker (<em>Table 1</em>, <em>Table 2</em>…) onto the matching table.</li>
+        </ul>
+      </li>
+      <li><strong>Program Physical NFC Table Stands (Optional):</strong>
+        <ul>
+          <li>Tap <strong>Write to NFC Tag</strong> and hold the back of your Android phone against any blank <code>NTAG213</code> or <code>NTAG215</code> NFC sticker/card. It immediately programs the café's loyalty URL onto the chip.</li>
+        </ul>
+      </li>
+      <li><strong>15-Day Inactive Customers Win-Back ("Gbrine"):</strong>
+        <ul>
+          <li>Tap the <strong>Inactive 15+ days (Gbrine)</strong> filter chip to see regular customers who haven't visited in over 15 days.</li>
+          <li>Tap the green <strong>WhatsApp Send Icon</strong> next to any inactive customer to open WhatsApp with a pre-filled personal offer inviting them back.</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+
+  <!-- PART 2: WAITER GUIDE -->
+  <div class="part-banner">
+    <h2>PART II — Waiter &amp; Cashier Daily Operations Guide</h2>
+    <span>DAILY SHIFT &amp; POS WORKFLOW</span>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="step-num">1</span> Starting a Shift, Taking Orders &amp; Logging Shift Spendings</h3>
+    <ul>
+      <li><strong>Start Shift:</strong> On the Home Screen, select your name from the active Waiter chips and tap <strong>Start Shift</strong>.</li>
+      <li><strong>Take an Order (New Order):</strong> Enter the <strong>Table Number</strong> (or toggle <strong>Takeaway</strong>), tap drinks/food items to add them to the cart, and tap <strong>Place Order</strong>.</li>
+      <li><strong>Record Shift Spendings:</strong> Whenever you buy daily supplies from cash during your shift (milk, mint, ice, gas), tap <strong>+ Add Spending</strong> on your Shift Card, enter the reason and MAD amount, and save. It is automatically deducted from your expected shift cash.</li>
+    </ul>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="step-num">2</span> Stamping Customer Loyalty Cards &amp; Redeeming Free Drinks</h3>
+    <p>Waiters can award loyalty points in two fast ways:</p>
+    <ul>
+      <li><strong>Option A — Directly at Order Payment (Recommended):</strong>
+        <ol>
+          <li>Open the table's order from <strong>Open Orders</strong>.</li>
+          <li>Tap <strong>Stamp Loyalty Card (+N)</strong> right above <strong>Mark as Paid</strong> (where <code>+N</code> equals the total drinks in the order).</li>
+          <li>The camera QR scanner opens automatically — scan the customer's phone QR code (or type their phone number <code>06...</code>). Their updated stamp balance appears immediately on screen, then tap <strong>Mark as Paid</strong>.</li>
+        </ol>
+      </li>
+      <li><strong>Option B — From the Loyalty Cards &amp; NFC Screen:</strong>
+        <ul>
+          <li>Every customer who scans a Table QR sticker and registers appears automatically in your list within 1 second.</li>
+          <li>Tap <strong>+1 Stamp</strong> on their card (or tap <strong>Stamp by QR / Phone</strong> at the top to scan with the camera).</li>
+          <li>When a customer reaches the required stamps (golden card border), tap <strong>Redeem free</strong> to deduct the stamps and serve their free drink!</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <!-- PART 3: CUSTOMER GUIDE -->
+  <div class="part-banner">
+    <h2>PART III — Customer Guide (How Table QR &amp; Loyalty Points Work)</h2>
+    <span>ZERO APP INSTALL · iOS &amp; ANDROID</span>
+  </div>
+
+  <div class="flow-grid">
+    <div class="flow-step">
+      <div class="icon">📱</div>
+      <div class="title">1. Scan Table QR</div>
+      <div class="desc">Point phone camera at the Table QR sticker (or tap NFC stand).</div>
+    </div>
+    <div class="flow-step">
+      <div class="icon">✍️</div>
+      <div class="title">2. Enter Name &amp; Phone</div>
+      <div class="desc">Register in 10 seconds with Name + 06/07 number.</div>
+    </div>
+    <div class="flow-step">
+      <div class="icon">☕</div>
+      <div class="title">3. Collect Stamps</div>
+      <div class="desc">Show personal QR or phone number to waiter on each order.</div>
+    </div>
+    <div class="flow-step">
+      <div class="icon">🎁</div>
+      <div class="title">4. Free Drink!</div>
+      <div class="desc">Fill all coffee cups on card to unlock a free drink.</div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="step-num">1</span> Customer Experience at the Table</h3>
+    <ol>
+      <li><strong>Scan &amp; Choose Language:</strong> Scanning the sticker on the table opens the café's loyalty portal with a <code>📍 Table N</code> badge and a <strong>FR | عربي | EN</strong> language switcher.</li>
+      <li><strong>One-Time Registration:</strong> On their first visit, the customer enters their <strong>Full Name</strong> and <strong>Phone Number (<code>06...</code> or <code>07...</code>)</strong> and taps <strong>Activate My Card &amp; Collect Points</strong>. Their browser remembers their card automatically for future visits, and they can tap <strong>📲 Add My Card to Home Screen</strong> to install it like a wallet pass.</li>
+      <li><strong>Live Stamp Card &amp; Haptic Confirmation:</strong> When the waiter stamps their card on the POS, the customer's phone vibrates and the new golden coffee cup stamp lights up live on their screen without refreshing.</li>
+      <li><strong>Digital Menu, Guest Wi-Fi &amp; Google Reviews:</strong> From the same screen, the customer can switch to the <strong>📖 Digital Menu</strong> tab to browse drinks &amp; prices in their language, copy the café's <strong>Guest Wi-Fi password</strong> in one tap, or tap <strong>⭐ Leave a 5-Star Review on Google Maps</strong>.</li>
+    </ol>
+    <div class="callout">
+      <strong>Tip for Returning Customers:</strong> Even if a customer switches phones or clears their browser cache, entering the same phone number (<code>06...</code> / <code>07...</code>) on any table QR code immediately restores their existing loyalty card and all their accumulated stamps.
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Qahwa Manager POS &amp; Digital Loyalty Club · Built for Moroccan Cafés · Verified Across 178 Automated Tests
+  </div>
+
+</body>
+</html>

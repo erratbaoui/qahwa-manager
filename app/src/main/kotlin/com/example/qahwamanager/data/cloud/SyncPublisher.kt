@@ -20,6 +20,7 @@ interface SyncPublisher {
     fun pushSpending(spendingId: Long) = Unit
     fun pushLoyaltyCustomer(customerId: Long) = Unit
     fun pushLoyaltyConfig(config: LoyaltyConfig) = Unit
+    fun registerLoyaltyConfigListener(listener: (LoyaltyConfig) -> Unit) = Unit
 }
 
 object NoOpSyncPublisher : SyncPublisher {

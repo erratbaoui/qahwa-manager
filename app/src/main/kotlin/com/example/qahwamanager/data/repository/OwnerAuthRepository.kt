@@ -31,7 +31,7 @@ constructor(
         private val ownerDao: OwnerDao,
         private val shiftDao: ShiftDao,
         private val clock: Clock,
-        @HashingDispatcher private val hashingDispatcher: CoroutineDispatcher,
+        @param:HashingDispatcher private val hashingDispatcher: CoroutineDispatcher,
         private val syncPublisher: SyncPublisher = NoOpSyncPublisher,
 ) {
     fun observeOwnerExists(): Flow<Boolean> = ownerDao.observeExists()

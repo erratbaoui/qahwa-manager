@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
@@ -102,8 +103,11 @@ fun MainNavigation(ownerSession: OwnerSession) {
     // is open keeps the screen and its form (a half-typed counted amount) under the PIN pad; the
     // owner either re-enters the PIN and carries on, or dismisses and goes Home.
     LaunchedEffect(isOwnerMode) {
-        if (!isOwnerMode && backStack.firstOrNull() == Owner && gate.pending == null) {
-            gate.require {}
+        if (!isOwnerMode) {
+            pinViewModel.acknowledgeRecoveryCode()
+            if (backStack.firstOrNull() == Owner && gate.pending == null) {
+                gate.require {}
+            }
         }
     }
 
@@ -171,7 +175,7 @@ fun MainNavigation(ownerSession: OwnerSession) {
                             label = {
                                 Text(
                                     text = stringResource(labelRes),
-                                    fontSize = 11.sp,
+                                    style = MaterialTheme.typography.labelSmall,
                                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                                 )
                             },

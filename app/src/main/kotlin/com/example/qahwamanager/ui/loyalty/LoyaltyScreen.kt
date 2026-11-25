@@ -58,6 +58,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -115,10 +116,10 @@ fun LoyaltyScreen(
     val qColors = QahwaTheme.colors
     val context = LocalContext.current
 
-    var showEnrollDialog by remember { mutableStateOf(false) }
-    var showQuickStampDialog by remember { mutableStateOf(false) }
-    var showSettingsDialog by remember { mutableStateOf(false) }
-    var showStandLinkDialog by remember { mutableStateOf(false) }
+    var showEnrollDialog by rememberSaveable { mutableStateOf(false) }
+    var showQuickStampDialog by rememberSaveable { mutableStateOf(false) }
+    var showSettingsDialog by rememberSaveable { mutableStateOf(false) }
+    var showStandLinkDialog by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         onDispose { viewModel.cancelNfcWrite() }
@@ -423,6 +424,9 @@ private fun LoyaltyCustomerCard(
 ) {
     val qColors = QahwaTheme.colors
     val dateFormat = rememberDateFormat("d MMM yyyy")
+    val formattedLastVisit = remember(customer.lastVisitAt, dateFormat) {
+        dateFormat.format(Date(customer.lastVisitAt))
+    }
     val rewardReady = customer.currentStamps >= config.stampsRequired
 
     QahwaCard(
@@ -448,7 +452,7 @@ private fun LoyaltyCustomerCard(
                         color = qColors.textPrimary,
                     )
                     Text(
-                        text = "${customer.phone} · ${stringResource(R.string.last_visit_date, dateFormat.format(Date(customer.lastVisitAt)))}",
+                        text = "${customer.phone} · ${stringResource(R.string.last_visit_date, formattedLastVisit)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = qColors.textSecondary,
                     )
@@ -479,12 +483,13 @@ private fun LoyaltyCustomerCard(
                 }
             }
 
-            // Visual Stamp Circles (1..stampsRequired)
+            // Visual Stamp Circles (capped at 12 with +N overflow pill for large stamp thresholds)
+            val maxCircles = minOf(config.stampsRequired, 12)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                for (index in 1..config.stampsRequired) {
+                for (index in 1..maxCircles) {
                     val filled = index <= customer.currentStamps
                     Box(
                         modifier = Modifier
@@ -498,6 +503,23 @@ private fun LoyaltyCustomerCard(
                             contentDescription = null,
                             tint = if (filled) Color(0xFF143023) else qColors.textSecondary.copy(alpha = 0.45f),
                             modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+                if (config.stampsRequired > maxCircles) {
+                    Box(
+                        modifier = Modifier
+                            .height(32.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(qColors.elevatedSurface)
+                            .padding(horizontal = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "+${config.stampsRequired - maxCircles}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = qColors.textSecondary,
                         )
                     }
                 }
@@ -554,8 +576,8 @@ private fun EnrollCustomerDialog(
     onDismiss: () -> Unit,
     onConfirm: (name: String, phone: String) -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
     val canSave = name.isNotBlank() && phone.filter { it.isDigit() }.length >= 8
     val qColors = QahwaTheme.colors
 
@@ -700,11 +722,11 @@ private fun LoyaltySettingsDialog(
         wifiPassword: String,
     ) -> Unit,
 ) {
-    var stampsInput by remember { mutableStateOf(config.stampsRequired.toString()) }
-    var rewardInput by remember { mutableStateOf(config.rewardTitle) }
-    var reviewUrlInput by remember { mutableStateOf(config.googleReviewUrl) }
-    var wifiSsidInput by remember { mutableStateOf(config.wifiSsid) }
-    var wifiPasswordInput by remember { mutableStateOf(config.wifiPassword) }
+    var stampsInput by rememberSaveable { mutableStateOf(config.stampsRequired.toString()) }
+    var rewardInput by rememberSaveable { mutableStateOf(config.rewardTitle) }
+    var reviewUrlInput by rememberSaveable { mutableStateOf(config.googleReviewUrl) }
+    var wifiSsidInput by rememberSaveable { mutableStateOf(config.wifiSsid) }
+    var wifiPasswordInput by rememberSaveable { mutableStateOf(config.wifiPassword) }
     val parsedStamps = stampsInput.toIntOrNull()?.takeIf { it in 1..50 }
     val canSave = parsedStamps != null && rewardInput.isNotBlank()
     val qColors = QahwaTheme.colors

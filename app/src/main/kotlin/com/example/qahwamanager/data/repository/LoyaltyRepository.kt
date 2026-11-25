@@ -22,6 +22,10 @@ class LoyaltyRepository @Inject constructor(
     private val _config = MutableStateFlow(LoyaltyConfig())
     val config: StateFlow<LoyaltyConfig> = _config.asStateFlow()
 
+    init {
+        syncPublisher.registerLoyaltyConfigListener(::applyRemoteConfig)
+    }
+
     fun observeCustomers(): Flow<List<LoyaltyCustomer>> = loyaltyDao.observeAll()
 
     fun updateConfig(
@@ -60,9 +64,23 @@ class LoyaltyRepository @Inject constructor(
         require(cleanedName.isNotEmpty()) { "Customer name is blank" }
         require(normalizedPhone.length >= 8) { "Invalid phone number" }
 
-        val existing = loyaltyDao.getByPhone(normalizedPhone)
+        val remoteId = deterministicRemoteId(normalizedPhone)
+        val existing = loyaltyDao.getByPhone(normalizedPhone) ?: loyaltyDao.getByRemoteId(remoteId)
         val now = clock.nowMillis()
         if (existing != null) {
+            if (existing.isDeleted) {
+                val revived = existing.copy(
+                    name = cleanedName,
+                    phone = normalizedPhone,
+                    currentStamps = if (addInitialStamp) 1 else 0,
+                    lastVisitAt = now,
+                    updatedAt = now,
+                    isDeleted = false,
+                )
+                loyaltyDao.update(revived)
+                syncPublisher.pushLoyaltyCustomer(revived.id)
+                return revived
+            }
             return if (addInitialStamp) {
                 addStamp(existing.id) ?: existing
             } else {

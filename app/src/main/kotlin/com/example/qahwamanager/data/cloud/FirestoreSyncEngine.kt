@@ -55,8 +55,19 @@ class FirestoreSyncEngine @Inject constructor(
     @Volatile
     private var activeCafeId: String? = null
 
+    @Volatile
+    private var loyaltyConfigListener: ((LoyaltyConfig) -> Unit)? = null
+
+    @Volatile
+    private var latestRemoteLoyaltyConfig: LoyaltyConfig? = null
+
     private val _syncStatus = MutableStateFlow(SyncStatus.IDLE)
     val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
+
+    override fun registerLoyaltyConfigListener(listener: (LoyaltyConfig) -> Unit) {
+        loyaltyConfigListener = listener
+        latestRemoteLoyaltyConfig?.let(listener)
+    }
 
     fun startForCafe(cafeId: String) {
         if (activeCafeId == cafeId && listeners.isNotEmpty()) return
@@ -321,7 +332,13 @@ class FirestoreSyncEngine @Inject constructor(
                     return@addSnapshotListener
                 }
                 val fromCache = snap?.metadata?.isFromCache == true
-                if (!fromCache && (snap == null || !snap.exists())) {
+                val data = snap?.data
+                if (data != null) {
+                    FirestoreSyncMapper.mapToLoyaltyConfig(data)?.let { remoteConfig ->
+                        latestRemoteLoyaltyConfig = remoteConfig
+                        loyaltyConfigListener?.invoke(remoteConfig)
+                    }
+                } else if (!fromCache) {
                     pushLoyaltyConfig(LoyaltyConfig(updatedAt = System.currentTimeMillis()))
                 }
             }

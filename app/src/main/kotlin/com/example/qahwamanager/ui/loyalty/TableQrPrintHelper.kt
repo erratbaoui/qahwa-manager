@@ -12,6 +12,9 @@ import android.webkit.WebViewClient
  */
 object TableQrPrintHelper {
 
+    // Retained across async WebView load so GC cannot collect the unattached WebView before onPageFinished.
+    private var activePrintWebView: WebView? = null
+
     fun printTableQrSheet(
         context: Context,
         cafeName: String,
@@ -30,16 +33,20 @@ object TableQrPrintHelper {
         )
 
         val webView = WebView(context)
+        activePrintWebView = webView
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String?) {
-                val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager ?: return
-                val jobName = "Qahwa_Table_QR_Stickers"
-                val adapter = view.createPrintDocumentAdapter(jobName)
-                val attrs = PrintAttributes.Builder()
-                    .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
-                    .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
-                    .build()
-                printManager.print(jobName, adapter, attrs)
+                val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager
+                if (printManager != null) {
+                    val jobName = "Qahwa_Table_QR_Stickers"
+                    val adapter = view.createPrintDocumentAdapter(jobName)
+                    val attrs = PrintAttributes.Builder()
+                        .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                        .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+                        .build()
+                    printManager.print(jobName, adapter, attrs)
+                }
+                activePrintWebView = null
             }
         }
         webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)

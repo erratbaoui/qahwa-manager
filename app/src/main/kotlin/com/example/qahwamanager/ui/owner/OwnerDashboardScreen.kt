@@ -1155,7 +1155,7 @@ private fun AddDashboardSpendingDialog(
                     }
                     TextButton(
                         onClick = {
-                            if (canSave && parsedCentimes != null) {
+                            if (parsedCentimes != null) {
                                 onConfirm(titleInput.trim(), selectedDateUtcMillis, selectedSlot, parsedCentimes)
                             }
                         },

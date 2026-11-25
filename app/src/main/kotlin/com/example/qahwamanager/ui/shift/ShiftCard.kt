@@ -251,7 +251,7 @@ fun AddShiftSpendingDialog(
                     }
                     TextButton(
                         onClick = {
-                            if (canSave && parsedCentimes != null) {
+                            if (parsedCentimes != null) {
                                 onConfirm(title.trim(), parsedCentimes)
                             }
                         },

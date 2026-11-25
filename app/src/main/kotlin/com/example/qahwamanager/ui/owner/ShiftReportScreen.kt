@@ -2,14 +2,15 @@ package com.example.qahwamanager.ui.owner
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,99 +74,110 @@ fun ShiftReportScreen(
         val shift = current.shift.shift
         val settled = shift.status == ShiftStatus.SETTLED
         val counted = if (settled) shift.countedCentimes else countedCentimes
+        val spendingsCentimes = remember(current.spendings) {
+            current.spendings.sumOf { it.amountCentimes }
+        }
+        val netExpectedCentimes = (current.expectedCentimes - spendingsCentimes).coerceAtLeast(0L)
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState()),
+                .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 840.dp)
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                    .widthIn(max = 840.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Text(
-                    text = day.format(Date(shift.startedAt)) + " · " + time.format(Date(shift.startedAt)) + " – " + (shift.endedAt?.let { time.format(Date(it)) } ?: ""),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = qColors.textSecondary,
-                )
-                QahwaCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ReportRow(stringResource(R.string.orders_collected), current.paidOrders.size.toString())
-                        ReportRow(stringResource(R.string.expected_cash), formatMad(current.expectedCentimes), bold = true)
-                        if (settled) {
-                            ReportRow(stringResource(R.string.counted_cash), formatMad(shift.countedCentimes ?: 0), bold = true)
-                        } else {
-                            QahwaTextField(
-                                value = countedInput,
-                                onValueChange = viewModel::setCountedInput,
-                                label = stringResource(R.string.counted_cash),
-                                isError = countedInput.isNotBlank() && countedCentimes == null,
-                                errorMessage = if (countedInput.isNotBlank() && countedCentimes == null) stringResource(R.string.invalid_number) else null,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                        QahwaDivider()
-                        if (counted != null) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                DifferenceText(counted - current.expectedCentimes)
+                item {
+                    Text(
+                        text = day.format(Date(shift.startedAt)) + " · " + time.format(Date(shift.startedAt)) + " – " + (shift.endedAt?.let { time.format(Date(it)) } ?: ""),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = qColors.textSecondary,
+                    )
+                }
+                item {
+                    QahwaCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ReportRow(stringResource(R.string.orders_collected), current.paidOrders.size.toString())
+                            ReportRow(stringResource(R.string.expected_cash), formatMad(netExpectedCentimes), bold = true)
+                            if (settled) {
+                                ReportRow(stringResource(R.string.counted_cash), formatMad(shift.countedCentimes ?: 0), bold = true)
+                            } else {
+                                QahwaTextField(
+                                    value = countedInput,
+                                    onValueChange = viewModel::setCountedInput,
+                                    label = stringResource(R.string.counted_cash),
+                                    isError = countedInput.isNotBlank() && countedCentimes == null,
+                                    errorMessage = if (countedInput.isNotBlank() && countedCentimes == null) stringResource(R.string.invalid_number) else null,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                             }
-                        }
-                        ReportRow(
-                            stringResource(R.string.cancelled_by_owner),
-                            pluralStringResource(R.plurals.orders_count, current.cancelledOrders.size, current.cancelledOrders.size) +
-                                " · " + formatMad(current.cancelledOrders.sumOf { it.totalCentimes }),
-                        )
-                        ReportRow(stringResource(R.string.left_open), current.leftOpen.size.toString())
-                        current.leftOpen.forEach { row ->
-                            val order = current.leftOpenOrders.find { it.id == row.orderId }
-                            ReportRow(
-                                "    " + (order?.let { tableLabel(it) } ?: stringResource(R.string.order_title, row.orderId)),
-                                formatMad(row.totalCentimes),
-                                muted = true,
-                            )
-                        }
-                        ReportRow(stringResource(R.string.wrong_pin_attempts), shift.failedOwnerPinAttempts.toString())
-                        if (current.spendings.isNotEmpty()) {
                             QahwaDivider()
+                            if (counted != null) {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                    DifferenceText(counted - netExpectedCentimes)
+                                }
+                            }
                             ReportRow(
-                                stringResource(R.string.shift_spendings),
-                                formatMad(current.spendings.sumOf { it.amountCentimes }),
-                                bold = true,
+                                stringResource(R.string.cancelled_by_owner),
+                                pluralStringResource(R.plurals.orders_count, current.cancelledOrders.size, current.cancelledOrders.size) +
+                                    " · " + formatMad(current.cancelledOrders.sumOf { it.totalCentimes }),
                             )
-                            current.spendings.forEach { spending ->
+                            ReportRow(stringResource(R.string.left_open), current.leftOpen.size.toString())
+                            current.leftOpen.forEach { row ->
+                                val order = current.leftOpenOrders.find { it.id == row.orderId }
                                 ReportRow(
-                                    "    " + spending.title,
-                                    formatMad(spending.amountCentimes),
+                                    "    " + (order?.let { tableLabel(it) } ?: stringResource(R.string.order_title, row.orderId)),
+                                    formatMad(row.totalCentimes),
                                     muted = true,
                                 )
                             }
-                        }
-                        if (shift.endedByTakeover) {
-                            Text(stringResource(R.string.ended_by_takeover), style = MaterialTheme.typography.bodyMedium, color = qColors.warning, fontWeight = FontWeight.SemiBold)
-                        }
-                        if (settled) {
-                            Text(
-                                text = stringResource(R.string.settled_on, shift.settledAt?.let { day.format(Date(it)) + " " + time.format(Date(it)) } ?: ""),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = qColors.textSecondary,
-                            )
-                        } else {
-                            QahwaPrimaryButton(
-                                text = stringResource(R.string.confirm_settlement),
-                                onClick = { gate.require { viewModel.settle(shiftId, onBack) } },
-                                enabled = countedCentimes != null && !isSaving,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
+                            ReportRow(stringResource(R.string.wrong_pin_attempts), shift.failedOwnerPinAttempts.toString())
+                            if (current.spendings.isNotEmpty()) {
+                                QahwaDivider()
+                                ReportRow(
+                                    stringResource(R.string.shift_spendings),
+                                    formatMad(spendingsCentimes),
+                                    bold = true,
+                                )
+                                current.spendings.forEach { spending ->
+                                    ReportRow(
+                                        "    " + spending.title,
+                                        formatMad(spending.amountCentimes),
+                                        muted = true,
+                                    )
+                                }
+                            }
+                            if (shift.endedByTakeover) {
+                                Text(stringResource(R.string.ended_by_takeover), style = MaterialTheme.typography.bodyMedium, color = qColors.warning, fontWeight = FontWeight.SemiBold)
+                            }
+                            if (settled) {
+                                Text(
+                                    text = stringResource(R.string.settled_on, shift.settledAt?.let { day.format(Date(it)) + " " + time.format(Date(it)) } ?: ""),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = qColors.textSecondary,
+                                )
+                            } else {
+                                QahwaPrimaryButton(
+                                    text = stringResource(R.string.confirm_settlement),
+                                    onClick = { gate.require { viewModel.settle(shiftId, onBack) } },
+                                    enabled = countedCentimes != null && !isSaving,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
                         }
                     }
                 }
-                QahwaSectionHeader(title = stringResource(R.string.orders_collected))
-                current.paidOrders.forEach { order -> OrderLine(order, time) }
+                item {
+                    QahwaSectionHeader(title = stringResource(R.string.orders_collected))
+                }
+                items(current.paidOrders, key = { it.id }) { order ->
+                    OrderLine(order, time)
+                }
             }
         }
     }
